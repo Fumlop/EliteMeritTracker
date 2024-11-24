@@ -2,6 +2,7 @@ import os
 import tkinter as tk
 import sys
 import json
+import myNotebook as nb
 import re
 from os import path
 from config import config
@@ -10,7 +11,11 @@ from datetime import datetime, timedelta
 this = sys.modules[__name__]  # For holding module globals
 
 this.powerInfo = {}
-this.version = 'v0.0.9'
+this.currentSysPP = {"ABC":{"merits":0,"influence": 0}}
+this.lastSysPP = {"ABC":{"merits":0, "influence": 0}}
+this.currentSystem = "" 
+this.lastSystem = ""
+this.version = 'v0.1.0'
 
 def plugin_start3(plugin_dir):
     directory_name = path.basename(path.dirname(__file__))
@@ -24,7 +29,7 @@ def plugin_start3(plugin_dir):
         "Rank": 0,
         "LastUpdate": "",
         "AccumulatedMerits": 0,
-        "AccumulatedSince": ""
+        "AccumulatedSince": "",
     }
 
     # JSON prüfen oder initialisieren
@@ -45,11 +50,13 @@ def plugin_start3(plugin_dir):
 def plugin_app(parent):
     # Adds to the main page UI
     this.frame = tk.Frame(parent)
-    this.title = tk.Label(this.frame, text="Powerplay and Merits".strip(), anchor="w", justify="left")
-    this.power = tk.Label(this.frame, text=f"Pledged Power : {this.powerInfo['PowerName']}".strip(), anchor="w", justify="left")
+    this.title = tk.Label(this.frame, text="Powerplay and merits".strip(), anchor="w", justify="left")
+    this.power = tk.Label(this.frame, text=f"Pledged power : {this.powerInfo['PowerName']}".strip(), anchor="w", justify="left")
     this.powerrank = tk.Label(this.frame, text=f"Rank : {this.powerInfo['Rank']}".strip(), anchor="w", justify="left")
-    this.currMerits = tk.Label(this.frame, text=f"Current Merits : {this.powerInfo['Merits']}".strip(), anchor="w", justify="left")
-    this.meritsLastSession = tk.Label(this.frame, text=f"LastSession Merits : {this.powerInfo['AccumulatedMerits']}".strip(), anchor="w", justify="left")
+    this.currMerits = tk.Label(this.frame, text=f"Current merits : {this.powerInfo['Merits']}".strip(), anchor="w", justify="left")
+    this.meritsLastSession = tk.Label(this.frame, text=f"Last session merits : {this.powerInfo['AccumulatedMerits']}".strip(), anchor="w", justify="left")
+    this.currentSystemLabel = tk.Label(this.frame, text=f"Current system : 0".strip(), anchor="w", justify="left")
+    this.lastSystemLabel = tk.Label(this.frame, text=f"Last system : 0".strip(), anchor="w", justify="left")
 
     # Positionierung der Labels
     this.title.grid(row=0, column=0, sticky='we')
@@ -57,6 +64,8 @@ def plugin_app(parent):
     this.powerrank.grid(row=2, column=0, sticky='we')
     this.currMerits.grid(row=3, column=0, sticky='we')
     this.meritsLastSession.grid(row=4, column=0, sticky='we')
+    this.currentSystemLabel.grid(row=5, column=0, sticky='we')
+    this.lastSystemLabel.grid(row=6, column=0, sticky='we')
     
     return this.frame
 
@@ -79,7 +88,6 @@ def update_json_file():
         json.dump(this.powerInfo, json_file, indent=4)
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
-    print("Event:", entry['event'])
     if entry['event'] == 'Powerplay':
         current_merits = entry.get('Merits', this.powerInfo.get("Merits", 0))
         last_merits = this.powerInfo.get("Merits", 0)
@@ -119,25 +127,41 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         # JSON aktualisieren
         update_json_file()
 
+        # Block to prepare sytsem merits
+        # this.currentSysPP[this.currentSystem]["merits"] += event.merits
+        # this.currentSysPP[this.currentSystem]["influence"] += (event.merits/4)
+        # Block to prepare sytsem merits
+
         # Dump ins Log
         print("Updated powerInfo:", json.dumps(this.powerInfo, indent=4))
 
         # Update UI
         update_display()
+    if entry['event'] == 'SupercruiseExit':
+        this.lastSysPP = this.currentSysPP
+        this.lastSystem = this.currentSystem
+        this.currentSystem = entry.get('StarSystem',"")
+        this.currentSysPP = { this.currentSystem :{"merits":0, "influence": 0}}
+
 
 def update_display():
-    this.title["text"] = "Powerplay and Merits".strip()
+    this.title["text"] = "Powerplay and merits".strip()
     this.title.grid()
 
-    this.power["text"] = f"Pledged Power: {this.powerInfo['PowerName'].strip()}".strip()
+    this.power["text"] = f"Pledged power: {this.powerInfo['PowerName'].strip()}".strip()
     this.power.grid()
 
     this.powerrank["text"] = f"Rank: {str(this.powerInfo['Rank']).strip()}".strip()
     this.powerrank.grid()
 
-    this.currMerits["text"] = f"Current Merits: {str(this.powerInfo['Merits']).strip()}".strip()
+    this.currMerits["text"] = f"Current merits: {str(this.powerInfo['Merits']).strip()}".strip()
     this.currMerits.grid()
 
-    this.meritsLastSession["text"] = f"LastSession Merits : {str(this.powerInfo['AccumulatedMerits']).strip()}".strip()
+    this.meritsLastSession["text"] = f"Last session merits : {str(this.powerInfo['AccumulatedMerits']).strip()}".strip()
     this.meritsLastSession.grid()
 
+    this.currentSystemLabel["text"] = f"Current system : 0".strip()
+    this.currentSystemLabel.grid()
+    
+    this.lastSystemLabel["text"] = f"Last system : 0".strip()
+    this.lastSystemLabel.grid()
