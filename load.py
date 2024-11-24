@@ -5,6 +5,7 @@ import json
 import myNotebook as nb
 import re
 from power_info_window import show_power_info
+from ttkHyperlinkLabel import HyperlinkLabel
 from os import path
 from config import config
 import logging
@@ -14,11 +15,11 @@ from datetime import datetime, timedelta
 this = sys.modules[__name__]  # For holding module globals
 
 this.powerInfo = {}
-this.currentSysPP = {"ABC":{"merits":0,"influence": 0}}
-this.lastSysPP = {"ABC":{"merits":0, "influence": 0}}
+this.currentSysPP = {"":{"merits":0}}
+this.lastSysPP = {"":{"merits":0}}
 this.currentSystem = "" 
 this.lastSystem = ""
-this.version = 'v0.1.0'
+this.version = 'v0.2.1'
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
 
@@ -41,6 +42,18 @@ if not logger.hasHandlers():
     logger_channel.setFormatter(logger_formatter)
     logger.addHandler(logger_channel)
 
+def checkVersion():
+	try:
+		req = requests.get(url='https://api.github.com/repos/Fumlop/EliteMeritTracker/releases/latest')
+	except:
+		return -1
+	if not req.status_code == requests.codes.ok:
+		return -1 # Error
+	data = req.json()
+	if data['tag_name'] == this.version:
+		return 0 # Newest
+	return 1 # Newer version available
+
 def plugin_start3(plugin_dir):
     directory_name = path.basename(path.dirname(__file__))
     plugin_path = path.join(config.plugin_dir, directory_name)
@@ -56,6 +69,8 @@ def plugin_start3(plugin_dir):
         "AccumulatedSince": "",
         "Systems":{}
     }
+
+    this.newest = checkVersion()
 
     # JSON prüfen oder initialisieren
     if not path.exists(file_path):
@@ -105,7 +120,20 @@ def plugin_app(parent):
         command=lambda: show_power_info(parent, this.powerInfo)
     )
     this.showButton.grid(row=5, column=0, sticky='we', pady=10)
+    #this.reset = tk.Button(
+    #    this.frame,  # Button wird zu `this.frame` hinzugefügt
+    #    text="Reset",
+    #    command=lambda: reset_power(parent, this.powerInfo)
+    #)
+    #this.reset.grid(row=5, column=1, sticky='we', pady=10)
+    this.updateIndicator = HyperlinkLabel(this.frame, text="Update available", anchor=tk.W, url='https://github.com/Fumlop/EliteMeritTracker/releases')
+    if this.newest == 1:
+        this.updateIndicator.grid(padx = 5, row = 6, column = 1)
     return this.frame
+
+def plugin_prefs(parent, cmdr, is_beta):
+	frame = nb.Frame(parent)
+	return frame
 
 def update_system_merits(current_system, merits_value):
     logger.debug('update_merits_value: %s', merits_value)    
