@@ -31,7 +31,7 @@ logger = logging.getLogger(f'{appname}.{plugin_name}')
 # If the Logger has handlers then it was already set up by the core code, else
 # it needs setting up here.
 if not logger.hasHandlers():
-    level = logging.DEBUG  # So logger.info(...) is equivalent to print()
+    level = logging.INFO  # So logger.info(...) is equivalent to print()
 
     logger.setLevel(level)
     logger_channel = logging.StreamHandler()
@@ -74,10 +74,10 @@ def plugin_start3(plugin_dir):
 
 def plugin_app(parent):
     # Adds to the main page UI
-    this.currentSystem = "TEST"
-    this.lastSystem = "LAST"
-    this.currentSysPP = { "TEST" :{"sessionMerits":0, "influence": 0}}
-    this.lastSysPP = { "LAST" :{"sessionMerits":0, "influence": 0}}
+    #this.currentSystem = "TEST"
+    #this.lastSystem = "LAST"
+    #this.currentSysPP = { "TEST" :{"sessionMerits":0, "influence": 0}}
+    #this.lastSysPP = { "LAST" :{"sessionMerits":0, "influence": 0}}
 
     this.frame = tk.Frame(parent)
     this.power = tk.Label(this.frame, text=f"Pledged power : {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}".strip(), anchor="w", justify="left")
@@ -87,9 +87,9 @@ def plugin_app(parent):
     this.currentSystemEntry = tk.Entry(this.frame, width=10)
     this.currentSystemButton = tk.Button(this.frame, text="OK", command=lambda: [update_system_merits(this.currentSystem, this.currentSystemEntry.get()), update_display()])
 
-    this.currentSystemLabel.grid(row=4, column=0, sticky='we')
-    this.currentSystemEntry.grid(row=4, column=1, padx=5, sticky='we')
-    this.currentSystemButton.grid(row=4, column=2, padx=5, sticky='we')
+    this.currentSystemLabel.grid(row=3, column=0, sticky='we')
+    this.currentSystemEntry.grid(row=3, column=1, padx=5, sticky='we')
+    this.currentSystemButton.grid(row=3, column=2, padx=3, sticky='we')
     this.lastSystemLabel = tk.Label(this.frame, text=f"Last system '{this.lastSystem}'".strip(), anchor="w", justify="left")
 
     # Positionierung der Labels
@@ -105,23 +105,11 @@ def plugin_app(parent):
         command=lambda: show_power_info(parent, this.powerInfo)
     )
     this.showButton.grid(row=5, column=0, sticky='we', pady=10)
-    parent.bind("<Configure>", resize_button)
     return this.frame
 
-def resize_button(event):
-    parent_width = event.width
-    parent_height = event.height
-    logger.debug('resize_button')    
-    # Berechnung der Button-Größe basierend auf der Parent-Größe
-    button_width = max(5, int(parent_width * 0.1 / 10))  # Mindestens 5 Zeichen breit
-    button_height = max(1, int(parent_height * 0.05 / 20))  # Mindestens 1 Zeile hoch
-
-    this.showButton.config(width=button_width, height=button_height)
-
-
 def update_system_merits(current_system, merits_value):
-    logger.debug('update_merits_value', merits_value)    
-    logger.debug('update_current_system', current_system)    
+    logger.debug('update_merits_value: %s', merits_value)    
+    logger.debug('update_current_system: %s', current_system)    
     try:
         merits = int(merits_value)
 
@@ -136,8 +124,12 @@ def update_system_merits(current_system, merits_value):
             this.powerInfo["Systems"][current_system] = {"sessionMerits": merits}
         
         logger.debug(f"Updated system '{current_system}': {this.powerInfo['Systems'][current_system]}")
+
+        # Direkte Aktualisierung der Anzeige
+        update_display()
     except ValueError:
         logger.debug("Invalid merits value. Please enter a number.")
+
 
 
 def plugin_prefs(parent, cmdr, is_beta):
@@ -220,23 +212,36 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         this.currentSysPP = { this.currentSystem :{"sessionMerits":0}}
 
 
-
 def update_display():
-    logger.debug("update_display")
-    this.power["text"] = f"Pledged power: {this.powerInfo['PowerName'].strip()}".strip()
-    this.power.grid()
-
-    this.powerrank["text"] = f"Rank: {str(this.powerInfo['Rank']).strip()}".strip()
-    this.powerrank.grid()
+    logger.debug("update_display called")
+    logger.debug(f"Current system: {this.currentSystem}")
+    logger.debug(f"Last system: {this.lastSystem}")
+    logger.debug("Systems data:")
+    logger.debug(json.dumps(this.powerInfo["Systems"], indent=4))
 
     this.currMerits["text"] = f"Current merits: {str(this.powerInfo['Merits']).strip()}".strip()
     this.currMerits.grid()
 
     this.meritsLastSession["text"] = f"Last session merits : {str(this.powerInfo['AccumulatedMerits']).strip()}".strip()
     this.meritsLastSession.grid()
-    curr_system_merits = this.powerInfo.get("Systems", {}).get(this.currentSystem, {}).get("sessionMerits", 0)
-    this.currentSystemLabel["text"] = f"Current system '{this.currentSystem}' (Merits: {curr_system_merits})".strip()
+
+    try:
+        # Aktuelle Merits aus Systems abrufen
+        curr_system_merits = this.powerInfo["Systems"][this.currentSystem]["sessionMerits"]
+        logger.debug(f"Merits for current system '{this.currentSystem}': {curr_system_merits}")
+        this.currentSystemLabel["text"] = f"Current system '{this.currentSystem}' (Merits: {curr_system_merits})".strip()
+    except KeyError as e:
+        logger.debug(f"KeyError for current system '{this.currentSystem}': {e}")
+        this.currentSystemLabel["text"] = f"Current system '{this.currentSystem}' (Merits: N/A)".strip()
+
     this.currentSystemLabel.grid()
-    last_system_merits = this.powerInfo.get("Systems", {}).get(this.lastSystem, {}).get("sessionMerits", 0)
-    this.lastSystemLabel["text"] = f"Last system '{this.lastSystem}' (Merits: {last_system_merits})".strip()
+
+    try:
+        last_system_merits = this.powerInfo["Systems"][this.lastSystem]["sessionMerits"]
+        logger.debug(f"Merits for last system '{this.lastSystem}': {last_system_merits}")
+        this.lastSystemLabel["text"] = f"Last system '{this.lastSystem}' (Merits: {last_system_merits})".strip()
+    except KeyError as e:
+        logger.debug(f"KeyError for last system '{this.lastSystem}': {e}")
+        this.lastSystemLabel["text"] = f"Last system '{this.lastSystem}' (Merits: N/A)".strip()
+
     this.lastSystemLabel.grid()
