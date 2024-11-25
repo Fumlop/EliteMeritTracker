@@ -140,7 +140,7 @@ def plugin_app(parent):
     this.showButton = tk.Button(
         this.frame,  # Button wird zu `this.frame` hinzugefügt
         text="Show Merits",
-        command=lambda: show_power_info(parent, this.powerInfo, this.discordText)
+        command=lambda: show_power_info(parent, this.powerInfo, this.discordTextVar)
     )
     this.showButton.grid(row=5, column=0, sticky='we', pady=10)
     #this.reset = tk.Button(
@@ -161,10 +161,9 @@ def plugin_prefs(parent, cmdr, is_beta):
     tk.Label(config_frame, text="Copy paste text value - Text must contain @MeritsValue and @System for replacement").grid(row=0, column=0, sticky="w", padx=5, pady=5)
 
     # Textfeld für die Eingabe
-    text_var = tk.StringVar(value=config.get("dText", "@Leader Earned @MertitsValue merits in @System"))  # Initialisiere mit gespeichertem Wert oder leerem String
+    this.discordTextVar = tk.StringVar(value=config.get("dText", "@Leader Earned @MertitsValue merits in @System"))  # Initialisiere mit gespeichertem Wert oder leerem String
     text_entry = tk.Entry(config_frame, textvariable=text_var, width=50)
     text_entry.grid(row=1, column=0, padx=5, pady=5, sticky="we")
-    this.discordText = text_var
 
     return config_frame
 
@@ -193,7 +192,7 @@ def update_system_merits(current_system, merits_value):
         logger.debug("Invalid merits value. Please enter a number.")
 
 def prefs_changed(cmdr, is_beta):
-	config.set("dText", this.discordText)
+	config.set("dText", this.discordTextVar.get())
 	update_display()
 
 def update_json_file():
