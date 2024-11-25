@@ -1,6 +1,14 @@
 import tkinter as tk
 
-def show_power_info(parent, power_info):
+def copy_to_clipboard(text):
+    root = tk.Tk()
+    root.withdraw()  # Versteckt das Hauptfenster
+    root.clipboard_clear()
+    root.clipboard_append(text)
+    root.update()  # Aktualisiert die Zwischenablage
+    root.destroy()
+
+def show_power_info(parent, power_info, initial_text):
     # Erzeuge ein neues Fenster
     info_window = tk.Toplevel(parent)
     info_window.title("Power Info")
@@ -23,12 +31,23 @@ def show_power_info(parent, power_info):
     # Tabellenkopf
     tk.Label(table_frame, text="System Name", width=20, anchor="w", font=("Arial", 10, "bold")).grid(row=0, column=0, padx=5, pady=2)
     tk.Label(table_frame, text="Session Merits", width=15, anchor="w", font=("Arial", 10, "bold")).grid(row=0, column=1, padx=5, pady=2)
+    tk.Label(table_frame, text="Actions", width=10, anchor="w", font=("Arial", 10, "bold")).grid(row=0, column=2, padx=5, pady=2)
 
     systems = power_info.get("Systems", {})
     if systems:
         for i, (system_name, system_data) in enumerate(systems.items(), start=1):
+            merits = str(system_data.get("sessionMerits", 0))
+
+            # Text dynamisch ersetzen
+            dcText = initial_text.replace("Merits", merits).replace("System", system_name)
+            
             tk.Label(table_frame, text=system_name, width=20, anchor="w").grid(row=i, column=0, padx=5, pady=2)
-            tk.Label(table_frame, text=str(system_data.get("sessionMerits", 0)), width=15, anchor="w").grid(row=i, column=1, padx=5, pady=2)
+            tk.Label(table_frame, text=merits, width=15, anchor="w").grid(row=i, column=1, padx=5, pady=2)
+            tk.Button(
+                table_frame,
+                text="Copy/Paste",
+                command=lambda text=dcText: copy_to_clipboard(text)
+            ).grid(row=i, column=2, padx=5, pady=2)
     else:
         tk.Label(table_frame, text="No systems available", anchor="w").grid(row=1, column=0, padx=5, pady=2)
 

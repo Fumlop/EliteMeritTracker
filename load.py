@@ -2,6 +2,7 @@ import os
 import tkinter as tk
 import sys
 import json
+import requests
 import myNotebook as nb
 import re
 from power_info_window import show_power_info
@@ -19,7 +20,7 @@ this.currentSysPP = {"":{"merits":0}}
 this.lastSysPP = {"":{"merits":0}}
 this.currentSystem = "" 
 this.lastSystem = ""
-this.version = 'v0.2.1'
+this.version = 'v0.2.2'
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
 
@@ -32,7 +33,7 @@ logger = logging.getLogger(f'{appname}.{plugin_name}')
 # If the Logger has handlers then it was already set up by the core code, else
 # it needs setting up here.
 if not logger.hasHandlers():
-    level = logging.INFO  # So logger.info(...) is equivalent to print()
+    level = logging.DEBUG  # So logger.info(...) is equivalent to print()
 
     logger.setLevel(level)
     logger_channel = logging.StreamHandler()
@@ -43,16 +44,31 @@ if not logger.hasHandlers():
     logger.addHandler(logger_channel)
 
 def checkVersion():
-	try:
-		req = requests.get(url='https://api.github.com/repos/Fumlop/EliteMeritTracker/releases/latest')
-	except:
-		return -1
-	if not req.status_code == requests.codes.ok:
-		return -1 # Error
-	data = req.json()
-	if data['tag_name'] == this.version:
-		return 0 # Newest
-	return 1 # Newer version available
+    try:
+        logger.debug('Starting request to check version')
+        req = requests.get(url='https://api.github.com/repos/Fumlop/EliteMeritTracker/releases/latest')
+        logger.debug('Request completed with status code: %s', req.status_code)
+    except Exception as e:
+        # Exception mit vollständigem Stacktrace loggen
+        logger.exception('An error occurred while checking the version')
+        return -1
+
+    if req.status_code != requests.codes.ok:
+        logger.error('Request failed with status code: %s', req.status_code)
+        return -1  # Error
+
+    try:
+        data = req.json()
+        logger.debug('Response JSON: %s', data)
+        logger.debug('Current version: %s', this.version)
+        if data['tag_name'] == this.version:
+            logger.debug('Latest version is up-to-date: %s', data['tag_name'])
+            return 0  # Newest
+        return 1  # Newer version available
+    except Exception as e:
+        # JSON-Parsing-Fehler loggen
+        logger.exception('Error while parsing the JSON response')
+        return -1
 
 def plugin_start3(plugin_dir):
     directory_name = path.basename(path.dirname(__file__))
@@ -87,25 +103,32 @@ def plugin_start3(plugin_dir):
         except json.JSONDecodeError:
             this.powerInfo = default_data
 
+def position_button():
+    entry_y = this.currentSystemEntry.winfo_y()
+    entry_height = this.currentSystemEntry.winfo_height()
+    button_y = entry_y + (entry_height // 2) - (this.currentSystemButton.winfo_height() // 2)
+    this.currentSystemButton.place(x=this.currentSystemEntry.winfo_x() + this.currentSystemEntry.winfo_width() + 10, y=button_y)
+
 def plugin_app(parent):
     # Adds to the main page UI
-    #this.currentSystem = "TEST"
-    #this.lastSystem = "LAST"
-    #this.currentSysPP = { "TEST" :{"sessionMerits":0, "influence": 0}}
-    #this.lastSysPP = { "LAST" :{"sessionMerits":0, "influence": 0}}
+    this.currentSystem = "BD-01 1707"
+    this.lastSystem = "Rhea"
+    this.currentSysPP = { "TEST" :{"sessionMerits":500}}
+    this.lastSysPP = { "LAST" :{"sessionMerits":150}}
 
     this.frame = tk.Frame(parent)
     this.power = tk.Label(this.frame, text=f"Pledged power : {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}".strip(), anchor="w", justify="left")
     this.currMerits = tk.Label(this.frame, text=f"Current merits : {this.powerInfo['Merits']}".strip(), anchor="w", justify="left")
     this.meritsLastSession = tk.Label(this.frame, text=f"Last session merits : {this.powerInfo['AccumulatedMerits']}".strip(), anchor="w", justify="left")
-    this.currentSystemLabel = tk.Label(this.frame, text=f"Current system '{this.currentSystem}'".strip(), anchor="w", justify="left")
+    this.currentSystemLabel = tk.Label(this.frame, text=f"'{this.currentSystem}'".strip(), anchor="w", justify="left")
     this.currentSystemEntry = tk.Entry(this.frame, width=10)
-    this.currentSystemButton = tk.Button(this.frame, text="OK", command=lambda: [update_system_merits(this.currentSystem, this.currentSystemEntry.get()), update_display()])
+    
+    this.currentSystemButton = tk.Button(this.frame, text="add merits", command=lambda: [update_system_merits(this.currentSystem, this.currentSystemEntry.get()), update_display()])
 
     this.currentSystemLabel.grid(row=3, column=0, sticky='we')
     this.currentSystemEntry.grid(row=3, column=1, padx=5, sticky='we')
-    this.currentSystemButton.grid(row=3, column=2, padx=3, sticky='we')
-    this.lastSystemLabel = tk.Label(this.frame, text=f"Last system '{this.lastSystem}'".strip(), anchor="w", justify="left")
+    this.currentSystemButton.grid(row=3, column=2, padx=3, sticky='w')
+    this.lastSystemLabel = tk.Label(this.frame, text=f"'{this.lastSystem}'".strip(), anchor="w", justify="left")
 
     # Positionierung der Labels
     this.power.grid(row=0, column=0, sticky='we')
@@ -117,7 +140,7 @@ def plugin_app(parent):
     this.showButton = tk.Button(
         this.frame,  # Button wird zu `this.frame` hinzugefügt
         text="Show Merits",
-        command=lambda: show_power_info(parent, this.powerInfo)
+        command=lambda: show_power_info(parent, this.powerInfo, "@FLC Merits gained in System")
     )
     this.showButton.grid(row=5, column=0, sticky='we', pady=10)
     #this.reset = tk.Button(
@@ -127,12 +150,17 @@ def plugin_app(parent):
     #)
     #this.reset.grid(row=5, column=1, sticky='we', pady=10)
     this.updateIndicator = HyperlinkLabel(this.frame, text="Update available", anchor=tk.W, url='https://github.com/Fumlop/EliteMeritTracker/releases')
+    logger.debug('this.newest: %s', this.newest)
     if this.newest == 1:
-        this.updateIndicator.grid(padx = 5, row = 6, column = 1)
+        this.updateIndicator.grid(padx = 5, row = 6, column = 0)
     return this.frame
 
 def plugin_prefs(parent, cmdr, is_beta):
 	frame = nb.Frame(parent)
+    #this.discordFormatLabel = tk.Label(frame, text="Discord Format for Copy/paste (@Test !Merits! gained in !System!)".strip(), anchor="w", justify="left")
+    #this.discordFormatLabel.grid(row=0, column=0, sticky='we')
+	#this.discordFormat = tk.Entry(frame, width=100)
+    #this.discordFormatLabel.grid(row=1, column=0, sticky='we')
 	return frame
 
 def update_system_merits(current_system, merits_value):
@@ -157,12 +185,6 @@ def update_system_merits(current_system, merits_value):
         update_display()
     except ValueError:
         logger.debug("Invalid merits value. Please enter a number.")
-
-
-
-def plugin_prefs(parent, cmdr, is_beta):
-	frame = nb.Frame(parent)
-	return frame
 
 def prefs_changed(cmdr, is_beta):
 	# Saves settings
@@ -257,19 +279,19 @@ def update_display():
         # Aktuelle Merits aus Systems abrufen
         curr_system_merits = this.powerInfo["Systems"][this.currentSystem]["sessionMerits"]
         logger.debug(f"Merits for current system '{this.currentSystem}': {curr_system_merits}")
-        this.currentSystemLabel["text"] = f"Current system '{this.currentSystem}' (Merits: {curr_system_merits})".strip()
+        this.currentSystemLabel["text"] = f"'{this.currentSystem}' (Merits: {curr_system_merits})".strip()
     except KeyError as e:
         logger.debug(f"KeyError for current system '{this.currentSystem}': {e}")
-        this.currentSystemLabel["text"] = f"Current system '{this.currentSystem}' (Merits: N/A)".strip()
+        this.currentSystemLabel["text"] = f"'{this.currentSystem}' (Merits: N/A)".strip()
 
     this.currentSystemLabel.grid()
 
     try:
         last_system_merits = this.powerInfo["Systems"][this.lastSystem]["sessionMerits"]
-        logger.debug(f"Merits for last system '{this.lastSystem}': {last_system_merits}")
-        this.lastSystemLabel["text"] = f"Last system '{this.lastSystem}' (Merits: {last_system_merits})".strip()
+        logger.debug(f"'{this.lastSystem}': {last_system_merits}")
+        this.lastSystemLabel["text"] = f"'{this.lastSystem}' (Merits: {last_system_merits})".strip()
     except KeyError as e:
         logger.debug(f"KeyError for last system '{this.lastSystem}': {e}")
-        this.lastSystemLabel["text"] = f"Last system '{this.lastSystem}' (Merits: N/A)".strip()
+        this.lastSystemLabel["text"] = f"'{this.lastSystem}' (Merits: N/A)".strip()
 
     this.lastSystemLabel.grid()
