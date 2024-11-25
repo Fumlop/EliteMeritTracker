@@ -31,7 +31,7 @@ def show_power_info(parent, power_info, initial_text):
     # Tabellenkopf
     tk.Label(table_frame, text="System Name", width=20, anchor="w", font=("Arial", 10, "bold")).grid(row=0, column=0, padx=5, pady=2)
     tk.Label(table_frame, text="Session Merits", width=15, anchor="w", font=("Arial", 10, "bold")).grid(row=0, column=1, padx=5, pady=2)
-    tk.Label(table_frame, text="Actions", width=10, anchor="w", font=("Arial", 10, "bold")).grid(row=0, column=2, padx=5, pady=2)
+    tk.Label(table_frame, text="Text", width=10, anchor="w", font=("Arial", 10, "bold")).grid(row=0, column=2, padx=5, pady=2)
 
     systems = power_info.get("Systems", {})
     if systems:
@@ -44,10 +44,12 @@ def show_power_info(parent, power_info, initial_text):
             tk.Label(table_frame, text=system_name, width=20, anchor="w").grid(row=i, column=0, padx=5, pady=2)
             tk.Label(table_frame, text=merits, width=15, anchor="w").grid(row=i, column=1, padx=5, pady=2)
             tk.Label(table_frame, text=dcText, width=15, anchor="w").grid(row=i, column=2, padx=5, pady=2)
+            
+            # Übergabe von dcText als Standardargument
             tk.Button(
                 table_frame,
                 text="Copy/Paste",
-                command=lambda text=dcText: copy_to_clipboard(text)
+                command=lambda text=dcText: copy_to_clipboard(dcText)
             ).grid(row=i, column=3, padx=5, pady=2)
     else:
         tk.Label(table_frame, text="No systems available", anchor="w").grid(row=1, column=0, padx=5, pady=2)

@@ -21,7 +21,6 @@ this.lastSysPP = {"":{"merits":0}}
 this.currentSystem = "" 
 this.lastSystem = ""
 this.version = 'v0.2.3'
-this.discordText = ""
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
 
@@ -75,6 +74,10 @@ def plugin_start3(plugin_dir):
     directory_name = path.basename(path.dirname(__file__))
     plugin_path = path.join(config.plugin_dir, directory_name)
     file_path = path.join(plugin_path, "power.json")
+
+    # Initialize discordText
+    this.discordText = tk.StringVar(value=config.get("dText", "@Leader Earned @MertitsValue merits in @System"))
+
 
     # Default-Datenstruktur
     default_data = {
@@ -139,9 +142,9 @@ def plugin_app(parent):
     this.lastSystemLabel.grid(row=4, column=0, sticky='we')
     # Button zum Anzeigen der Power Info
     this.showButton = tk.Button(
-        this.frame,  # Button wird zu `this.frame` hinzugefügt
+        this.frame,
         text="Show Merits",
-        command=lambda: show_power_info(parent, this.powerInfo, this.discordText)
+        command=lambda: show_power_info(parent, this.powerInfo, this.discordText.get())
     )
     this.showButton.grid(row=5, column=0, sticky='we', pady=10)
     #this.reset = tk.Button(
@@ -158,16 +161,16 @@ def plugin_app(parent):
     
 def plugin_prefs(parent, cmdr, is_beta):
     config_frame = nb.Frame(parent)
-    # Label mit Beschreibung
+
+    # Label für die Beschreibung
     tk.Label(config_frame, text="Copy paste text value - Text must contain @MeritsValue and @System for replacement").grid(row=0, column=0, sticky="w", padx=5, pady=5)
 
     # Textfeld für die Eingabe
-    this.discordText = tk.StringVar(value=config.get("dText", "@Leader Earned @MertitsValue merits in @System"))  # Initialisiere mit gespeichertem Wert oder leerem String
     text_entry = tk.Entry(config_frame, textvariable=this.discordText, width=50)
     text_entry.grid(row=1, column=0, padx=5, pady=5, sticky="we")
-    logger.debug('this.discordText: %s', this.discordText)    
 
     return config_frame
+
 
 
 def update_system_merits(current_system, merits_value):
@@ -194,8 +197,9 @@ def update_system_merits(current_system, merits_value):
         logger.debug("Invalid merits value. Please enter a number.")
 
 def prefs_changed(cmdr, is_beta):
-	config.set("dText", this.discordText.get())
-	update_display()
+    # Speichere den aktuellen Wert der StringVar in die Konfiguration
+    config.set("dText", this.discordText.get())
+    update_display()
 
 def update_json_file():
     logger.debug("update_json_file")
@@ -256,8 +260,8 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         # Block to prepare sytsem merits
         # Update UI
         update_display()
-    if entry['event'] == 'SupercruiseExit':
-        logger.debug("SupercruiseExit")
+    if entry['event'] == 'FSDJump':
+        logger.debug("FSDJump")
         this.lastSysPP = this.currentSysPP
         this.lastSystem = this.currentSystem
         this.currentSystem = entry.get('StarSystem',"")
