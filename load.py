@@ -289,7 +289,7 @@ def update_display():
         this.currentSystemLabel["text"] = f"'{this.currentSystem}' (Merits: {curr_system_merits})".strip()
     except KeyError as e:
         logger.debug(f"KeyError for current system '{this.currentSystem}': {e}")
-#
+
     this.currentSystemLabel.grid()
 
     try:
