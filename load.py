@@ -34,7 +34,7 @@ logger = logging.getLogger(f'{appname}.{plugin_name}')
 # If the Logger has handlers then it was already set up by the core code, else
 # it needs setting up here.
 if not logger.hasHandlers():
-    level = logging.DEBUG  # So logger.info(...) is equivalent to print()
+    level = logging.INFO  # So logger.info(...) is equivalent to print()
 
     logger.setLevel(level)
     logger_channel = logging.StreamHandler()
@@ -210,6 +210,7 @@ def update_json_file():
         json.dump(power_info_copy, json_file, indent=4)
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
+    logger.debug("Event %s", entry['event'])
     if entry['event'] == 'Powerplay':
         current_merits = entry.get('Merits', this.powerInfo.get("Merits", 0))
         last_merits = this.powerInfo.get("Merits", 0)
@@ -260,20 +261,43 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         this.lastSysPP = this.currentSysPP
         this.lastSystem = this.currentSystem
         this.currentSystem = entry.get('StarSystem',"")
-        logger.debug(this.currentSystem)1
+        logger.debug(this.currentSystem)
+        if "Systems" not in this.powerInfo:
+            this.powerInfo["Systems"] = {}
+            logger.debug('Initialized "Systems" in powerInfo')
         if this.currentSystem not in this.powerInfo["Systems"]:
-            this.currentSysPP = { this.currentSystem :{"sessionMerits":0, "state": entry.get('PowerplayState',""),"power": entry.get('ControllingPower',"")}}
+            # Neues System zu powerInfo hinzufügen
+            this.powerInfo["Systems"][this.currentSystem] = {
+                "sessionMerits": 0,
+                "state": entry.get('PowerplayState', ""),
+                "power": entry.get('ControllingPower', "")
+            }
+            this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
+            logger.debug(f"Added new system to powerInfo: {this.currentSystem}")
         else:
             this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
         update_display()
     if entry['event'] == 'Location':
         logger.debug("Location")
-        this.currentSystem = entry.get('StarSystem',"")
+        this.currentSystem = entry.get('StarSystem', "")
         logger.debug(this.currentSystem)
+        if "Systems" not in this.powerInfo:
+            this.powerInfo["Systems"] = {}
+            logger.debug('Initialized "Systems" in powerInfo')
         if this.currentSystem not in this.powerInfo["Systems"]:
-            this.currentSysPP = { this.currentSystem :{"sessionMerits":0, "state": entry.get('PowerplayState',""),"power": entry.get('ControllingPower',"")}}
-        else:
+            # Neues System zu powerInfo hinzufügen
+            this.powerInfo["Systems"][this.currentSystem] = {
+                "sessionMerits": 0,
+                "state": entry.get('PowerplayState', ""),
+                "power": entry.get('ControllingPower', "")
+            }
             this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
+            logger.debug(f"Added new system to powerInfo: {this.currentSystem}")
+        else:
+            # Vorhandenes System laden
+            this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
+
+        # Aktualisiere die Anzeige
         update_display()
 
 
