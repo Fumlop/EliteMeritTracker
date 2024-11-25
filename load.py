@@ -253,21 +253,27 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         # this.currentSysPP[this.currentSystem]["merits"] += event.merits
         # this.currentSysPP[this.currentSystem]["influence"] += (event.merits/4)
         # Block to prepare sytsem merits
-
-        # Dump ins Log
-        print("Updated powerInfo:", json.dumps(this.powerInfo, indent=4))
-
         # Update UI
         update_display()
     if entry['event'] == 'SupercruiseExit':
+        logger.debug("SupercruiseExit")
         this.lastSysPP = this.currentSysPP
         this.lastSystem = this.currentSystem
         this.currentSystem = entry.get('StarSystem',"")
-        this.currentSysPP = { this.currentSystem :{"sessionMerits":0}}
+        logger.debug(this.currentSystem)1
+        if this.currentSystem not in this.powerInfo["Systems"]:
+            this.currentSysPP = { this.currentSystem :{"sessionMerits":0, "state": entry.get('PowerplayState',""),"power": entry.get('ControllingPower',"")}}
+        else:
+            this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
         update_display()
     if entry['event'] == 'Location':
+        logger.debug("Location")
         this.currentSystem = entry.get('StarSystem',"")
-        this.currentSysPP = { this.currentSystem :{"sessionMerits":0}}
+        logger.debug(this.currentSystem)
+        if this.currentSystem not in this.powerInfo["Systems"]:
+            this.currentSysPP = { this.currentSystem :{"sessionMerits":0, "state": entry.get('PowerplayState',""),"power": entry.get('ControllingPower',"")}}
+        else:
+            this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
         update_display()
 
 
@@ -276,7 +282,6 @@ def update_display():
     logger.debug(f"Current system: {this.currentSystem}")
     logger.debug(f"Last system: {this.lastSystem}")
     logger.debug("Systems data:")
-    logger.debug(json.dumps(this.powerInfo["Systems"], indent=4))
 
     this.currMerits["text"] = f"Current merits: {str(this.powerInfo['Merits']).strip()}".strip()
     this.currMerits.grid()
