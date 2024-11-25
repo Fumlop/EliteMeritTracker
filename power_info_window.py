@@ -39,15 +39,16 @@ def show_power_info(parent, power_info, initial_text):
             merits = str(system_data.get("sessionMerits", 0))
 
             # Text dynamisch ersetzen
-            dcText = initial_text.replace("Merits", merits).replace("System", system_name)
+            dcText = initial_text.replace("@MertitsValue", merits).replace("@System", system_name)
             
             tk.Label(table_frame, text=system_name, width=20, anchor="w").grid(row=i, column=0, padx=5, pady=2)
             tk.Label(table_frame, text=merits, width=15, anchor="w").grid(row=i, column=1, padx=5, pady=2)
+            tk.Label(table_frame, text=dcText, width=15, anchor="w").grid(row=i, column=2, padx=5, pady=2)
             tk.Button(
                 table_frame,
                 text="Copy/Paste",
                 command=lambda text=dcText: copy_to_clipboard(text)
-            ).grid(row=i, column=2, padx=5, pady=2)
+            ).grid(row=i, column=3, padx=5, pady=2)
     else:
         tk.Label(table_frame, text="No systems available", anchor="w").grid(row=1, column=0, padx=5, pady=2)
 

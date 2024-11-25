@@ -140,7 +140,7 @@ def plugin_app(parent):
     this.showButton = tk.Button(
         this.frame,  # Button wird zu `this.frame` hinzugefügt
         text="Show Merits",
-        command=lambda: show_power_info(parent, this.powerInfo, "@FLC Merits gained in System")
+        command=lambda: show_power_info(parent, this.powerInfo, this.discordText)
     )
     this.showButton.grid(row=5, column=0, sticky='we', pady=10)
     #this.reset = tk.Button(
@@ -154,14 +154,20 @@ def plugin_app(parent):
     if this.newest == 1:
         this.updateIndicator.grid(padx = 5, row = 6, column = 0)
     return this.frame
-
+    
 def plugin_prefs(parent, cmdr, is_beta):
-	frame = nb.Frame(parent)
-    #this.discordFormatLabel = tk.Label(frame, text="Discord Format for Copy/paste (@Test !Merits! gained in !System!)".strip(), anchor="w", justify="left")
-    #this.discordFormatLabel.grid(row=0, column=0, sticky='we')
-	#this.discordFormat = tk.Entry(frame, width=100)
-    #this.discordFormatLabel.grid(row=1, column=0, sticky='we')
-	return frame
+    config_frame = nb.Frame(parent)
+    # Label mit Beschreibung
+    tk.Label(config_frame, text="Copy paste text value - Text must contain @MeritsValue and @System for replacement").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+
+    # Textfeld für die Eingabe
+    text_var = tk.StringVar(value=config.get("dText", "@Leader Earned @MertitsValue merits in @System"))  # Initialisiere mit gespeichertem Wert oder leerem String
+    text_entry = tk.Entry(config_frame, textvariable=text_var, width=50)
+    text_entry.grid(row=1, column=0, padx=5, pady=5, sticky="we")
+    this.discordText = text_var
+
+    return config_frame
+
 
 def update_system_merits(current_system, merits_value):
     logger.debug('update_merits_value: %s', merits_value)    
@@ -187,7 +193,7 @@ def update_system_merits(current_system, merits_value):
         logger.debug("Invalid merits value. Please enter a number.")
 
 def prefs_changed(cmdr, is_beta):
-	# Saves settings
+	config.set("dText", this.discordText)
 	update_display()
 
 def update_json_file():
@@ -282,7 +288,8 @@ def update_display():
         this.currentSystemLabel["text"] = f"'{this.currentSystem}' (Merits: {curr_system_merits})".strip()
     except KeyError as e:
         logger.debug(f"KeyError for current system '{this.currentSystem}': {e}")
-        this.currentSystemLabel["text"] = f"'{this.currentSystem}' (Merits: N/A)".strip()
+        if  curr_system_merits = 0:
+            this.currentSystemLabel["text"] = f"'{this.currentSystem}' (Merits: N/A)".strip()
 
     this.currentSystemLabel.grid()
 
