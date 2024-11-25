@@ -115,10 +115,10 @@ def position_button():
 
 def plugin_app(parent):
     # Adds to the main page UI
-    this.currentSystem = "BD-01 1707"
-    this.lastSystem = "Rhea"
-    this.currentSysPP = { "TEST" :{"sessionMerits":500}}
-    this.lastSysPP = { "LAST" :{"sessionMerits":150}}
+    #this.currentSystem = "BD-01 1707"
+    #this.lastSystem = "Rhea"
+    #this.currentSysPP = { "TEST" :{"sessionMerits":500}}
+    #this.lastSysPP = { "LAST" :{"sessionMerits":150}}
 
     this.frame = tk.Frame(parent)
     this.power = tk.Label(this.frame, text=f"Pledged power : {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}".strip(), anchor="w", justify="left")
