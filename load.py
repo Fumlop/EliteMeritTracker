@@ -20,7 +20,8 @@ this.currentSysPP = {"":{"merits":0}}
 this.lastSysPP = {"":{"merits":0}}
 this.currentSystem = "" 
 this.lastSystem = ""
-this.version = 'v0.2.2'
+this.version = 'v0.2.3'
+this.discordText = ""
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
 
@@ -288,7 +289,7 @@ def update_display():
         this.currentSystemLabel["text"] = f"'{this.currentSystem}' (Merits: {curr_system_merits})".strip()
     except KeyError as e:
         logger.debug(f"KeyError for current system '{this.currentSystem}': {e}")
-
+#
     this.currentSystemLabel.grid()
 
     try:
