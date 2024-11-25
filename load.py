@@ -264,9 +264,11 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         this.lastSystem = this.currentSystem
         this.currentSystem = entry.get('StarSystem',"")
         this.currentSysPP = { this.currentSystem :{"sessionMerits":0}}
+        update_display()
     if entry['event'] == 'Location':
         this.currentSystem = entry.get('StarSystem',"")
         this.currentSysPP = { this.currentSystem :{"sessionMerits":0}}
+        update_display()
 
 
 def update_display():
