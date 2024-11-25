@@ -32,7 +32,7 @@ def show_power_info(parent, power_info, initial_text):
     # Tabellenkopf
     tk.Label(table_frame, text="System Name", width=20, anchor="w", font=("Arial", 10, "bold")).grid(row=0, column=0, padx=5, pady=2)
     tk.Label(table_frame, text="Session Merits", width=15, anchor="w", font=("Arial", 10, "bold")).grid(row=0, column=1, padx=5, pady=2)
-    tk.Label(table_frame, text="Text", width=10, anchor="w", font=("Arial", 10, "bold")).grid(row=0, column=2, padx=5, pady=2)
+    tk.Label(table_frame, text="Text", width=200, anchor="w", font=("Arial", 10, "bold")).grid(row=0, column=2, padx=5, pady=2)
 
     systems = power_info.get("Systems", {})
     if systems:
