@@ -21,7 +21,7 @@ this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
 this.lastSystem = ""
-this.version = 'v0.2.4'
+this.version = 'v0.2.5'
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
 
