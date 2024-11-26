@@ -21,7 +21,7 @@ this.currentSysPP = {"Rhea":{"merits":0}}
 this.currentSystem = "Rhea" 
 this.trackedMerits = 0
 this.lastSystem = ""
-this.version = 'v0.2.3'
+this.version = 'v0.2.4'
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
 
@@ -46,9 +46,7 @@ if not logger.hasHandlers():
 
 def checkVersion():
     try:
-        logger.debug('Starting request to check version')
         req = requests.get(url='https://api.github.com/repos/Fumlop/EliteMeritTracker/releases/latest')
-        logger.debug('Request completed with status code: %s', req.status_code)
     except Exception as e:
         # Exception mit vollständigem Stacktrace loggen
         logger.exception('An error occurred while checking the version')
@@ -60,10 +58,7 @@ def checkVersion():
 
     try:
         data = req.json()
-        logger.debug('Response JSON: %s', data)
-        logger.debug('Current version: %s', this.version)
         if data['tag_name'] == this.version:
-            logger.debug('Latest version is up-to-date: %s', data['tag_name'])
             return 0  # Newest
         return 1  # Newer version available
     except Exception as e:
@@ -101,20 +96,16 @@ def plugin_start3(plugin_dir):
     else:
         try:
             with open(file_path, "r") as json_file:
-                logger.debug('this.powerInfo = json.load(json_file)')
                 this.powerInfo = json.load(json_file)
                 if not this.powerInfo:
-                    logger.debug('this.powerInfo = default')
                     this.powerInfo = default_data
         except json.JSONDecodeError:
             this.powerInfo = default_data
 
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
-    logger.debug("StarSystem")
     this.currentSystem = entry.get('StarSystem', this.currentSystem)
     if "Systems" not in this.powerInfo:
         this.powerInfo["Systems"] = {}
-        logger.debug('Initialized "Systems" in powerInfo')
     if this.currentSystem not in this.powerInfo["Systems"]:
         # Neues System zu powerInfo hinzufügen
         this.powerInfo["Systems"][this.currentSystem] = {
@@ -123,7 +114,6 @@ def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
             "power": entry.get('ControllingPower', "")
         }
         this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
-        logger.debug(f"Added new system to powerInfo: {this.currentSystem}")
     else:
         this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
     update_display()
@@ -168,7 +158,6 @@ def plugin_app(parent):
     this.resetButton.grid(row=5, column=2, sticky='we', pady=10)
     this.updateIndicator = HyperlinkLabel(this.frame, text="Update available", anchor=tk.W, url='https://github.com/Fumlop/EliteMeritTracker/releases')
     this.version = tk.Label(this.frame, text=f"Version: {this.version}".strip(),width=15, anchor="w", justify="left")
-    logger.debug('this.newest: %s', this.newest)
     if this.newest == 1:
         this.updateIndicator.grid(padx = 5, row = 6, column = 0)
     else :
@@ -204,9 +193,6 @@ def update_system_merits(current_system, merits_value):
             this.powerInfo["Systems"][current_system]["sessionMerits"] += merits
         else:
             this.powerInfo["Systems"][current_system] = {"sessionMerits": merits}
-        
-        logger.debug(f"Updated system '{current_system}': {this.powerInfo['Systems'][current_system]}")
-
         # Direkte Aktualisierung der Anzeige
         update_display()
     except ValueError:
@@ -218,7 +204,6 @@ def prefs_changed(cmdr, is_beta):
     update_display()
 
 def update_json_file():
-    logger.debug("update_json_file")
     directory_name = path.basename(path.dirname(__file__))
     plugin_path = path.join(config.plugin_dir, directory_name)
     file_path = path.join(plugin_path, "power.json")
@@ -274,12 +259,9 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         # Update UI
         update_display()
     if entry['event'] in ['FSDJump', 'Location']:
-        logger.debug("FSDJump")
         this.currentSystem = entry.get('StarSystem',"")
-        logger.debug(this.currentSystem)
         if "Systems" not in this.powerInfo:
             this.powerInfo["Systems"] = {}
-            logger.debug('Initialized "Systems" in powerInfo')
         if this.currentSystem not in this.powerInfo["Systems"]:
             # Neues System zu powerInfo hinzufügen
             this.powerInfo["Systems"][this.currentSystem] = {
@@ -288,30 +270,23 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                 "power": entry.get('ControllingPower', "")
             }
             this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
-            logger.debug(f"Added new system to powerInfo: {this.currentSystem}")
         else:
             this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
         update_display()
 
 
 def update_display():
-    logger.debug("update_display called")
-    logger.debug(f"Current system: {this.currentSystem}")
-    logger.debug(f"Last system: {this.lastSystem}")
-    logger.debug("Systems data:")
-
     this.currMerits["text"] = f"Total merits : {str(this.powerInfo['Merits'])} | Last Session : {str(this.powerInfo['AccumulatedMerits'])}".strip()
     this.currMerits.grid()
 
     this.meritsTrackedLabel["text"] = f"Tracked merits : {str(this.trackedMerits)}".strip().strip()
-    this.meritsTrackedLabel.grid()
+    this.meritsTrackedLabelcd.grid()
 
     try:
         # Aktuelle Merits aus Systems abrufen
         curr_system_merits = this.powerInfo["Systems"][this.currentSystem]["sessionMerits"]
         power = this.powerInfo["Systems"][this.currentSystem]["power"]
         powerstate = this.powerInfo["Systems"][this.currentSystem]["state"]
-        logger.debug(f"Merits for current system '{this.currentSystem}': {curr_system_merits}")
         this.currentSystemLabel["text"] = f"'{this.currentSystem}' : {curr_system_merits} merits".strip()
         this.systemPowerLabel["text"] = f"Status : {power} - {powerstate}".strip()
     except KeyError as e:
