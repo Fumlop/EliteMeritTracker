@@ -4,24 +4,24 @@ import sys
 import json
 import requests
 import myNotebook as nb
+from typing import Dict, Any
 import re
 from power_info_window import show_power_info
 from ttkHyperlinkLabel import HyperlinkLabel
 from os import path
-from config import config
+from companion import CAPIData, SERVER_LIVE, SERVER_LEGACY, SERVER_BETA
+from config import config, appname
 import logging
-from config import appname
 from datetime import datetime, timedelta
 
 this = sys.modules[__name__]  # For holding module globals
 
 this.powerInfo = {}
-this.currentSysPP = {"":{"merits":0}}
-this.lastSysPP = {"":{"merits":0}}
-this.currentSystem = "" 
+this.currentSysPP = {"Rhea":{"merits":0}}
+this.currentSystem = "Rhea" 
+this.trackedMerits = 0
 this.lastSystem = ""
 this.version = 'v0.2.3'
-this.discordText = ""
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
 
@@ -34,7 +34,7 @@ logger = logging.getLogger(f'{appname}.{plugin_name}')
 # If the Logger has handlers then it was already set up by the core code, else
 # it needs setting up here.
 if not logger.hasHandlers():
-    level = logging.DEBUG  # So logger.info(...) is equivalent to print()
+    level = logging.INFO  # So logger.info(...) is equivalent to print()
 
     logger.setLevel(level)
     logger_channel = logging.StreamHandler()
@@ -76,6 +76,9 @@ def plugin_start3(plugin_dir):
     plugin_path = path.join(config.plugin_dir, directory_name)
     file_path = path.join(plugin_path, "power.json")
 
+    # Initialize discordText
+    this.discordText = tk.StringVar(value=config.get("dText", "@Leader Earned @MertitsValue merits in @System"))
+
     # Default-Datenstruktur
     default_data = {
         "PowerName": "",
@@ -98,11 +101,32 @@ def plugin_start3(plugin_dir):
     else:
         try:
             with open(file_path, "r") as json_file:
+                logger.debug('this.powerInfo = json.load(json_file)')
                 this.powerInfo = json.load(json_file)
                 if not this.powerInfo:
+                    logger.debug('this.powerInfo = default')
                     this.powerInfo = default_data
         except json.JSONDecodeError:
             this.powerInfo = default_data
+
+def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
+    logger.debug("StarSystem")
+    this.currentSystem = entry.get('StarSystem', this.currentSystem)
+    if "Systems" not in this.powerInfo:
+        this.powerInfo["Systems"] = {}
+        logger.debug('Initialized "Systems" in powerInfo')
+    if this.currentSystem not in this.powerInfo["Systems"]:
+        # Neues System zu powerInfo hinzufügen
+        this.powerInfo["Systems"][this.currentSystem] = {
+            "sessionMerits": 0,
+            "state": entry.get('PowerplayState', ""),
+            "power": entry.get('ControllingPower', "")
+        }
+        this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
+        logger.debug(f"Added new system to powerInfo: {this.currentSystem}")
+    else:
+        this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
+    update_display()
 
 def position_button():
     entry_y = this.currentSystemEntry.winfo_y()
@@ -112,70 +136,65 @@ def position_button():
 
 def plugin_app(parent):
     # Adds to the main page UI
-    this.currentSystem = "BD-01 1707"
-    this.lastSystem = "Rhea"
-    this.currentSysPP = { "TEST" :{"sessionMerits":500}}
-    this.lastSysPP = { "LAST" :{"sessionMerits":150}}
-
     this.frame = tk.Frame(parent)
     this.power = tk.Label(this.frame, text=f"Pledged power : {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}".strip(), anchor="w", justify="left")
-    this.currMerits = tk.Label(this.frame, text=f"Current merits : {this.powerInfo['Merits']}".strip(), anchor="w", justify="left")
-    this.meritsLastSession = tk.Label(this.frame, text=f"Last session merits : {this.powerInfo['AccumulatedMerits']}".strip(), anchor="w", justify="left")
-    this.currentSystemLabel = tk.Label(this.frame, text=f"'{this.currentSystem}'".strip(), anchor="w", justify="left")
-    this.currentSystemEntry = tk.Entry(this.frame, width=10)
-    
+    this.currMerits = tk.Label(this.frame, text=f"Total merits : {this.powerInfo['Merits']} | Last Session : {this.powerInfo['AccumulatedMerits']}".strip(), anchor="w", justify="left")
+    this.meritsTrackedLabel = tk.Label(this.frame, text=f"Tracked merits : {this.trackedMerits}".strip(), anchor="w", justify="left")
+    this.systemPowerLabel = tk.Label(this.frame, text="Status : ", anchor="w", justify="left")
+    this.currentSystemLabel = tk.Label(this.frame, text="Merits:".strip(),width=15, anchor="w", justify="left")
+    this.currentSystemEntry = tk.Entry(this.frame, width=6)
     this.currentSystemButton = tk.Button(this.frame, text="add merits", command=lambda: [update_system_merits(this.currentSystem, this.currentSystemEntry.get()), update_display()])
-
+    this.systemPowerLabel.grid(row=4, column=0, sticky='we')
     this.currentSystemLabel.grid(row=3, column=0, sticky='we')
     this.currentSystemEntry.grid(row=3, column=1, padx=5, sticky='we')
     this.currentSystemButton.grid(row=3, column=2, padx=3, sticky='w')
-    this.lastSystemLabel = tk.Label(this.frame, text=f"'{this.lastSystem}'".strip(), anchor="w", justify="left")
 
     # Positionierung der Labels
-    this.power.grid(row=0, column=0, sticky='we')
+    this.power.grid(row=0, column=0,columnspan=3, sticky='we')
     this.currMerits.grid(row=1, column=0, sticky='we')
-    this.meritsLastSession.grid(row=2, column=0, sticky='we')
-    this.currentSystemLabel.grid(row=3, column=0, sticky='we')
-    this.lastSystemLabel.grid(row=4, column=0, sticky='we')
+    this.meritsTrackedLabel.grid(row=2, column=0, sticky='we')
     # Button zum Anzeigen der Power Info
     this.showButton = tk.Button(
-        this.frame,  # Button wird zu `this.frame` hinzugefügt
+        this.frame,
         text="Show Merits",
-        command=lambda: show_power_info(parent, this.powerInfo, this.discordText)
+        command=lambda: show_power_info(parent, this.powerInfo, this.discordText.get())
     )
     this.showButton.grid(row=5, column=0, sticky='we', pady=10)
-    #this.reset = tk.Button(
-    #    this.frame,  # Button wird zu `this.frame` hinzugefügt
-    #    text="Reset",
-    #    command=lambda: reset_power(parent, this.powerInfo)
-    #)
-    #this.reset.grid(row=5, column=1, sticky='we', pady=10)
+    this.resetButton = tk.Button(
+        this.frame,
+        text="Reset",
+        command=lambda: reset()
+    )
+    this.resetButton.grid(row=5, column=2, sticky='we', pady=10)
     this.updateIndicator = HyperlinkLabel(this.frame, text="Update available", anchor=tk.W, url='https://github.com/Fumlop/EliteMeritTracker/releases')
+    this.version = tk.Label(this.frame, text=f"Version: {this.version}".strip(),width=15, anchor="w", justify="left")
     logger.debug('this.newest: %s', this.newest)
     if this.newest == 1:
         this.updateIndicator.grid(padx = 5, row = 6, column = 0)
+    else :
+        this.version.grid(padx = 5, row = 6, column = 0)
     return this.frame
     
+def reset():
+    this.powerInfo["Systems"] = {}
+    update_display()
+
 def plugin_prefs(parent, cmdr, is_beta):
     config_frame = nb.Frame(parent)
-    # Label mit Beschreibung
+
+    # Label für die Beschreibung
     tk.Label(config_frame, text="Copy paste text value - Text must contain @MeritsValue and @System for replacement").grid(row=0, column=0, sticky="w", padx=5, pady=5)
 
     # Textfeld für die Eingabe
-    this.discordText = tk.StringVar(value=config.get("dText", "@Leader Earned @MertitsValue merits in @System"))  # Initialisiere mit gespeichertem Wert oder leerem String
     text_entry = tk.Entry(config_frame, textvariable=this.discordText, width=50)
     text_entry.grid(row=1, column=0, padx=5, pady=5, sticky="we")
-    logger.debug('this.discordText: %s', this.discordText)    
 
     return config_frame
 
-
 def update_system_merits(current_system, merits_value):
-    logger.debug('update_merits_value: %s', merits_value)    
-    logger.debug('update_current_system: %s', current_system)    
     try:
         merits = int(merits_value)
-
+        this.trackedMerits += merits
         # Initialisiere das Systems-Objekt in powerInfo, falls es nicht existiert
         if "Systems" not in this.powerInfo:
             this.powerInfo["Systems"] = {}
@@ -194,8 +213,9 @@ def update_system_merits(current_system, merits_value):
         logger.debug("Invalid merits value. Please enter a number.")
 
 def prefs_changed(cmdr, is_beta):
-	config.set("dText", this.discordText.get())
-	update_display()
+    # Speichere den aktuellen Wert der StringVar in die Konfiguration
+    config.set("dText", this.discordText.get())
+    update_display()
 
 def update_json_file():
     logger.debug("update_json_file")
@@ -237,14 +257,12 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         #    accumulated_merits += earned_merits
 
         # Aktualisiere PowerInfo-Daten
-        this.powerInfo.update({
-            "PowerName": power_name,
-            "Merits": current_merits,
-            "Rank": rank,
-            "LastUpdate": timestamp,
-            "AccumulatedMerits": accumulated_merits,
-            "AccumulatedSince": accumulated_since.strftime("%Y-%m-%dT%H:%M:%SZ")
-        })
+        this.powerInfo["PowerName"] = power_name
+        this.powerInfo["Merits"] = current_merits
+        this.powerInfo["Rank"] = rank
+        this.powerInfo["LastUpdate"] = timestamp
+        this.powerInfo["AccumulatedMerits"] = accumulated_merits
+        this.powerInfo["AccumulatedSince"] = accumulated_since.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # JSON aktualisieren
         update_json_file()
@@ -253,21 +271,26 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         # this.currentSysPP[this.currentSystem]["merits"] += event.merits
         # this.currentSysPP[this.currentSystem]["influence"] += (event.merits/4)
         # Block to prepare sytsem merits
-
-        # Dump ins Log
-        print("Updated powerInfo:", json.dumps(this.powerInfo, indent=4))
-
         # Update UI
         update_display()
-    if entry['event'] == 'SupercruiseExit':
-        this.lastSysPP = this.currentSysPP
-        this.lastSystem = this.currentSystem
+    if entry['event'] in ['FSDJump', 'Location']:
+        logger.debug("FSDJump")
         this.currentSystem = entry.get('StarSystem',"")
-        this.currentSysPP = { this.currentSystem :{"sessionMerits":0}}
-        update_display()
-    if entry['event'] == 'Location':
-        this.currentSystem = entry.get('StarSystem',"")
-        this.currentSysPP = { this.currentSystem :{"sessionMerits":0}}
+        logger.debug(this.currentSystem)
+        if "Systems" not in this.powerInfo:
+            this.powerInfo["Systems"] = {}
+            logger.debug('Initialized "Systems" in powerInfo')
+        if this.currentSystem not in this.powerInfo["Systems"]:
+            # Neues System zu powerInfo hinzufügen
+            this.powerInfo["Systems"][this.currentSystem] = {
+                "sessionMerits": 0,
+                "state": entry.get('PowerplayState', ""),
+                "power": entry.get('ControllingPower', "")
+            }
+            this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
+            logger.debug(f"Added new system to powerInfo: {this.currentSystem}")
+        else:
+            this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
         update_display()
 
 
@@ -276,30 +299,22 @@ def update_display():
     logger.debug(f"Current system: {this.currentSystem}")
     logger.debug(f"Last system: {this.lastSystem}")
     logger.debug("Systems data:")
-    logger.debug(json.dumps(this.powerInfo["Systems"], indent=4))
 
-    this.currMerits["text"] = f"Current merits: {str(this.powerInfo['Merits']).strip()}".strip()
+    this.currMerits["text"] = f"Total merits : {str(this.powerInfo['Merits'])} | Last Session : {str(this.powerInfo['AccumulatedMerits'])}".strip()
     this.currMerits.grid()
 
-    this.meritsLastSession["text"] = f"Last session merits : {str(this.powerInfo['AccumulatedMerits']).strip()}".strip()
-    this.meritsLastSession.grid()
+    this.meritsTrackedLabel["text"] = f"Tracked merits : {str(this.trackedMerits)}".strip().strip()
+    this.meritsTrackedLabel.grid()
 
     try:
         # Aktuelle Merits aus Systems abrufen
         curr_system_merits = this.powerInfo["Systems"][this.currentSystem]["sessionMerits"]
+        power = this.powerInfo["Systems"][this.currentSystem]["power"]
+        powerstate = this.powerInfo["Systems"][this.currentSystem]["state"]
         logger.debug(f"Merits for current system '{this.currentSystem}': {curr_system_merits}")
-        this.currentSystemLabel["text"] = f"'{this.currentSystem}' (Merits: {curr_system_merits})".strip()
+        this.currentSystemLabel["text"] = f"'{this.currentSystem}' : {curr_system_merits} merits".strip()
+        this.systemPowerLabel["text"] = f"Status : {power} - {powerstate}".strip()
     except KeyError as e:
         logger.debug(f"KeyError for current system '{this.currentSystem}': {e}")
 
     this.currentSystemLabel.grid()
-
-    try:
-        last_system_merits = this.powerInfo["Systems"][this.lastSystem]["sessionMerits"]
-        logger.debug(f"'{this.lastSystem}': {last_system_merits}")
-        this.lastSystemLabel["text"] = f"'{this.lastSystem}' (Merits: {last_system_merits})".strip()
-    except KeyError as e:
-        logger.debug(f"KeyError for last system '{this.lastSystem}': {e}")
-        this.lastSystemLabel["text"] = f"'{this.lastSystem}' (Merits: N/A)".strip()
-
-    this.lastSystemLabel.grid()
