@@ -173,8 +173,6 @@ def plugin_app(parent):
 def reset():
     # Initialisiere ein neues Dictionary für Systeme
     this.powerInfo["Systems"] = {}
-    logger.debug("No %s",this.currentSystem)
-    logger.debug("no %s", this.currentSysPP)
     # Prüfe, ob currentSysPP gültig ist und aktuelle Systemdaten enthält
     if this.currentSystem and this.currentSysPP:
         lastState = this.currentSysPP
