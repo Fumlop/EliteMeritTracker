@@ -171,14 +171,26 @@ def plugin_app(parent):
     return this.frame
     
 def reset():
+    # Initialisiere ein neues Dictionary für Systeme
     this.powerInfo["Systems"] = {}
-    lastState = this.currentSysPP.clone()
-    this.powerInfo["Systems"][this.currentSystem] = {
-        "sessionMerits": 0,
-        "state": lastState[this.currentSystem]["PowerplayState"],
-        "power": lastState[this.currentSystem]["ControllingPower"]
-    }
+    logger.debug("No %s",this.currentSystem)
+    logger.debug("no %s", this.currentSysPP)
+    # Prüfe, ob currentSysPP gültig ist und aktuelle Systemdaten enthält
+    if this.currentSystem and this.currentSysPP:
+        lastState = this.currentSysPP
+        # Füge das aktuelle System mit den letzten bekannten Daten hinzu
+        this.powerInfo["Systems"][this.currentSystem] = {
+            "sessionMerits": 0,
+            "state": lastState.get("PowerplayState", ""),
+            "power": lastState.get("ControllingPower", "")
+        }
+        this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
+    else:
+        logger.debug("No valid data in currentSysPP for the current system.")
+
+    # Aktualisiere die Anzeige
     update_display()
+
 
 def plugin_prefs(parent, cmdr, is_beta):
     config_frame = nb.Frame(parent)
