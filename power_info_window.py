@@ -56,6 +56,7 @@ def show_power_info(parent, power_info, initial_text):
     
 
     # Füllen der Tabelle
+    power_info = clean_empty_systems(power_info)
     systems = power_info.get("Systems", {})
     if systems:
         for i, (system_name, system_data) in enumerate(systems.items(), start=7):
@@ -76,3 +77,10 @@ def show_power_info(parent, power_info, initial_text):
 
     # Button zum Schließen des Fensters
     tk.Button(info_window, text="Close", command=info_window.destroy).pack(pady=10)
+
+def clean_empty_systems(power_info):
+    systems = power_info.get("Systems", {})
+    # Filtere Systeme mit nicht-leerem Namen und Merits > 0
+    cleaned_systems = {k: v for k, v in systems.items() if k}
+    power_info["Systems"] = cleaned_systems
+    return power_info

@@ -17,8 +17,8 @@ from datetime import datetime, timedelta
 this = sys.modules[__name__]  # For holding module globals
 
 this.powerInfo = {}
-this.currentSysPP = {"Rhea":{"merits":0}}
-this.currentSystem = "Rhea" 
+this.currentSysPP = {}
+this.currentSystem = "" 
 this.trackedMerits = 0
 this.lastSystem = ""
 this.version = 'v0.2.4'
@@ -131,9 +131,13 @@ def plugin_app(parent):
     this.currMerits = tk.Label(this.frame, text=f"Total merits : {this.powerInfo['Merits']} | Last Session : {this.powerInfo['AccumulatedMerits']}".strip(), anchor="w", justify="left")
     this.meritsTrackedLabel = tk.Label(this.frame, text=f"Tracked merits : {this.trackedMerits}".strip(), anchor="w", justify="left")
     this.systemPowerLabel = tk.Label(this.frame, text="Status : ", anchor="w", justify="left")
-    this.currentSystemLabel = tk.Label(this.frame, text="Merits:".strip(),width=15, anchor="w", justify="left")
-    this.currentSystemEntry = tk.Entry(this.frame, width=6)
-    this.currentSystemButton = tk.Button(this.frame, text="add merits", command=lambda: [update_system_merits(this.currentSystem, this.currentSystemEntry.get()), update_display()])
+    this.currentSystemLabel = tk.Label(this.frame, text="Waiting for Events".strip(),width=15, anchor="w", justify="left")
+    this.currentSystemEntry = tk.Entry(this.frame, width=6 )
+    this.currentSystemButton = tk.Button(
+        this.frame, text="add merits", 
+        command=lambda: [update_system_merits(this.currentSystem, this.currentSystemEntry.get()), 
+        update_display()],
+        state=tk.DISABLED)
     this.systemPowerLabel.grid(row=4, column=0, sticky='we')
     this.currentSystemLabel.grid(row=3, column=0, sticky='we')
     this.currentSystemEntry.grid(row=3, column=1, padx=5, sticky='we')
@@ -147,13 +151,15 @@ def plugin_app(parent):
     this.showButton = tk.Button(
         this.frame,
         text="Show Merits",
-        command=lambda: show_power_info(parent, this.powerInfo, this.discordText.get())
+        command=lambda: show_power_info(parent, this.powerInfo, this.discordText.get()),
+        state=tk.DISABLED
     )
     this.showButton.grid(row=5, column=0, sticky='we', pady=10)
     this.resetButton = tk.Button(
         this.frame,
         text="Reset",
-        command=lambda: reset()
+        command=lambda: reset(),
+        state=tk.DISABLED
     )
     this.resetButton.grid(row=5, column=2, sticky='we', pady=10)
     this.updateIndicator = HyperlinkLabel(this.frame, text="Update available", anchor=tk.W, url='https://github.com/Fumlop/EliteMeritTracker/releases')
@@ -166,6 +172,12 @@ def plugin_app(parent):
     
 def reset():
     this.powerInfo["Systems"] = {}
+    lastState = this.currentSysPP.clone()
+    this.powerInfo["Systems"][this.currentSystem] = {
+        "sessionMerits": 0,
+        "state": lastState[this.currentSystem]["PowerplayState"],
+        "power": lastState[this.currentSystem]["ControllingPower"]
+    }
     update_display()
 
 def plugin_prefs(parent, cmdr, is_beta):
@@ -280,7 +292,14 @@ def update_display():
     this.currMerits.grid()
 
     this.meritsTrackedLabel["text"] = f"Tracked merits : {str(this.trackedMerits)}".strip().strip()
-    this.meritsTrackedLabelcd.grid()
+    this.meritsTrackedLabel.grid()
+
+    if this.currentSystem and this.currentSysPP:
+            this.currentSystemButton.config(state=tk.NORMAL)
+            this.showButton.config(state=tk.NORMAL)
+            this.resetButton.config(state=tk.NORMAL)
+    else:
+        raise KeyError("No valid data for currentSystem or currentSysPP")
 
     try:
         # Aktuelle Merits aus Systems abrufen
