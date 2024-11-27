@@ -39,6 +39,9 @@ def show_power_info(parent, power_info, initial_text):
     v_scrollbar.pack(side="right", fill="y")
     h_scrollbar.pack(side="bottom", fill="x")
 
+    power_info = clean_empty_systems(power_info)
+    systems = power_info.get("Systems", {})
+
     # Zeige die Daten aus powerInfo an
     tk.Label(table_frame, text="Powerplay Details", font=("Arial", 14, "bold")).grid(row=0, column=0, columnspan=4, pady=10, sticky="w")
 
@@ -48,20 +51,20 @@ def show_power_info(parent, power_info, initial_text):
     tk.Label(table_frame, text=f"Last Session Merits: {power_info['AccumulatedMerits']}", anchor="w").grid(row=4, column=0, columnspan=4, sticky="w", padx=10)
     tk.Label(table_frame, text=f"Last Update: {power_info['LastUpdate']}", anchor="w").grid(row=5, column=0, columnspan=4, sticky="w", padx=10)
 
-    # Tabellenkopf
-    tk.Label(table_frame, text="System Name", width=20, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=0, padx=5, pady=2)
-    tk.Label(table_frame, text="Session Merits", width=15, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=1, padx=5, pady=2)
-    tk.Label(table_frame, text="    ", width=5, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=2, padx=5, pady=2)
-    tk.Label(table_frame, text="Text", width=60, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=3, padx=5, pady=2)
-    
     combined_text = build_combined_text(systems)
     combined_button = tk.Button(
         table_frame, text="Copy All", command=lambda: copy_to_clipboard(combined_text)
     )
-    combined_button.grid(row=7, column=2, columnspan=1, pady=10)
+    combined_button.grid(row=6, column=2, columnspan=1, pady=10)
+
+    # Tabellenkopf
+    tk.Label(table_frame, text="System Name", width=20, anchor="w", font=("Arial", 10, "bold")).grid(row=7, column=0, padx=5, pady=2)
+    tk.Label(table_frame, text="Session Merits", width=15, anchor="w", font=("Arial", 10, "bold")).grid(row=7, column=1, padx=5, pady=2)
+    tk.Label(table_frame, text="    ", width=5, anchor="w", font=("Arial", 10, "bold")).grid(row=7, column=2, padx=5, pady=2)
+    tk.Label(table_frame, text="Text", width=60, anchor="w", font=("Arial", 10, "bold")).grid(row=7, column=3, padx=5, pady=2)
+        
     # Füllen der Tabelle
-    power_info = clean_empty_systems(power_info)
-    systems = power_info.get("Systems", {})
+
     lastrow = 0
     if systems:
         for i, (system_name, system_data) in enumerate(
