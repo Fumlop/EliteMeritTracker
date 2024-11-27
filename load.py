@@ -15,7 +15,7 @@ import logging
 from datetime import datetime, timedelta
 
 this = sys.modules[__name__]  # For holding module globals
-this.debug = True
+this.debug = False
 if (this.debug):
     this.powerInfo = {}
     this.currentSysPP = {"sessionMerits":0,"state":"stronghold", "power":"Felicia Winters"}
