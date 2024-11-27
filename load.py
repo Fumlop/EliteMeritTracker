@@ -15,7 +15,7 @@ import logging
 from datetime import datetime, timedelta
 
 this = sys.modules[__name__]  # For holding module globals
-this.debug = False
+this.debug = True
 if (this.debug):
     this.powerInfo = {}
     this.currentSysPP = {"sessionMerits":0,"state":"stronghold", "power":"Felicia Winters"}
@@ -245,15 +245,16 @@ def prefs_changed(cmdr, is_beta):
     update_display()
 
 def update_json_file():
-    directory_name = path.basename(path.dirname(__file__))
-    plugin_path = path.join(config.plugin_dir, directory_name)
-    file_path = path.join(plugin_path, "power.json")
-    power_info_copy = this.powerInfo.copy()
-    if "Systems" in power_info_copy:
-        del power_info_copy["Systems"]
+    if (this.debug == False):
+        directory_name = path.basename(path.dirname(__file__))
+        plugin_path = path.join(config.plugin_dir, directory_name)
+        file_path = path.join(plugin_path, "power.json")
+        power_info_copy = this.powerInfo.copy()
+        if "Systems" in power_info_copy:
+            del power_info_copy["Systems"]
 
-    with open(file_path, "w") as json_file:
-        json.dump(power_info_copy, json_file, indent=4)
+        with open(file_path, "w") as json_file:
+            json.dump(power_info_copy, json_file, indent=4)
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] == 'Powerplay':
