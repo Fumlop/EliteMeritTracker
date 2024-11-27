@@ -54,12 +54,20 @@ def show_power_info(parent, power_info, initial_text):
     tk.Label(table_frame, text="    ", width=5, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=2, padx=5, pady=2)
     tk.Label(table_frame, text="Text", width=60, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=3, padx=5, pady=2)
     
-
+    combined_text = build_combined_text(systems)
+    combined_button = tk.Button(
+        table_frame, text="Copy All", command=lambda: copy_to_clipboard(combined_text)
+    )
+    combined_button.grid(row=7, column=2, columnspan=1, pady=10)
     # Füllen der Tabelle
     power_info = clean_empty_systems(power_info)
     systems = power_info.get("Systems", {})
+    lastrow = 0
     if systems:
-        for i, (system_name, system_data) in enumerate(systems.items(), start=7):
+        for i, (system_name, system_data) in enumerate(
+            ((name, data) for name, data in systems.items() if data.get("sessionMerits", 0) > 0),
+            start=8
+        ):
             merits = str(system_data.get("sessionMerits", 0))
             dcText = initial_text.replace("@MeritsValue", merits).replace("@System", system_name)
 
@@ -71,12 +79,16 @@ def show_power_info(parent, power_info, initial_text):
                 command=lambda text=dcText: copy_to_clipboard(text)
             ).grid(row=i, column=2, padx=5, pady=2, sticky="w")
             tk.Label(table_frame, text=dcText, width=60, anchor="w", justify="left", wraplength=600).grid(row=i, column=3, padx=5, pady=2, sticky="w")
-            
     else:
         tk.Label(table_frame, text="No systems available", anchor="w").grid(row=7, column=0, columnspan=4, padx=5, pady=2)
 
-    # Button zum Schließen des Fensters
-    tk.Button(info_window, text="Close", command=info_window.destroy).pack(pady=10)
+def build_combined_text(systems):
+    # Baut den kombinierten Text
+    return ", ".join(
+        f"{data.get('sessionMerits', 0)} Merits {name}"
+        for name, data in systems.items()
+        if data.get("sessionMerits", 0) > 0
+    )
 
 def clean_empty_systems(power_info):
     systems = power_info.get("Systems", {})
