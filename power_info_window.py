@@ -39,7 +39,7 @@ def show_power_info(parent, power_info, initial_text):
     v_scrollbar.pack(side="right", fill="y")
     h_scrollbar.pack(side="bottom", fill="x")
 
-    power_info = clean_empty_systems(power_info)
+    #power_info = clean_empty_systems(power_info)
     systems = power_info.get("Systems", {})
 
     # Zeige die Daten aus powerInfo an
