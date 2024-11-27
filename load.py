@@ -15,13 +15,31 @@ import logging
 from datetime import datetime, timedelta
 
 this = sys.modules[__name__]  # For holding module globals
-
-this.powerInfo = {}
-this.currentSysPP = {}
-this.currentSystem = "" 
-this.trackedMerits = 0
-this.lastSystem = ""
-this.version = 'v0.2.4'
+this.debug = False
+if (this.debug):
+    this.powerInfo = {}
+    this.currentSysPP = {"sessionMerits":0,"state":"stronghold", "power":"Felicia Winters"}
+    this.currentSystem = "Rhea" 
+    this.trackedMerits = 1750
+    this.newest = 0
+    this.powerInfo = {
+        "PowerName": "Felica Winters",
+        "Merits": 42424242,
+        "Rank": 99,
+        "LastUpdate": "",
+        "AccumulatedMerits": 500,
+        "AccumulatedSince": "",
+        "Systems":{
+        "Rhea":{"sessionMerits":0,"state":"stronghold", "power":"Felicia Winters"},
+        "BD-01 1707":{"sessionMerits":250,"state":"stronghold", "power":"Felicia Winters"},
+        "Urks":{"sessionMerits":1500,"state":"stronghold", "power":"Felicia Winters"}}
+    }
+else:
+    this.powerInfo = {}
+    this.currentSysPP = {}
+    this.currentSystem = "" 
+    this.trackedMerits = 0
+this.version = 'v0.2.6'
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
 
@@ -73,34 +91,34 @@ def plugin_start3(plugin_dir):
 
     # Initialize discordText
     this.discordText = tk.StringVar(value=config.get("dText", "@Leader Earned @MertitsValue merits in @System"))
+    if (this.debug == False):
+        # Default-Datenstruktur
+        default_data = {
+            "PowerName": "",
+            "Merits": 0,
+            "Rank": 0,
+            "LastUpdate": "",
+            "AccumulatedMerits": 0,
+            "AccumulatedSince": "",
+            "Systems":{}
+        }
 
-    # Default-Datenstruktur
-    default_data = {
-        "PowerName": "",
-        "Merits": 0,
-        "Rank": 0,
-        "LastUpdate": "",
-        "AccumulatedMerits": 0,
-        "AccumulatedSince": "",
-        "Systems":{}
-    }
+        this.newest = checkVersion()
 
-    this.newest = checkVersion()
-
-    # JSON prüfen oder initialisieren
-    if not path.exists(file_path):
-        os.makedirs(plugin_path, exist_ok=True)
-        with open(file_path, "w") as json_file:
-            json.dump(default_data, json_file, indent=4)
-        this.powerInfo = default_data
-    else:
-        try:
-            with open(file_path, "r") as json_file:
-                this.powerInfo = json.load(json_file)
-                if not this.powerInfo:
-                    this.powerInfo = default_data
-        except json.JSONDecodeError:
+        # JSON prüfen oder initialisieren
+        if not path.exists(file_path):
+            os.makedirs(plugin_path, exist_ok=True)
+            with open(file_path, "w") as json_file:
+                json.dump(default_data, json_file, indent=4)
             this.powerInfo = default_data
+        else:
+            try:
+                with open(file_path, "r") as json_file:
+                    this.powerInfo = json.load(json_file)
+                    if not this.powerInfo:
+                        this.powerInfo = default_data
+            except json.JSONDecodeError:
+                this.powerInfo = default_data
 
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     this.currentSystem = entry.get('StarSystem', this.currentSystem)
@@ -126,6 +144,7 @@ def position_button():
 
 def plugin_app(parent):
     # Adds to the main page UI
+    stateButton = tk.NORMAL if this.debug else tk.DISABLED
     this.frame = tk.Frame(parent)
     this.power = tk.Label(this.frame, text=f"Pledged power : {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}".strip(), anchor="w", justify="left")
     this.currMerits = tk.Label(this.frame, text=f"Total merits : {this.powerInfo['Merits']} | Last Session : {this.powerInfo['AccumulatedMerits']}".strip(), anchor="w", justify="left")
@@ -137,7 +156,7 @@ def plugin_app(parent):
         this.frame, text="add merits", 
         command=lambda: [update_system_merits(this.currentSystem, this.currentSystemEntry.get()), 
         update_display()],
-        state=tk.DISABLED)
+        state=stateButton)
     this.systemPowerLabel.grid(row=4, column=0, sticky='we')
     this.currentSystemLabel.grid(row=3, column=0, sticky='we')
     this.currentSystemEntry.grid(row=3, column=1, padx=5, sticky='we')
@@ -152,14 +171,14 @@ def plugin_app(parent):
         this.frame,
         text="Show Merits",
         command=lambda: show_power_info(parent, this.powerInfo, this.discordText.get()),
-        state=tk.DISABLED
+        state=stateButton
     )
     this.showButton.grid(row=5, column=0, sticky='we', pady=10)
     this.resetButton = tk.Button(
         this.frame,
         text="Reset",
         command=lambda: reset(),
-        state=tk.DISABLED
+        state=stateButton
     )
     this.resetButton.grid(row=5, column=2, sticky='we', pady=10)
     this.updateIndicator = HyperlinkLabel(this.frame, text="Update available", anchor=tk.W, url='https://github.com/Fumlop/EliteMeritTracker/releases')
