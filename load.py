@@ -228,7 +228,7 @@ def update_system_merits(current_system, merits_value):
         # Initialisiere das Systems-Objekt in powerInfo, falls es nicht existiert
         if "Systems" not in this.powerInfo:
             this.powerInfo["Systems"] = {}
-
+        this.currentSystemEntry.delete(0, tk.END)
         # Aktualisiere Merits im aktuellen System
         if current_system in this.powerInfo["Systems"]:
             this.powerInfo["Systems"][current_system]["sessionMerits"] += merits
