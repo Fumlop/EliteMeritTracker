@@ -39,7 +39,7 @@ else:
     this.currentSysPP = {}
     this.currentSystem = "" 
     this.trackedMerits = 0
-this.version = 'v0.2.7'
+this.version = 'v0.2.8'
 
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
@@ -229,7 +229,7 @@ def update_system_merits(current_system, merits_value):
         # Initialisiere das Systems-Objekt in powerInfo, falls es nicht existiert
         if "Systems" not in this.powerInfo:
             this.powerInfo["Systems"] = {}
-
+        this.currentSystemEntry.delete(0, tk.END)
         # Aktualisiere Merits im aktuellen System
         if current_system in this.powerInfo["Systems"]:
             this.powerInfo["Systems"][current_system]["sessionMerits"] += merits
