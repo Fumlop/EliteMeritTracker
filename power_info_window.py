@@ -88,7 +88,7 @@ def show_power_info(parent, power_info, initial_text):
 def build_combined_text(systems):
     # Baut den kombinierten Text
     return ", ".join(
-        f"{data.get('sessionMerits', 0)} merits in {name},"
+        f"{data.get('sessionMerits', 0)} merits in {name}"
         for name, data in systems.items()
         if data.get("sessionMerits", 0) > 0
     )
