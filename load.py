@@ -39,7 +39,8 @@ else:
     this.currentSysPP = {}
     this.currentSystem = "" 
     this.trackedMerits = 0
-this.version = 'v0.2.8'
+
+this.version = 'v0.2.9'
 
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
@@ -153,12 +154,14 @@ def plugin_app(parent):
     this.systemPowerLabel = tk.Label(this.frame, text="Status : ", anchor="w", justify="left")
     this.currentSystemLabel = tk.Label(this.frame, text="Waiting for Events".strip(),width=15, anchor="w", justify="left")
     this.currentSystemEntry = tk.Entry(this.frame, width=6 )
+    
     this.currentSystemButton = tk.Button(
         this.frame, text="add merits", 
         command=lambda: [update_system_merits(this.currentSystem, this.currentSystemEntry.get()), 
         update_display()],
         state=stateButton)
     this.systemPowerLabel.grid(row=4, column=0, sticky='we')
+    this.currentSystemEntry.bind("<Return>", on_enter)
     this.currentSystemLabel.grid(row=3, column=0, sticky='we')
     this.currentSystemEntry.grid(row=3, column=1, padx=5, sticky='we')
     this.currentSystemButton.grid(row=3, column=2, padx=3, sticky='w')
@@ -189,7 +192,10 @@ def plugin_app(parent):
     else :
         this.version.grid(padx = 5, row = 6, column = 0)
     return this.frame
-    
+
+def on_enter(event):
+    update_system_merits(this.currentSystem, this.currentSystemEntry.get())
+
 def reset():
     # Initialisiere ein neues Dictionary für Systeme
     this.powerInfo["Systems"] = {}
@@ -301,7 +307,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         # Block to prepare sytsem merits
         # Update UI
         update_display()
-    if entry['event'] in ['FSDJump', 'Location']:
+    if entry['event'] in ['FSDJump', 'Location','SupercruiseEntry','SupercruiseExit']:
         this.currentSystem = entry.get('StarSystem',"")
         if "Systems" not in this.powerInfo:
             this.powerInfo["Systems"] = {}
