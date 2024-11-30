@@ -40,6 +40,7 @@ else:
     this.currentSysPP = {}
     this.currentSystem = "" 
     this.trackedMerits = 0
+
 this.version = 'v0.2.10'
 this.assetpath = ""
 # This could also be returned from plugin_start3()
