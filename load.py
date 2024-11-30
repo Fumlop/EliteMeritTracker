@@ -5,6 +5,7 @@ import json
 import requests
 import myNotebook as nb
 from typing import Dict, Any
+from PIL import Image, ImageTk 
 import re
 from power_info_window import show_power_info
 from ttkHyperlinkLabel import HyperlinkLabel
@@ -40,8 +41,8 @@ else:
     this.currentSystem = "" 
     this.trackedMerits = 0
 
-this.version = 'v0.2.9'
-
+this.version = 'v0.2.10'
+this.assetpath = ""
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
 
@@ -90,6 +91,7 @@ def plugin_start3(plugin_dir):
     directory_name = path.basename(path.dirname(__file__))
     plugin_path = path.join(config.plugin_dir, directory_name)
     file_path = path.join(plugin_path, "power.json")
+    this.assetspath = f"{plugin_path}/assets"
 
     # Initialize discordText
     this.discordText = tk.StringVar(value=config.get("dText", "@Leader Earned @MertitsValue merits in @System"))
@@ -155,11 +157,19 @@ def plugin_app(parent):
     this.currentSystemLabel = tk.Label(this.frame, text="Waiting for Events".strip(),width=15, anchor="w", justify="left")
     this.currentSystemEntry = tk.Entry(this.frame, width=6 )
     
+    imageplus = Image.open(f"{this.assetspath}/plus.png")  # Pfad zu deinem PNG-File
+    this.frame.iconplus = ImageTk.PhotoImage(imageplus)
+    imagedelete = Image.open(f"{this.assetspath}/delete.png")  # Pfad zu deinem PNG-File
+    this.frame.icondelete = ImageTk.PhotoImage(imagedelete)
+
+
+
     this.currentSystemButton = tk.Button(
-        this.frame, text="add merits", 
-        command=lambda: [update_system_merits(this.currentSystem, this.currentSystemEntry.get()), 
+        this.frame, image=this.frame.iconplus, text="add merits", 
+        command=lambda: [update_system_merits(this.currentSystem, command=this.currentSystemEntry.get()), 
         update_display()],
         state=stateButton)
+
     this.systemPowerLabel.grid(row=4, column=0, sticky='we')
     this.currentSystemEntry.bind("<Return>", on_enter)
     this.currentSystemLabel.grid(row=3, column=0, sticky='we')
@@ -179,8 +189,7 @@ def plugin_app(parent):
     )
     this.showButton.grid(row=5, column=0, sticky='we', pady=10)
     this.resetButton = tk.Button(
-        this.frame,
-        text="Reset",
+        this.frame, image=this.frame.icondelete,
         command=lambda: reset(),
         state=stateButton
     )
