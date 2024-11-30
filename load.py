@@ -40,7 +40,7 @@ else:
     this.currentSysPP = {}
     this.currentSystem = "" 
     this.trackedMerits = 0
-this.version = 'v0.2.10'
+this.version = 'v0.2.11'
 this.assetpath = ""
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
@@ -160,12 +160,14 @@ def plugin_app(parent):
     this.frame.iconplus = ImageTk.PhotoImage(imageplus)
     imagedelete = Image.open(f"{this.assetspath}/delete.png")  # Pfad zu deinem PNG-File
     this.frame.icondelete = ImageTk.PhotoImage(imagedelete)
+    imageback = Image.open(f"{this.assetspath}/back.png")  # Pfad zu deinem PNG-File
+    this.frame.iconback = ImageTk.PhotoImage(imageback)
 
 
 
     this.currentSystemButton = tk.Button(
         this.frame, image=this.frame.iconplus, text="add merits", 
-        command=lambda: [update_system_merits(this.currentSystem, command=this.currentSystemEntry.get()), 
+        command=lambda: [update_system_merits(this.currentSystem, this.currentSystemEntry.get()), 
         update_display()],
         state=stateButton)
 
@@ -184,7 +186,9 @@ def plugin_app(parent):
         this.frame,
         text="Show Merits",
         command=lambda: show_power_info(parent, this.powerInfo, this.discordText.get()),
-        state=stateButton
+        state=stateButton,
+        image=this.frame.iconback,
+        compound="center"
     )
     this.showButton.grid(row=5, column=0, sticky='we', pady=10)
     this.resetButton = tk.Button(
