@@ -8,6 +8,7 @@ from typing import Dict, Any
 from PIL import Image, ImageTk 
 import re
 from power_info_window import show_power_info
+import event_handler
 from ttkHyperlinkLabel import HyperlinkLabel
 from os import path
 from companion import CAPIData, SERVER_LIVE, SERVER_LEGACY, SERVER_BETA
@@ -17,6 +18,7 @@ from datetime import datetime, timedelta
 
 this = sys.modules[__name__]  # For holding module globals
 this.debug = False
+this.count = False
 if (this.debug):
     this.powerInfo = {}
     this.currentSysPP = {"sessionMerits":0,"state":"stronghold", "power":"Felicia Winters"}
@@ -92,6 +94,7 @@ def plugin_start3(plugin_dir):
     directory_name = path.basename(path.dirname(__file__))
     plugin_path = path.join(config.plugin_dir, directory_name)
     file_path = path.join(plugin_path, "power.json")
+    file_path_values = path.join(plugin_path, "values.json")
     this.assetspath = f"{plugin_path}/assets"
 
     # Initialize discordText
@@ -108,6 +111,12 @@ def plugin_start3(plugin_dir):
             "Systems":{}
         }
 
+        try:
+            with open(file_path_values, "r") as json_file:
+                this.default_factor = json.load(json_file)
+        except json.JSONDecodeError:
+            this.default_factor = {}
+        
         this.newest = checkVersion()
 
         # JSON prüfen oder initialisieren
@@ -126,6 +135,8 @@ def plugin_start3(plugin_dir):
                 this.powerInfo = default_data
 
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
+    if this.currentSystem == "": 
+        return
     this.currentSystem = entry.get('StarSystem', this.currentSystem)
     if "Systems" not in this.powerInfo:
         this.powerInfo["Systems"] = {}
@@ -169,7 +180,7 @@ def plugin_app(parent):
 
     this.currentSystemButton = tk.Button(
         this.frame, image=this.frame.iconplus, text="add merits", 
-        command=lambda: [update_system_merits(this.currentSystem, this.currentSystemEntry.get()), 
+        command=lambda: [update_system_merits(this.currentSystemEntry.get()), 
         update_display()],
         state=stateButton)
 
@@ -208,7 +219,7 @@ def plugin_app(parent):
     return this.frame
 
 def on_enter(event):
-    update_system_merits(this.currentSystem, this.currentSystemEntry.get())
+    update_system_merits(this.currentSystemEntry.get())
 
 def reset():
     # Initialisiere ein neues Dictionary für Systeme
@@ -242,23 +253,24 @@ def plugin_prefs(parent, cmdr, is_beta):
 
     return config_frame
 
-def update_system_merits(current_system, merits_value):
-    try:
-        merits = int(merits_value)
-        this.trackedMerits += merits
-        # Initialisiere das Systems-Objekt in powerInfo, falls es nicht existiert
-        if "Systems" not in this.powerInfo:
-            this.powerInfo["Systems"] = {}
-        this.currentSystemEntry.delete(0, tk.END)
-        # Aktualisiere Merits im aktuellen System
-        if current_system in this.powerInfo["Systems"]:
-            this.powerInfo["Systems"][current_system]["sessionMerits"] += merits
-        else:
-            this.powerInfo["Systems"][current_system] = {"sessionMerits": merits}
-        # Direkte Aktualisierung der Anzeige
-        update_display()
-    except ValueError:
-        logger.debug("Invalid merits value. Please enter a number.")
+def update_system_merits(merits_value):
+    if this.count == True:
+        try:
+            merits = int(merits_value)
+            this.trackedMerits += merits
+            # Initialisiere das Systems-Objekt in powerInfo, falls es nicht existiert
+            if "Systems" not in this.powerInfo:
+                this.powerInfo["Systems"] = {}
+            this.currentSystemEntry.delete(0, tk.END)
+            # Aktualisiere Merits im aktuellen System
+            if this.currentSystem in this.powerInfo["Systems"]:
+                this.powerInfo["Systems"][this.currentSystem]["sessionMerits"] += merits
+            else:
+                this.powerInfo["Systems"][this.currentSystem] = {"sessionMerits": merits}
+            # Direkte Aktualisierung der Anzeige
+            update_display()
+        except ValueError:
+            logger.debug("Invalid merits value. Please enter a number.")
 
 def prefs_changed(cmdr, is_beta):
     # Speichere den aktuellen Wert der StringVar in die Konfiguration
@@ -298,12 +310,6 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         # Berechnung der akkumulierten Merits über 24 Stunden
         accumulated_merits = this.powerInfo.get("AccumulatedMerits", 0)
         accumulated_merits = earned_merits
-        #if (current_time - accumulated_since) > timedelta(hours=1440):
-        #    accumulated_merits = earned_merits
-        #    accumulated_since = current_time
-        #else:
-        #    accumulated_merits += earned_merits
-
         # Aktualisiere PowerInfo-Daten
         this.powerInfo["PowerName"] = power_name
         this.powerInfo["Merits"] = current_merits
@@ -314,15 +320,13 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
 
         # JSON aktualisieren
         update_json_file()
-
-        # Block to prepare sytsem merits
-        # this.currentSysPP[this.currentSystem]["merits"] += event.merits
-        # this.currentSysPP[this.currentSystem]["influence"] += (event.merits/4)
-        # Block to prepare sytsem merits
-        # Update UI
         update_display()
     if entry['event'] in ['FSDJump', 'Location','SupercruiseEntry','SupercruiseExit']:
         this.currentSystem = entry.get('StarSystem',"")
+        if entry['Location'] and this.powerInfo["PowerName"] in entry['Powers']:
+            this.count = True
+        else:
+            this.count = False
         if "Systems" not in this.powerInfo:
             this.powerInfo["Systems"] = {}
         if this.currentSystem not in this.powerInfo["Systems"]:
@@ -336,7 +340,29 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         else:
             this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
         update_display()
-
+    if entry['event'] in ['MissionCompleted']:
+        if entry['Name'] in ['Mission_AltruismCredits_name']:
+            logger.debug("MissionCompleted Mission_AltruismCredits")
+            merits = event_handler.handleAltruism(entry, this.default_factor,this.currentSysPP)
+            update_system_merits(merits)
+            logger.debug("Mission_AltruismCredits_name Merits %s", merits)
+    if  entry['event'] in ['MarketSell']:
+        logger.debug("MarketSell")
+        merits = event_handler.handleMarketSell(entry, this.default_factor,this.currentSysPP)
+        logger.debug("Merits %s", merits)
+        update_system_merits(merits)
+    if entry['event'] in ['ShipTargeted']:
+        if entry['ScanStage'] == 3:
+            logger.debug("ShipTargeted - ScanStage")
+            merits = this.default_factor["ShipScan"]
+            logger.debug("Merits %s", merits)
+            update_system_merits(merits)
+    if entry['event'] in ['SearchAndRescue'] and entry['Name'] in ["wreckagecomponents","usscargoblackbox"]:
+        logger.debug("SearchAndRescue - Salvage")
+        merits = event_handler.handleSalvage(entry, this.default_factor,this.currentSysPP)
+        logger.debug("Merits %s", merits)
+        update_system_merits(merits)    
+ 
 
 def update_display():
     this.currMerits["text"] = f"Total merits : {str(this.powerInfo['Merits'])} | Last Session : {str(this.powerInfo['AccumulatedMerits'])}".strip()
