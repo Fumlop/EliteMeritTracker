@@ -341,12 +341,12 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] in ['MissionCompleted']:
         if entry['Name'] in ['Mission_AltruismCredits_name']:
             logger.debug("MissionCompleted Mission_AltruismCredits")
-            merits = event_handler.handleAltruism(entry, this.default_factor,this.currentSysPP)
+            merits = event_handler.handleAltruism(entry, this.default_factor)
             update_system_merits(merits)
             logger.debug("Mission_AltruismCredits_name Merits %s", merits)
     if  entry['event'] in ['MarketSell']:
         logger.debug("MarketSell")
-        merits = event_handler.handleMarketSell(entry, this.default_factor,this.currentSysPP)
+        merits = event_handler.handleMarketSell(entry, this.default_factor)
         logger.debug("Merits %s", merits)
         update_system_merits(merits)
     if entry['event'] in ['ShipTargeted']:
@@ -357,10 +357,12 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             update_system_merits(merits)
     if entry['event'] in ['SearchAndRescue'] and entry['Name'] in ["wreckagecomponents","usscargoblackbox"]:
         logger.debug("SearchAndRescue - Salvage")
-        merits = event_handler.handleSalvage(entry, this.default_factor,this.currentSysPP)
+        merits = event_handler.handleSalvage(entry, this.default_factor)
         logger.debug("Merits %s", merits)
-        update_system_merits(merits)    
- 
+        update_system_merits(merits)   
+    if entry['event']  == "HoloscreenHacked":
+        logger.debug("HoloscreenHacked")
+        merits = event_handler.handleAdvertiseHack(entry, this.default_factor, this.powerInfo["PowerName"])
 
 def update_display():
     this.currMerits["text"] = f"Total merits : {str(this.powerInfo['Merits'])} | Last Session : {str(this.powerInfo['AccumulatedMerits'])}".strip()
