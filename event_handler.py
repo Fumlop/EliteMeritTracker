@@ -43,6 +43,21 @@ def handleMarketSell(entry, factors, currSys):
         return merits
     return 0
 
+def handleCombat(entry, factors, targets):
+    logger.debug("entry['Bounty']")
+    if "TotalReward" in entry and entry["TotalReward"] <= 2000:
+        logger.debug("entry['Bounty'] - Power")
+        if entry["PilotName"] in targets:
+            try:
+                merits = factors["CombatPower"][entry["PilotRank"]]
+                logger.debug("merits['Bounty'] - %s", merits)
+                return merits
+            except KeyError as e:
+                logger.debug(e)
+    else:
+        logger.debug("entry['Bounty'] - Normal")
+    return 0
+
 def handleAltruism(entry, factors):
     logger.debug("entry['Name'] in ['Mission_AltruismCredits_name']")
     pattern = r'\b\d+(?:[.,]\d+)*\b'

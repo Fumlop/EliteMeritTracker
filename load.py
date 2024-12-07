@@ -340,6 +340,8 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
         else:
             this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
+        if entry['event'] in ['SupercruiseEntry','SupercruiseExit']:
+            this.collectTarget = {}
         update_display()
     if entry['event'] in ['MissionCompleted']:
         if entry['Name'] in ['Mission_AltruismCredits_name']:
@@ -366,6 +368,15 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event']  == "HoloscreenHacked":
         logger.debug("HoloscreenHacked")
         merits = event_handler.handleAdvertiseHack(entry, this.default_factor, this.powerInfo["PowerName"])
+    if entry['event'] == "Bounty":
+         logger.debug("Bounty")
+         merits = event_handler.handleCombat(entry, this.default_factor, this.collectTarget)
+    if entry['event'] == "ShipTargeted" and entry['TargetLocked'] and entry['ScanStage'] in [1,3]:
+        logger.debug("Collect Target")
+        if entry['ScanStage'] == 1:
+            this.collectTarget = {entry['PilotName']: {"PilotRank":entry['PilotRank']}}
+        if entry['ScanStage'] == 3 and "Bounty" in entry:
+             this.collectTarget ={entry['PilotName']: {"PilotRank":entry['PilotRank'], "Bounty":entry['Bounty']}}
 
 def update_display():
     this.currMerits["text"] = f"Total merits : {str(this.powerInfo['Merits'])} | Last Session : {str(this.powerInfo['AccumulatedMerits'])}".strip()
