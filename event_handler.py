@@ -42,7 +42,7 @@ def handleMarketSell(entry, factors, currSys):
         return merits
     return 0
 
-def handleAltruism(entry, factors,currSys):
+def handleAltruism(entry, factors):
     if this.beta == True:
         logger.debug("entry['Name'] in ['Mission_AltruismCredits_name']")
         pattern = r'\b\d+(?:[.,]\d+)*\b'
@@ -52,21 +52,24 @@ def handleAltruism(entry, factors,currSys):
         if match:
             creditsnumber = int(re.sub(r'[,\.]', '', match))
             logger.debug("creditsnumber: %s", creditsnumber)
-            merits = creditsnumber / factors["Mission_AltruismCredits_name"]
+            merits = factors["Mission_AltruismCredits_name"][creditsnumber]
             logger.debug("creditsnumber: %s", merits)
             return merits
     return 0    
 
-def handlePowerKill(entry, factors,currSys):
+def handlePowerKill(entry, factors):
     logger.debug("entry['event'] in ['MissionCompleted']")
     
-def handleShipScan(entry, factors,currSys):
+def handleShipScan(entry, factors):
     logger.debug("entry['event'] in ['MissionCompleted']")
 
-def handleAdvertiseHack(entry, factors,currSys):
-    logger.debug("entry['event'] in ['MissionCompleted']")
+def handleAdvertiseHack(entry, factors, power):
+    logger.debug("entry['event'] in ['handleAdvertiseHack']")
+    if entry['event'] == "HoloscreenHacked" and entry['PowerAfter'] == power:
+        return factors["Hacking"]["Holoscreen"]
+    return 0
     
-def handleSalvage(entry, factors,currSys):
+def handleSalvage(entry, factors):
     logger.debug("entry['event'] in ['handleSalvage']")
     merits = factors["Salvage" ][entry['Name']]
     return merits
