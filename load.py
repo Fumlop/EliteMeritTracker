@@ -252,22 +252,23 @@ def plugin_prefs(parent, cmdr, is_beta):
     return config_frame
 
 def update_system_merits(merits_value):
-    try:
-        merits = int(merits_value)
-        this.trackedMerits += merits
-        # Initialisiere das Systems-Objekt in powerInfo, falls es nicht existiert
-        if "Systems" not in this.powerInfo:
-            this.powerInfo["Systems"] = {}
-        this.currentSystemEntry.delete(0, tk.END)
-        # Aktualisiere Merits im aktuellen System
-        if this.currentSystem in this.powerInfo["Systems"]:
-            this.powerInfo["Systems"][this.currentSystem]["sessionMerits"] += merits
-        else:
-            this.powerInfo["Systems"][this.currentSystem] = {"sessionMerits": merits}
-        # Direkte Aktualisierung der Anzeige
-        update_display()
-    except ValueError:
-        logger.debug("Invalid merits value. Please enter a number.")
+    if this.count == True:
+        try:
+            merits = int(merits_value)
+            this.trackedMerits += merits
+            # Initialisiere das Systems-Objekt in powerInfo, falls es nicht existiert
+            if "Systems" not in this.powerInfo:
+                this.powerInfo["Systems"] = {}
+            this.currentSystemEntry.delete(0, tk.END)
+            # Aktualisiere Merits im aktuellen System
+            if this.currentSystem in this.powerInfo["Systems"]:
+                this.powerInfo["Systems"][this.currentSystem]["sessionMerits"] += merits
+            else:
+                this.powerInfo["Systems"][this.currentSystem] = {"sessionMerits": merits}
+            # Direkte Aktualisierung der Anzeige
+            update_display()
+        except ValueError:
+            logger.debug("Invalid merits value. Please enter a number.")
 
 def prefs_changed(cmdr, is_beta):
     # Speichere den aktuellen Wert der StringVar in die Konfiguration
