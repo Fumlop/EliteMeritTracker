@@ -52,7 +52,7 @@ def handleAltruism(entry, factors):
         if match:
             creditsnumber = int(re.sub(r'[,\.]', '', match))
             logger.debug("creditsnumber: %s", creditsnumber)
-            merits = creditsnumber / factors["Mission_AltruismCredits_name"]
+            merits = factors["Mission_AltruismCredits_name"][creditsnumber]
             logger.debug("creditsnumber: %s", merits)
             return merits
     return 0    
