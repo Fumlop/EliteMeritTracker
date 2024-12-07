@@ -62,4 +62,7 @@ def handleAdvertiseHack(entry, factors,currSys):
     logger.debug("entry['event'] in ['MissionCompleted']")
     
 def handleSalvage(entry, factors,currSys):
-    logger.debug("entry['event'] in ['MissionCompleted']")
+    logger.debug("entry['event'] in ['handleSalvage']")
+    merits = factors["Salvage" ][entry['Name']]
+    return merits
+    

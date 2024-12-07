@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 
 this = sys.modules[__name__]  # For holding module globals
 this.debug = False
+this.count = False
 if (this.debug):
     this.powerInfo = {}
     this.currentSysPP = {"sessionMerits":0,"state":"stronghold", "power":"Felicia Winters"}
@@ -319,6 +320,10 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         update_display()
     if entry['event'] in ['FSDJump', 'Location','SupercruiseEntry','SupercruiseExit']:
         this.currentSystem = entry.get('StarSystem',"")
+        if entry['Location'] and this.powerInfo["PowerName"] in entry['Powers']:
+            this.count = True
+        else:
+            this.count = False
         if "Systems" not in this.powerInfo:
             this.powerInfo["Systems"] = {}
         if this.currentSystem not in this.powerInfo["Systems"]:
@@ -333,8 +338,8 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
         update_display()
     if entry['event'] in ['MissionCompleted']:
-        logger.debug("MissionCompleted")
         if entry['Name'] in ['Mission_AltruismCredits_name']:
+            logger.debug("MissionCompleted Mission_AltruismCredits")
             merits = event_handler.handleAltruism(entry, this.default_factor,this.currentSysPP)
             update_system_merits(merits)
             logger.debug("Mission_AltruismCredits_name Merits %s", merits)
@@ -346,10 +351,14 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] in ['ShipTargeted']:
         if entry['ScanStage'] == 3:
             logger.debug("ShipTargeted - ScanStage")
-            merits = 20
+            merits = this.default_factor["ShipScan"]
             logger.debug("Merits %s", merits)
             update_system_merits(merits)
-            
+    if entry['event'] in ['SearchAndRescue'] and entry['Name'] in ["wreckagecomponents","usscargoblackbox"]:
+        logger.debug("SearchAndRescue - Salvage")
+        merits = event_handler.handleSalvage(entry, this.default_factor,this.currentSysPP)
+        logger.debug("Merits %s", merits)
+        update_system_merits(merits)    
  
 
 def update_display():
