@@ -350,7 +350,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         logger.debug("Merits %s", merits)
         update_system_merits(merits)
     if entry['event'] in ['ShipTargeted']:
-        if entry['ScanStage'] == 3:
+        if "ScanStage" in entry and entry['ScanStage'] == 3:
             logger.debug("ShipTargeted - ScanStage")
             merits = this.default_factor["ShipScan"]
             logger.debug("Merits %s", merits)
