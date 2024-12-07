@@ -17,6 +17,8 @@ this = sys.modules[__name__]  # For holding module globals
 this.debug = False
 plugin_name = os.path.basename(os.path.dirname(__file__))
 
+this.beta = False
+
 logger = logging.getLogger(f'{appname}.{plugin_name}')
 if not logger.hasHandlers():
     level = logging.INFO  # So logger.info(...) is equivalent to print()
@@ -30,27 +32,30 @@ if not logger.hasHandlers():
     logger.addHandler(logger_channel)
 
 def handleMarketSell(entry, factors, currSys):
-    logger.debug("entry['event'] in ['MarketSell']")
-    sellPrice = entry['SellPrice']
-    totalSale = entry['TotalSale']
-    pricePaid = entry['AvgPricePaid']
-    count = entry['Count']
-    merits = (totalSale / factors["MarketSell"]["normal"])*4
-    return merits
-
-def handleAltruism(entry, factors,currSys):
-    logger.debug("entry['Name'] in ['Mission_AltruismCredits_name']")
-    pattern = r'\b\d+(?:[.,]\d+)*\b'
-    logger.debug("Pattern: %s", pattern)
-    match = re.search(pattern, entry['LocalisedName']).group()
-    logger.debug("match: %s", match)
-    if match:
-        creditsnumber = int(re.sub(r'[,\.]', '', match))
-        logger.debug("creditsnumber: %s", creditsnumber)
-        merits = creditsnumber / factors["Mission_AltruismCredits_name"]
-        logger.debug("creditsnumber: %s", merits)
+    if this.beta == True:
+        logger.debug("entry['event'] in ['MarketSell']")
+        sellPrice = entry['SellPrice']
+        totalSale = entry['TotalSale']
+        pricePaid = entry['AvgPricePaid']
+        count = entry['Count']
+        merits = (totalSale / factors["MarketSell"]["normal"])*4
         return merits
     return 0
+
+def handleAltruism(entry, factors,currSys):
+    if this.beta == True:
+        logger.debug("entry['Name'] in ['Mission_AltruismCredits_name']")
+        pattern = r'\b\d+(?:[.,]\d+)*\b'
+        logger.debug("Pattern: %s", pattern)
+        match = re.search(pattern, entry['LocalisedName']).group()
+        logger.debug("match: %s", match)
+        if match:
+            creditsnumber = int(re.sub(r'[,\.]', '', match))
+            logger.debug("creditsnumber: %s", creditsnumber)
+            merits = creditsnumber / factors["Mission_AltruismCredits_name"]
+            logger.debug("creditsnumber: %s", merits)
+            return merits
+    return 0    
 
 def handlePowerKill(entry, factors,currSys):
     logger.debug("entry['event'] in ['MissionCompleted']")
