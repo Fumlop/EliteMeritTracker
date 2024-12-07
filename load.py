@@ -106,7 +106,8 @@ def plugin_start3(plugin_dir):
             "LastUpdate": "",
             "AccumulatedMerits": 0,
             "AccumulatedSince": "",
-            "Systems":{}
+            "Systems":{},
+            "Count":True 
         }
 
         try:
@@ -127,6 +128,8 @@ def plugin_start3(plugin_dir):
             try:
                 with open(file_path, "r") as json_file:
                     this.powerInfo = json.load(json_file)
+                    if ("Count" not in this.powerInfo):
+                        this.powerInfo["Count"] = True
                     if not this.powerInfo:
                         this.powerInfo = default_data
             except json.JSONDecodeError:
@@ -209,11 +212,8 @@ def plugin_app(parent):
     )
     this.resetButton.grid(row=5, column=2, sticky='we', pady=10)
     this.updateIndicator = HyperlinkLabel(this.frame, text="Update available", anchor=tk.W, url='https://github.com/Fumlop/EliteMeritTracker/releases')
-    this.version = tk.Label(this.frame, text=f"Version: {this.version}".strip(),width=15, anchor="w", justify="left")
     if this.newest == 1:
         this.updateIndicator.grid(padx = 5, row = 6, column = 0)
-    else :
-        this.version.grid(padx = 5, row = 6, column = 0)
     return this.frame
 
 def on_enter(event):
@@ -252,7 +252,8 @@ def plugin_prefs(parent, cmdr, is_beta):
     return config_frame
 
 def update_system_merits(merits_value):
-    if this.count:
+    logger.debug("Count %s",this.powerInfo["Count"])
+    if this.powerInfo["Count"]:
         try:
             merits = int(merits_value)
             this.trackedMerits += merits
@@ -321,12 +322,12 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         update_display()
     if entry['event'] in ['FSDJump', 'Location','SupercruiseEntry','SupercruiseExit']:
         this.currentSystem = entry.get('StarSystem',"")
-        if "Powers" in entry and this.powerInfo["PowerName"] in entry['Powers']:
-            this.count = True
-            logger.debug("Count True")
-        else:
-            this.count = False
+        if entry['event'] == 'FSDJump' and 'Powers' in entry and this.powerInfo['PowerName'] not in entry['Powers']:
+            this.powerInfo["Count"] = False
             logger.debug("Count False")
+        else:
+            this.powerInfo["Count"] = True
+            logger.debug("Count True")
         if "Systems" not in this.powerInfo:
             this.powerInfo["Systems"] = {}
         if this.currentSystem not in this.powerInfo["Systems"]:

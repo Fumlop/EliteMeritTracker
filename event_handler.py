@@ -7,6 +7,7 @@ import myNotebook as nb
 from typing import Dict, Any
 from PIL import Image, ImageTk 
 import re
+import math#
 import event_handler
 from os import path
 from companion import CAPIData, SERVER_LIVE, SERVER_LEGACY, SERVER_BETA
@@ -51,7 +52,7 @@ def handleAltruism(entry, factors):
     if match:
         credittext = re.sub(r'[,\.]', '', match)
         logger.debug("creditsnumber: %s", credittext)
-        merits = factors["Mission_AltruismCredits_name"][credittext]
+        merits = math.ceil((factors["Mission_AltruismCredits_name"]-1.2)*0.000108)
         logger.debug("creditsnumber: %s", merits)
         return merits
     return 0    
