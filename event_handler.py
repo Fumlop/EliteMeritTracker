@@ -50,9 +50,9 @@ def handleAltruism(entry, factors):
         match = re.search(pattern, entry['LocalisedName']).group()
         logger.debug("match: %s", match)
         if match:
-            creditsnumber = int(re.sub(r'[,\.]', '', match))
-            logger.debug("creditsnumber: %s", creditsnumber)
-            merits = factors["Mission_AltruismCredits_name"][creditsnumber]
+            credittext = re.sub(r'[,\.]', '', match)
+            logger.debug("creditsnumber: %s", credittext)
+            merits = factors["Mission_AltruismCredits_name"][credittext]
             logger.debug("creditsnumber: %s", merits)
             return merits
     return 0    
