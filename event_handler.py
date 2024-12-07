@@ -32,7 +32,7 @@ if not logger.hasHandlers():
     logger.addHandler(logger_channel)
 
 def handleMarketSell(entry, factors, currSys):
-    if this.beta == True:
+    if this.beta:
         logger.debug("entry['event'] in ['MarketSell']")
         sellPrice = entry['SellPrice']
         totalSale = entry['TotalSale']

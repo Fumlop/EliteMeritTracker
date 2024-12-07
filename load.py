@@ -252,7 +252,7 @@ def plugin_prefs(parent, cmdr, is_beta):
     return config_frame
 
 def update_system_merits(merits_value):
-    if this.count == True:
+    if this.count:
         try:
             merits = int(merits_value)
             this.trackedMerits += merits
@@ -323,8 +323,10 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         this.currentSystem = entry.get('StarSystem',"")
         if "Powers" in entry and this.powerInfo["PowerName"] in entry['Powers']:
             this.count = True
+            logger.debug("Count True")
         else:
             this.count = False
+            logger.debug("Count False")
         if "Systems" not in this.powerInfo:
             this.powerInfo["Systems"] = {}
         if this.currentSystem not in this.powerInfo["Systems"]:
