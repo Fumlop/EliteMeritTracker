@@ -48,8 +48,18 @@ def handleCombat(entry, factors, targets):
     if "TotalReward" in entry and entry["TotalReward"] <= 2000:
         logger.debug("entry['Bounty'] - Power")
         if entry["PilotName"] in targets:
+            logger.debug("entry['Pilot'] - %s",entry["PilotName"])
+            logger.debug("entry['Ship'] - %s",targets[entry["PilotName"]]["Ship"])
             try:
-                merits = factors["CombatPower"][entry["PilotRank"]]
+                size = "M"
+                if targets[entry["PilotName"]]["Ship"] in factors["Ships"]["S"]:
+                    size = "S"
+                if targets[entry["PilotName"]]["Ship"] in factors["Ships"]["M"]:
+                    size = "M"
+                if targets[entry["PilotName"]]["Ship"] in factors["Ships"]["L"]:
+                    size = "L"
+                logger.debug("entry['size'] - %s",size)
+                merits = factors["CombatPower"][entry["PilotRank"]][size]
                 logger.debug("merits['Bounty'] - %s", merits)
                 return merits
             except KeyError as e:

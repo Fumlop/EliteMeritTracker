@@ -42,7 +42,7 @@ else:
     this.currentSysPP = {}
     this.currentSystem = "" 
     this.trackedMerits = 0
-this.version = 'v0.2.11'
+this.version = 'v0.3.0'
 this.assetpath = ""
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
@@ -374,9 +374,9 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] == "ShipTargeted" and entry['TargetLocked'] and entry['ScanStage'] in [1,3]:
         logger.debug("Collect Target")
         if entry['ScanStage'] == 1:
-            this.collectTarget = {entry['PilotName']: {"PilotRank":entry['PilotRank']}}
+            this.collectTarget = {entry['PilotName']: {"PilotRank":entry['PilotRank'], "Ship":entry['Ship']}}
         if entry['ScanStage'] == 3 and "Bounty" in entry:
-             this.collectTarget ={entry['PilotName']: {"PilotRank":entry['PilotRank'], "Bounty":entry['Bounty']}}
+             this.collectTarget ={entry['PilotName']: {"PilotRank":entry['PilotRank'], "Bounty":entry['Bounty'],"Ship":entry['Ship']}}
 
 def update_display():
     this.currMerits["text"] = f"Total merits : {str(this.powerInfo['Merits'])} | Last Session : {str(this.powerInfo['AccumulatedMerits'])}".strip()
