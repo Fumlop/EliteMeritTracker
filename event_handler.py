@@ -7,6 +7,7 @@ import myNotebook as nb
 from typing import Dict, Any
 from PIL import Image, ImageTk 
 import re
+import math#
 import event_handler
 from os import path
 from companion import CAPIData, SERVER_LIVE, SERVER_LEGACY, SERVER_BETA
@@ -32,7 +33,7 @@ if not logger.hasHandlers():
     logger.addHandler(logger_channel)
 
 def handleMarketSell(entry, factors, currSys):
-    if this.beta == True:
+    if this.beta:
         logger.debug("entry['event'] in ['MarketSell']")
         sellPrice = entry['SellPrice']
         totalSale = entry['TotalSale']
@@ -43,34 +44,32 @@ def handleMarketSell(entry, factors, currSys):
     return 0
 
 def handleAltruism(entry, factors):
-    if this.beta == True:
-        logger.debug("entry['Name'] in ['Mission_AltruismCredits_name']")
-        pattern = r'\b\d+(?:[.,]\d+)*\b'
-        logger.debug("Pattern: %s", pattern)
-        match = re.search(pattern, entry['LocalisedName']).group()
-        logger.debug("match: %s", match)
-        if match:
-            creditsnumber = int(re.sub(r'[,\.]', '', match))
-            logger.debug("creditsnumber: %s", creditsnumber)
-            merits = factors["Mission_AltruismCredits_name"][creditsnumber]
-            logger.debug("creditsnumber: %s", merits)
-            return merits
+    logger.debug("entry['Name'] in ['Mission_AltruismCredits_name']")
+    pattern = r'\b\d+(?:[.,]\d+)*\b'
+    logger.debug("Pattern: %s", pattern)
+    match = re.search(pattern, entry['LocalisedName']).group()
+    logger.debug("match: %s", match)
+    if match:
+        credittext = re.sub(r'[,\.]', '', match)
+        logger.debug("creditsnumber: %s", credittext)
+        merits = math.ceil((factors["Mission_AltruismCredits_name"]-1.2)*0.000108)
+        logger.debug("creditsnumber: %s", merits)
+        return merits
     return 0    
 
 def handlePowerKill(entry, factors):
-    logger.debug("entry['event'] in ['MissionCompleted']")
-    
-def handleShipScan(entry, factors):
     logger.debug("entry['event'] in ['MissionCompleted']")
 
 def handleAdvertiseHack(entry, factors, power):
     logger.debug("entry['event'] in ['handleAdvertiseHack']")
     if entry['event'] == "HoloscreenHacked" and entry['PowerAfter'] == power:
+        logger.debug("HoloscreenHacked %s", factors["Hacking"]["Holoscreen"])
         return factors["Hacking"]["Holoscreen"]
     return 0
     
 def handleSalvage(entry, factors):
     logger.debug("entry['event'] in ['handleSalvage']")
     merits = factors["Salvage" ][entry['Name']]
+    logger.debug("handleSalvage %s", merits)
     return merits
     
