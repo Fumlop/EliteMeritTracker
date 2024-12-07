@@ -43,18 +43,17 @@ def handleMarketSell(entry, factors, currSys):
     return 0
 
 def handleAltruism(entry, factors):
-    if this.beta == True:
-        logger.debug("entry['Name'] in ['Mission_AltruismCredits_name']")
-        pattern = r'\b\d+(?:[.,]\d+)*\b'
-        logger.debug("Pattern: %s", pattern)
-        match = re.search(pattern, entry['LocalisedName']).group()
-        logger.debug("match: %s", match)
-        if match:
-            credittext = re.sub(r'[,\.]', '', match)
-            logger.debug("creditsnumber: %s", credittext)
-            merits = factors["Mission_AltruismCredits_name"][credittext]
-            logger.debug("creditsnumber: %s", merits)
-            return merits
+    logger.debug("entry['Name'] in ['Mission_AltruismCredits_name']")
+    pattern = r'\b\d+(?:[.,]\d+)*\b'
+    logger.debug("Pattern: %s", pattern)
+    match = re.search(pattern, entry['LocalisedName']).group()
+    logger.debug("match: %s", match)
+    if match:
+        credittext = re.sub(r'[,\.]', '', match)
+        logger.debug("creditsnumber: %s", credittext)
+        merits = factors["Mission_AltruismCredits_name"][credittext]
+        logger.debug("creditsnumber: %s", merits)
+        return merits
     return 0    
 
 def handlePowerKill(entry, factors):
@@ -70,5 +69,6 @@ def handleAdvertiseHack(entry, factors, power):
 def handleSalvage(entry, factors):
     logger.debug("entry['event'] in ['handleSalvage']")
     merits = factors["Salvage" ][entry['Name']]
+    logger.debug("handleSalvage %s", merits)
     return merits
     
