@@ -1,7 +1,8 @@
 {
 "MarketSell" : {"normal":21332, "ethos":14220},
 "Salvage" : {"usscargoblackbox":488, "wreckagecomponents":140},
-"Combat" : {},
+"CombatPower" : {"Harmless":112,"Competent":172,"Expert":216, "Master":256, "Dangerous": 300, "Deadly":344, "Elite":0},
+"CombatBounty": {},
 "GoodDeliever": {},
 "Hacking":{"Holoscreen":124},
 "Mission_AltruismCredits_name":9375,
