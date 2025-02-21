@@ -9,6 +9,11 @@
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 power.json
+
+#Visual Studio
+.vs/*
+
+
 # Local History for Visual Studio Code
 .history/
 
