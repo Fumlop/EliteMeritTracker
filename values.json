@@ -1,9 +1,13 @@
 {
 "MarketSell" : {"normal":21332, "ethos":14220},
 "Salvage" : {"usscargoblackbox":488, "wreckagecomponents":140},
-"Combat" : {},
+"CombatPower" : {"Expert":{"S":0,"M":216, "L":0}, "Master":{"S":0,"M":256, "L":0}, "Deadly":{"S":300,"M":344, "L":0}, "Elite":{"S":0,"M":512, "L":0}},
+"CombatBounty": {},
 "GoodDeliever": {},
 "Hacking":{"Holoscreen":124},
 "Mission_AltruismCredits_name":9375,
-"ShipScan":20
+"ShipScan":20,
+"Ships":{"L":["anaconda","beluga liner","federal corvette","imperial clipper","imperial cutter","orca","type-10 defender","type-7 transporter","type9"],
+"M":["alliance challenger","alliance chieftain","alliance crusader","asp explorer","asp scout","federal assault ship","federal dropship","federal gunship","fer-de-lance","keelback","krait mk ii","Krait_Light","mamba","mandalay","python","python_nx","type-6 transporter","type-8 transporter"],
+"S":["adder","cobra mk iii","cobra mk iv","diamondbackxl","diamondback","dolphin","eagle","hauler","imperial courier","imperial eagle","sidewinder","viper","viper_mkiv","vulture"]}
 }
