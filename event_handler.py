@@ -20,6 +20,8 @@ plugin_name = os.path.basename(os.path.dirname(__file__))
 
 this.beta = False
 
+this.RecentlyScannedShips = []
+
 logger = logging.getLogger(f'{appname}.{plugin_name}')
 if not logger.hasHandlers():
     level = logging.INFO  # So logger.info(...) is equivalent to print()
@@ -41,27 +43,6 @@ def handleMarketSell(entry, factors, currSys):
         count = entry['Count']
         merits = (totalSale / factors["MarketSell"]["normal"])*4
         return merits
-    return 0
-
-def handleCombat(entry, factors, targets,power):
-    logger.debug("entry['Bounty']")
-    if "TotalReward" in entry and entry["Power"] not in ["",power]:
-        logger.debug("entry['Bounty'] - Power")
-        if entry["PilotName"] in targets:
-            logger.debug("entry['Pilot'] - %s",entry["PilotName"])
-            logger.debug("entry['Rank'] - %s",targets[entry["PilotName"]]["Rank"])
-            try:
-                size = "M"
-                if targets[entry["PilotName"]]["Rank"] in factors["CombatPower"]:
-                    merits = factors["CombatPower"][entry["PilotName"]]["Rank"]
-                else:
-                    merits = 0
-                logger.debug("merits['Bounty'] - %s", merits)
-                return merits
-            except KeyError as e:
-                logger.debug(e)
-    else:
-        logger.debug("entry['Bounty'] - Normal")
     return 0
 
 def handleAltruism(entry, factors):
@@ -102,3 +83,19 @@ def handleBounty(entry, factors):
     logger.info("Bounty earned: %d", bountyValue)
     logger.info("Total merits from this bounty: %d", merits)
     return merits
+
+def handleShipTargeted(entry, factors):
+    if "ScanStage" in entry and entry['ScanStage'] == 3:
+        pilotName = entry['PilotName']
+        if pilotName in this.RecentlyScannedShips:
+            #This ship has been scanned already, ignore it
+            return 0
+
+        logger.debug("ShipTargeted - fully scanned")
+        merits = factors["ShipScan"]
+        logger.debug("Scan merits: %s", merits)
+        this.RecentlyScannedShips.append(pilotName)
+        if len(this.RecentlyScannedShips) > 10:
+            #Remove oldest entry from the list
+            this.RecentlyScannedShips.pop(0)
+        return merits
