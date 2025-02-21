@@ -116,6 +116,7 @@ def plugin_start3(plugin_dir):
             with open(file_path_values, "r") as json_file:
                 this.default_factor = json.load(json_file)
         except json.JSONDecodeError:
+            logger.error("Failed to load factor from values.json")
             this.default_factor = {}
         
         this.newest = checkVersion()
@@ -373,8 +374,9 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         logger.debug("HoloscreenHacked")
         merits = event_handler.handleAdvertiseHack(entry, this.default_factor, this.powerInfo["PowerName"])
     if entry['event'] == "Bounty":
-         logger.debug("Bounty")
-         merits = event_handler.handleCombat(entry, this.default_factor, this.collectTarget,this.powerInfo["PowerName"])
+        logger.debug("Bounty earned")
+        merits = event_handler.handleBounty(entry, this.default_factor)
+        update_system_merits(merits)
     if entry['event'] == "ShipTargeted" and entry['TargetLocked'] and entry['ScanStage'] in [1,3]:
         if entry['ScanStage'] == 3 and entry['PilotName'] not in this.collectTarget:
             logger.debug("Collect Target %s, %s, %s, %s", entry['PilotName'], entry['PilotRank'], entry['Ship'],entry.get('Bounty',0),entry.get('Power',""))
