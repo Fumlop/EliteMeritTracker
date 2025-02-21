@@ -346,7 +346,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         else:
             this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
         if entry['event'] in ['SupercruiseEntry','SupercruiseExit']:
-            this.collectTarget = {}
+            event_handler.handleSupercruise()
         update_display()
     if entry['event'] in ['MissionCompleted']:
         if entry['Name'] in ['Mission_AltruismCredits_name']:
@@ -360,11 +360,8 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         logger.debug("Merits %s", merits)
         update_system_merits(merits)
     if entry['event'] in ['ShipTargeted']:
-        if "ScanStage" in entry and entry['ScanStage'] == 3:
-            logger.debug("ShipTargeted - ScanStage")
-            merits = this.default_factor["ShipScan"]
-            logger.debug("Merits %s", merits)
-            update_system_merits(merits)
+        merits = event_handler.handleShipTargeted(entry, this.default_factor)
+        update_system_merits(merits)
     if entry['event'] in ['SearchAndRescue'] and entry['Name'] in ["wreckagecomponents","usscargoblackbox"]:
         logger.debug("SearchAndRescue - Salvage")
         merits = event_handler.handleSalvage(entry, this.default_factor)
@@ -377,13 +374,6 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         logger.debug("Bounty earned")
         merits = event_handler.handleBounty(entry, this.default_factor)
         update_system_merits(merits)
-    if entry['event'] == "ShipTargeted" and entry['TargetLocked'] and entry['ScanStage'] in [1,3]:
-        if entry['ScanStage'] == 3 and entry['PilotName'] not in this.collectTarget:
-            logger.debug("Collect Target %s, %s, %s, %s", entry['PilotName'], entry['PilotRank'], entry['Ship'],entry.get('Bounty',0),entry.get('Power',""))
-            if entry.get('Bounty',0) > 0 or ('Power' in entry and entry.get('Power',"") != this.powerInfo["PowerName"]) :
-                target = {"System": this.currentSystem , "PilotRank":entry['PilotRank'], "Bounty":entry.get('Bounty',0),"Ship":entry['Ship'],"LegalStatus":entry['LegalStatus'],"Power":entry.get('Power',"")}
-                this.collectTarget[entry['PilotName']] = target
-                update_target_file({entry['PilotName']: {"System": this.currentSystem,"PilotRank":entry['PilotRank'], "Bounty":entry.get('Bounty',0),"Ship":entry['Ship'],"LegalStatus":entry['LegalStatus']},"Power":entry.get('Power',""),"TrackedMerits":"XXX"})
 
 def update_display():
     this.currMerits["text"] = f"Total merits : {str(this.powerInfo['Merits'])} | Last Session : {str(this.powerInfo['AccumulatedMerits'])}".strip()

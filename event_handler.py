@@ -99,3 +99,7 @@ def handleShipTargeted(entry, factors):
             #Remove oldest entry from the list
             this.RecentlyScannedShips.pop(0)
         return merits
+
+def handleSupercruise():
+    #On entering or exiting supercruise, clear tracking of recently scanned ships
+    this.RecentlyScannedShips = []
