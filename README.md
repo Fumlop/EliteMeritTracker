@@ -3,8 +3,13 @@ EDMC-Plugin to track Powerplay Merits
 
 Last session will be recalculated on logoff/login
 
+Currently manual tracking of merits when in a system. Features for reediting will be added. 
+No data will be exported, all held locally as long as EDMC is running, or overall merits safed as power.json locally.
+
+When fdev gives us some journal love, automatic tracking will be implemented. 
+
 Tracking Session Merits for EDMC
 
-![grafik](https://github.com/user-attachments/assets/08c6a5b3-5ccb-4c48-8f0e-1e14c15e3e04)
-![grafik](https://github.com/user-attachments/assets/a3f1223f-4aa8-4d5a-919a-5a0da90fe3c6)
+![grafik](https://github.com/user-attachments/assets/7b68ffa7-54b7-40d1-9250-cb1deabf066c)
+
 
