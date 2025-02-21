@@ -116,6 +116,7 @@ def plugin_start3(plugin_dir):
             with open(file_path_values, "r") as json_file:
                 this.default_factor = json.load(json_file)
         except json.JSONDecodeError:
+            logger.error("Failed to load factor from values.json")
             this.default_factor = {}
         
         this.newest = checkVersion()
