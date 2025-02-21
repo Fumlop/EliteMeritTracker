@@ -72,4 +72,10 @@ def handleSalvage(entry, factors):
     merits = factors["Salvage" ][entry['Name']]
     logger.debug("handleSalvage %s", merits)
     return merits
-    
+
+def handleBounty(entry, factors):
+    bountyValue = entry["TotalReward"]
+    logger.info("Bounty earned: %d", bountyValue)
+    merits = round(bountyValue / factors["Bounty"])
+    logger.info("Total merits from this bounty: %d", merits)
+    return merits

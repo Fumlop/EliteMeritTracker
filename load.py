@@ -369,6 +369,10 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event']  == "HoloscreenHacked":
         logger.debug("HoloscreenHacked")
         merits = event_handler.handleAdvertiseHack(entry, this.default_factor, this.powerInfo["PowerName"])
+    if entry['event'] == "Bounty":
+        logger.debug("Bounty earned")
+        merits = event_handler.handleBounty(entry, this.default_factor)
+        update_system_merits(merits)
 
 def update_display():
     this.currMerits["text"] = f"Total merits : {str(this.powerInfo['Merits'])} | Last Session : {str(this.powerInfo['AccumulatedMerits'])}".strip()
