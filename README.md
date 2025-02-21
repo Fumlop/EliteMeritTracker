@@ -13,3 +13,6 @@ Tracking Session Merits for EDMC
 ![grafik](https://github.com/user-attachments/assets/7b68ffa7-54b7-40d1-9250-cb1deabf066c)
 
 Credits:  Fumlop, nictheman123
+Credits
+
+This plugin was developed on GitHub with contributions from Fumlop,nictheman123.
