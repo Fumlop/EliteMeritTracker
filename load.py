@@ -1,19 +1,5 @@
-import os
-import tkinter as tk
-import sys
-import json
-import requests
-import myNotebook as nb
-from typing import Dict, Any
-from PIL import Image, ImageTk 
-import re
-from power_info_window import show_power_info
-import event_handler
-from ttkHyperlinkLabel import HyperlinkLabel
-from os import path
-from companion import CAPIData, SERVER_LIVE, SERVER_LEGACY, SERVER_BETA
-from config import config, appname
-import logging
+from imports import *
+
 from datetime import datetime, timedelta
 
 this = sys.modules[__name__]  # For holding module globals

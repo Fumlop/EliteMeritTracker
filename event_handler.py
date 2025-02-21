@@ -1,36 +1,10 @@
-import os
-import tkinter as tk
-import sys
-import json
-import requests
-import myNotebook as nb
-from typing import Dict, Any
-from PIL import Image, ImageTk 
-import re
-import math#
-import event_handler
-from os import path
-from companion import CAPIData, SERVER_LIVE, SERVER_LEGACY, SERVER_BETA
-from config import config, appname
-import logging
-from datetime import datetime, timedelta
+from imports import *
+
 this = sys.modules[__name__]  # For holding module globals
 this.debug = False
 plugin_name = os.path.basename(os.path.dirname(__file__))
 
 this.beta = False
-
-logger = logging.getLogger(f'{appname}.{plugin_name}')
-if not logger.hasHandlers():
-    level = logging.INFO  # So logger.info(...) is equivalent to print()
-
-    logger.setLevel(level)
-    logger_channel = logging.StreamHandler()
-    logger_formatter = logging.Formatter(f'%(asctime)s - %(name)s - %(levelname)s - %(module)s:%(lineno)d:%(funcName)s: %(message)s')
-    logger_formatter.default_time_format = '%Y-%m-%d %H:%M:%S'
-    logger_formatter.default_msec_format = '%s.%03d'
-    logger_channel.setFormatter(logger_formatter)
-    logger.addHandler(logger_channel)
 
 def handleMarketSell(entry, factors, currSys):
     if this.beta:
