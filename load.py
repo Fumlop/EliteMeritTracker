@@ -44,6 +44,7 @@ else:
     this.trackedMerits = 0
 this.version = 'v0.2.11'
 this.assetpath = ""
+
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
 
@@ -93,6 +94,7 @@ def plugin_start3(plugin_dir):
     plugin_path = path.join(config.plugin_dir, directory_name)
     file_path = path.join(plugin_path, "power.json")
     file_path_values = path.join(plugin_path, "values.json")
+    this.file_path_targets = path.join(plugin_path, "targets.json")
     this.assetspath = f"{plugin_path}/assets"
 
     # Initialize discordText
@@ -170,14 +172,12 @@ def plugin_app(parent):
     this.currentSystemLabel = tk.Label(this.frame, text="Waiting for Events".strip(),width=15, anchor="w", justify="left")
     this.currentSystemEntry = tk.Entry(this.frame, width=6 )
     
-    imageplus = Image.open(f"{this.assetspath}/plus.png")  # Pfad zu deinem PNG-File
+    imageplus = Image.open(f"{this.assetspath}/plus.png")  
     this.frame.iconplus = ImageTk.PhotoImage(imageplus)
-    imagedelete = Image.open(f"{this.assetspath}/delete.png")  # Pfad zu deinem PNG-File
+    imagedelete = Image.open(f"{this.assetspath}/delete.png")  
     this.frame.icondelete = ImageTk.PhotoImage(imagedelete)
-    imageback = Image.open(f"{this.assetspath}/back.png")  # Pfad zu deinem PNG-File
+    imageback = Image.open(f"{this.assetspath}/back.png")  
     this.frame.iconback = ImageTk.PhotoImage(imageback)
-
-
 
     this.currentSystemButton = tk.Button(
         this.frame, image=this.frame.iconplus, text="add merits", 
@@ -276,6 +276,10 @@ def prefs_changed(cmdr, is_beta):
     config.set("dText", this.discordText.get())
     update_display()
 
+def update_target_file(target):
+    with open(this.file_path_targets, "a") as json_file:
+         json_file.write(json.dumps(target, separators=(",", ":")) + "\n")
+            
 def update_json_file():
     if (this.debug == False):
         directory_name = path.basename(path.dirname(__file__))
@@ -370,13 +374,14 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         merits = event_handler.handleAdvertiseHack(entry, this.default_factor, this.powerInfo["PowerName"])
     if entry['event'] == "Bounty":
          logger.debug("Bounty")
-         merits = event_handler.handleCombat(entry, this.default_factor, this.collectTarget)
+         merits = event_handler.handleCombat(entry, this.default_factor, this.collectTarget,this.powerInfo["PowerName"])
     if entry['event'] == "ShipTargeted" and entry['TargetLocked'] and entry['ScanStage'] in [1,3]:
-        logger.debug("Collect Target")
-        if entry['ScanStage'] == 1:
-            this.collectTarget = {entry['PilotName']: {"PilotRank":entry['PilotRank'], "Ship":entry['Ship']}}
-        if entry['ScanStage'] == 3 and "Bounty" in entry:
-             this.collectTarget ={entry['PilotName']: {"PilotRank":entry['PilotRank'], "Bounty":entry['Bounty'],"Ship":entry['Ship']}}
+        if entry['ScanStage'] == 3 and entry['PilotName'] not in this.collectTarget:
+            logger.debug("Collect Target %s, %s, %s, %s", entry['PilotName'], entry['PilotRank'], entry['Ship'],entry.get('Bounty',0),entry.get('Power',""))
+            if entry.get('Bounty',0) > 0 or ('Power' in entry and entry.get('Power',"") != this.powerInfo["PowerName"]) :
+                target = {"System": this.currentSystem , "PilotRank":entry['PilotRank'], "Bounty":entry.get('Bounty',0),"Ship":entry['Ship'],"LegalStatus":entry['LegalStatus'],"Power":entry.get('Power',"")}
+                this.collectTarget[entry['PilotName']] = target
+                update_target_file({entry['PilotName']: {"System": this.currentSystem,"PilotRank":entry['PilotRank'], "Bounty":entry.get('Bounty',0),"Ship":entry['Ship'],"LegalStatus":entry['LegalStatus']},"Power":entry.get('Power',""),"TrackedMerits":"XXX"})
 
 def update_display():
     this.currMerits["text"] = f"Total merits : {str(this.powerInfo['Merits'])} | Last Session : {str(this.powerInfo['AccumulatedMerits'])}".strip()

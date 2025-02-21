@@ -43,23 +43,19 @@ def handleMarketSell(entry, factors, currSys):
         return merits
     return 0
 
-def handleCombat(entry, factors, targets):
+def handleCombat(entry, factors, targets,power):
     logger.debug("entry['Bounty']")
-    if "TotalReward" in entry and entry["TotalReward"] <= 2000:
+    if "TotalReward" in entry and entry["Power"] not in ["",power]:
         logger.debug("entry['Bounty'] - Power")
         if entry["PilotName"] in targets:
             logger.debug("entry['Pilot'] - %s",entry["PilotName"])
-            logger.debug("entry['Ship'] - %s",targets[entry["PilotName"]]["Ship"])
+            logger.debug("entry['Rank'] - %s",targets[entry["PilotName"]]["Rank"])
             try:
                 size = "M"
-                if targets[entry["PilotName"]]["Ship"] in factors["Ships"]["S"]:
-                    size = "S"
-                if targets[entry["PilotName"]]["Ship"] in factors["Ships"]["M"]:
-                    size = "M"
-                if targets[entry["PilotName"]]["Ship"] in factors["Ships"]["L"]:
-                    size = "L"
-                logger.debug("entry['size'] - %s",size)
-                merits = factors["CombatPower"][entry["PilotRank"]][size]
+                if targets[entry["PilotName"]]["Rank"] in factors["CombatPower"]:
+                    merits = factors["CombatPower"][entry["PilotName"]]["Rank"]
+                else:
+                    merits = 0
                 logger.debug("merits['Bounty'] - %s", merits)
                 return merits
             except KeyError as e:
