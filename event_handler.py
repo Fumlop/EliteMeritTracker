@@ -75,7 +75,9 @@ def handleSalvage(entry, factors):
 
 def handleBounty(entry, factors):
     bountyValue = entry["TotalReward"]
-    logger.info("Bounty earned: %d", bountyValue)
+    #Currently this seems more accurate than math.ceil for bounties:
     merits = round(bountyValue / factors["Bounty"])
+    #Log bounty earned and calculated merits earned, for troubleshooting
+    logger.info("Bounty earned: %d", bountyValue)
     logger.info("Total merits from this bounty: %d", merits)
     return merits
