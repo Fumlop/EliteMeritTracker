@@ -1,3 +1,4 @@
+import events
 from imports import *
 from events import *
 
@@ -87,6 +88,7 @@ def plugin_start3(plugin_dir):
     # Initialize discordText
     this.discordText = tk.StringVar(value=config.get("dText", "@Leader Earned @MertitsValue merits in @System"))
     if (this.debug == False):
+        logger.info("No Debug active")
         # Default-Datenstruktur
         default_data = {
             "PowerName": "",
