@@ -3,12 +3,12 @@ import tkinter as tk
 import sys
 import json
 import requests
+import math
 import myNotebook as nb
 from typing import Dict, Any
 from PIL import Image, ImageTk 
 import re
 from power_info_window import show_power_info
-from events import *
 from ttkHyperlinkLabel import HyperlinkLabel
 from os import path
 from companion import CAPIData, SERVER_LIVE, SERVER_LEGACY, SERVER_BETA

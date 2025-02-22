@@ -1,4 +1,5 @@
 from imports import *
+from events import *
 
 from datetime import datetime, timedelta
 
@@ -332,12 +333,12 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         else:
             this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
         if entry['event'] in ['SupercruiseEntry','SupercruiseExit']:
-            event_handler.handleSupercruise()
+            events.resetTargets();
         update_display()
     if entry['event'] in ['MissionCompleted']:
         if entry['Name'] in ['Mission_AltruismCredits_name']:
             logger.debug("MissionCompleted Mission_AltruismCredits")
-            merits = event_handler.handleAltruism(entry, this.default_factor)
+            merits = events.handleAltruism(entry, this.default_factor)
             update_system_merits(merits)
             logger.debug("Mission_AltruismCredits_name Merits %s", merits)
     if  entry['event'] in ['MarketSell']:
@@ -346,20 +347,20 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         logger.debug("Merits %s", merits)
         update_system_merits(merits)
     if entry['event'] in ['ShipTargeted']:
-        merits = event_handler.handleShipTargeted(entry, this.default_factor)
+        merits = events.handleShipTargeted(entry, this.default_factor)
         if merits > 0:
             update_system_merits(merits)
     if entry['event'] in ['SearchAndRescue'] and entry['Name'] in ["wreckagecomponents","usscargoblackbox"]:
         logger.debug("SearchAndRescue - Salvage")
-        merits = event_handler.handleSalvage(entry, this.default_factor)
+        merits = events.handleSalvage(entry, this.default_factor)
         logger.debug("Merits %s", merits)
         update_system_merits(merits)   
     if entry['event']  == "HoloscreenHacked":
         logger.debug("HoloscreenHacked")
-        merits = event_handler.handleAdvertiseHack(entry, this.default_factor, this.powerInfo["PowerName"])
+        merits = events.handleAdvertiseHack(entry, this.default_factor, this.powerInfo["PowerName"])
     if entry['event'] == "Bounty":
         logger.debug("Bounty earned")
-        merits = event_handler.handleBounty(entry, this.default_factor)
+        merits = events.handleBounty(entry, this.default_factor)
         update_system_merits(merits)
 
 def update_display():

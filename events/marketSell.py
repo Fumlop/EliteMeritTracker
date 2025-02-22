@@ -2,7 +2,6 @@ from imports import *
 
 this = sys.modules[__name__]  # For holding module globals
 this.debug = False
-plugin_name = os.path.basename(os.path.dirname(__file__))
 
 def handleMarketSell(entry, factors, currSys):
     if this.beta:
