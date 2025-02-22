@@ -6,4 +6,4 @@ __all__ = [os.path.basename(f)[:-3] for f in modules if os.path.isfile(f) and no
 
 # Alle Module importieren
 for module in __all__:
-    __import__(f"event.{module}")
+    __import__(f"{__name__}.{module}")

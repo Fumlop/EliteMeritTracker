@@ -8,8 +8,7 @@ from typing import Dict, Any
 from PIL import Image, ImageTk 
 import re
 from power_info_window import show_power_info
-import events.*
-import event_handler
+from events import *
 from ttkHyperlinkLabel import HyperlinkLabel
 from os import path
 from companion import CAPIData, SERVER_LIVE, SERVER_LEGACY, SERVER_BETA
