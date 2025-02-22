@@ -95,10 +95,12 @@ def handleShipTargeted(entry, factors):
         merits = factors["ShipScan"]
         logger.debug("Scan merits: %s", merits)
         this.RecentlyScannedShips.append(pilotName)
-        if len(this.RecentlyScannedShips) > 10:
+        if len(this.RecentlyScannedShips) > 25:
             #Remove oldest entry from the list
             this.RecentlyScannedShips.pop(0)
         return merits
+    else:
+        return 0
 
 def handleSupercruise():
     #On entering or exiting supercruise, clear tracking of recently scanned ships

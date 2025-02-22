@@ -361,7 +361,8 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         update_system_merits(merits)
     if entry['event'] in ['ShipTargeted']:
         merits = event_handler.handleShipTargeted(entry, this.default_factor)
-        update_system_merits(merits)
+        if merits > 0:
+            update_system_merits(merits)
     if entry['event'] in ['SearchAndRescue'] and entry['Name'] in ["wreckagecomponents","usscargoblackbox"]:
         logger.debug("SearchAndRescue - Salvage")
         merits = event_handler.handleSalvage(entry, this.default_factor)
