@@ -1,4 +1,5 @@
 from imports import *
+from events import *
 
 this = sys.modules[__name__]  # For holding module globals
 this.debug = False
