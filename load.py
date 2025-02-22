@@ -30,7 +30,7 @@ else:
     this.currentSysPP = {}
     this.currentSystem = "" 
     this.trackedMerits = 0
-this.version = 'v0.2.11'
+this.version = 'v0.2.4'
 this.assetpath = ""
 
 # This could also be returned from plugin_start3()
@@ -162,11 +162,20 @@ def plugin_app(parent):
     this.currentSystemLabel = tk.Label(this.frame, text="Waiting for Events".strip(),width=15, anchor="w", justify="left")
     this.currentSystemEntry = tk.Entry(this.frame, width=6 )
     
-    imageplus = Image.open(f"{this.assetspath}/plus.png")  
+
+    parent.root = tk.Tk()
+    parent.root.withdraw()  # Hide the main window
+
+    scale = get_scale_factor(parent.root.winfo_screenwidth(), parent.root.winfo_screenheight())
+
+    # Load and scale the images
+    imageplus = load_and_scale_image(f"{this.assetspath}/plus.png", scale)
     this.frame.iconplus = ImageTk.PhotoImage(imageplus)
-    imagedelete = Image.open(f"{this.assetspath}/delete.png")  
+
+    imagedelete = load_and_scale_image(f"{this.assetspath}/delete.png", scale)
     this.frame.icondelete = ImageTk.PhotoImage(imagedelete)
-    imageback = Image.open(f"{this.assetspath}/back.png")  
+
+    imageback = load_and_scale_image(f"{this.assetspath}/back.png", scale)
     this.frame.iconback = ImageTk.PhotoImage(imageback)
 
     this.currentSystemButton = tk.Button(
@@ -390,3 +399,22 @@ def update_display():
         logger.debug(f"KeyError for current system '{this.currentSystem}': {e}")
 
     this.currentSystemLabel.grid()
+
+def get_scale_factor(current_width: int, current_height: int, base_width: int = 2560, base_height: int = 1440) -> float:
+    scale_x = current_width / base_width
+    scale_y = current_height / base_height
+    return min(scale_x, scale_y)  # Use the smaller factor to maintain the aspect ratio.
+
+def load_and_scale_image(path: str, scale: float) -> Image:
+    image = Image.open(path)
+    new_size = (int(image.width * scale), int(image.height * scale))
+    try:
+        # Pillow 10.0.0 and later
+        resample_filter = Image.Resampling.LANCZOS
+    except AttributeError:
+        # Older Pillow versions
+        resample_filter = Image.LANCZOS
+
+    return image.resize(new_size, resample_filter)
+
+

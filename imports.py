@@ -14,6 +14,7 @@ from os import path
 from companion import CAPIData, SERVER_LIVE, SERVER_LEGACY, SERVER_BETA
 from config import config, appname
 import logging
+from PIL import Image, ImageTk
 
 plugin_name = os.path.basename(os.path.dirname(__file__))
 
