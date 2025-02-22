@@ -342,7 +342,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             logger.debug("Mission_AltruismCredits_name Merits %s", merits)
     if  entry['event'] in ['MarketSell']:
         logger.debug("MarketSell")
-        merits = events.marketSell(entry, this.default_factor)
+        merits = events.handleMarketSell(entry, this.default_factor)
         logger.debug("Merits %s", merits)
         update_system_merits(merits)
     if entry['event'] in ['ShipTargeted']:
