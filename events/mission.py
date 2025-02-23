@@ -1,7 +1,7 @@
 from imports import *
 
 this = sys.modules[__name__]  # For holding module globals
-this.debug = False
+this.debug = True
 
 def handleAltruism(entry, factors):
     logger.debug("entry['Name'] in ['Mission_AltruismCredits_name']")
@@ -10,9 +10,9 @@ def handleAltruism(entry, factors):
     match = re.search(pattern, entry['LocalisedName']).group()
     logger.debug("match: %s", match)
     if match:
-        credittext = re.sub(r'[,\.]', '', match)
-        logger.debug("creditsnumber: %s", credittext)
-        merits = math.ceil((factors["Mission_AltruismCredits_name"]-1.2)*0.000108)
-        logger.debug("creditsnumber: %s", merits)
+        credits = int(re.sub(r'[,\.]', '', match))
+        logger.debug("creditsnumber: %d", credits)
+        merits = math.floor(credits / factors["Mission_AltruismCredits_name"])
+        logger.debug("meritsnumber: %s", merits)
         return merits
     return 0   
