@@ -101,31 +101,31 @@ def plugin_start3(plugin_dir):
             "Count":True 
         }
 
-        try:
-            with open(file_path_values, "r") as json_file:
-                this.default_factor = json.load(json_file)
-        except json.JSONDecodeError:
-            logger.error("Failed to load factor from values.json")
-            this.default_factor = {}
-        
-        this.newest = checkVersion()
+    try:
+        with open(file_path_values, "r") as json_file:
+            this.default_factor = json.load(json_file)
+    except json.JSONDecodeError:
+        logger.error("Failed to load factor from values.json")
+        this.default_factor = {}
+    
+    this.newest = checkVersion()
 
-        # JSON prüfen oder initialisieren
-        if not path.exists(file_path):
-            os.makedirs(plugin_path, exist_ok=True)
-            with open(file_path, "w") as json_file:
-                json.dump(default_data, json_file, indent=4)
+    # JSON prüfen oder initialisieren
+    if not path.exists(file_path):
+        os.makedirs(plugin_path, exist_ok=True)
+        with open(file_path, "w") as json_file:
+            json.dump(default_data, json_file, indent=4)
+        this.powerInfo = default_data
+    else:
+        try:
+            with open(file_path, "r") as json_file:
+                this.powerInfo = json.load(json_file)
+                if ("Count" not in this.powerInfo):
+                    this.powerInfo["Count"] = True
+                if not this.powerInfo:
+                    this.powerInfo = default_data
+        except json.JSONDecodeError:
             this.powerInfo = default_data
-        else:
-            try:
-                with open(file_path, "r") as json_file:
-                    this.powerInfo = json.load(json_file)
-                    if ("Count" not in this.powerInfo):
-                        this.powerInfo["Count"] = True
-                    if not this.powerInfo:
-                        this.powerInfo = default_data
-            except json.JSONDecodeError:
-                this.powerInfo = default_data
 
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     if this.currentSystem == "": 
@@ -162,7 +162,6 @@ def plugin_app(parent):
     this.currentSystemLabel = tk.Label(this.frame, text="Waiting for Events".strip(),width=15, anchor="w", justify="left")
     this.currentSystemEntry = tk.Entry(this.frame, width=6 )
     
-
     parent.root = tk.Tk()
     parent.root.withdraw()  # Hide the main window
 
@@ -299,7 +298,6 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         rank = entry.get("Rank", this.powerInfo.get("Rank", 0))
         power_name = entry.get("Power", this.powerInfo.get("PowerName", ""))
         timestamp = entry.get("timestamp", this.powerInfo.get("LastUpdate", ""))
-
         
         # Konvertiere Timestamp
         current_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")

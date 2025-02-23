@@ -11,7 +11,6 @@ def handleShipTargeted(entry, factors):
         if pilotName in this.RecentlyScannedShips:
             #This ship has been scanned already, ignore it
             return 0
-
         logger.debug("ShipTargeted - fully scanned")
         merits = factors["ShipScan"]
         logger.debug("Scan merits: %s", merits)
