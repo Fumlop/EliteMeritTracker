@@ -11,7 +11,7 @@ this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.1.1.200'
+this.version = 'v0.4.2.1.200'
 this.assetpath = ""
 
 # This could also be returned from plugin_start3()
@@ -137,7 +137,7 @@ def checkVersion():
 
     try:
         data = req.json()
-        if data['tag_name'] == this.version:
+        if data['tag_name'] > this.version:
             return 0  # Newest
         return 1  # Newer version available
     except Exception as e:
@@ -252,7 +252,7 @@ def plugin_app(parent):
 
     this.currentSystemButton = tk.Button(
         this.frame, image=this.frame.iconplus, text="add merits", 
-        command=lambda: [update_system_merits(this.currentSystemEntry.get()), 
+        command=lambda: [update_system_merits(this.currentSystemEntry.get(),this.powerInfo["Merits"]), 
         update_display()],
         state=stateButton)
 
@@ -288,7 +288,7 @@ def plugin_app(parent):
     return this.frame
 
 def on_enter(event):
-    update_system_merits(this.currentSystemEntry.get())
+    update_system_merits(this.currentSystemEntry.get(), this.powerInfo["Merits"])
 
 def reset():
     # Initialisiere ein neues Dictionary für Systeme

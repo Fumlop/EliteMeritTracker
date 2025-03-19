@@ -49,14 +49,16 @@ def show_power_info(parent, power_info, initial_text):
 def populate_table(table_frame, systems, update_scrollregion, initial_text=""):
     tk.Label(table_frame, text="System name", width=20, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=0, padx=5, pady=2)
     tk.Label(table_frame, text="Session merits", width=15, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=1, padx=5, pady=2)
-    tk.Label(table_frame, text="Text", width=60, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=3, padx=5, pady=2)
+    tk.Label(table_frame, text="", width=15, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=2, padx=5, pady=2)
+    tk.Label(table_frame, text="", width=15, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=3, padx=5, pady=2)
+    tk.Label(table_frame, text="Text", width=60, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=4, padx=5, pady=2)
     
     for i, (system_name, system_data) in enumerate(systems.items(), start=7):
         merits = str(system_data.get("sessionMerits", 0))
         dcText = initial_text.replace("@MeritsValue", merits).replace("@System", system_name)
-
-        tk.Label(table_frame, text=system_name, width=15, anchor="w").grid(row=i, column=0, padx=5, pady=2, sticky="w")
-        tk.Label(table_frame, text=merits, width=15, anchor="w").grid(row=i, column=1, padx=5, pady=2, sticky="w")
-        tk.Button(table_frame, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)).grid(row=i, column=2, padx=5, pady=2, sticky="w")
-        tk.Button(table_frame, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion)).grid(row=i, column=3, padx=5, pady=2, sticky="w")
-        tk.Label(table_frame, text=dcText, width=45, anchor="w", justify="left", wraplength=300).grid(row=i, column=4, padx=5, pady=2, sticky="w")
+        if merits > 0:
+            tk.Label(table_frame, text=system_name, width=15, anchor="w").grid(row=i, column=0, padx=5, pady=2, sticky="w")
+            tk.Label(table_frame, text=merits, width=15, anchor="w").grid(row=i, column=1, padx=5, pady=2, sticky="w")
+            tk.Button(table_frame, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)).grid(row=i, column=2, padx=5, pady=2, sticky="w")
+            tk.Button(table_frame, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion)).grid(row=i, column=3, padx=5, pady=2, sticky="w")
+            tk.Label(table_frame, text=dcText, width=45, anchor="w", justify="left", wraplength=300).grid(row=i, column=4, padx=5, pady=2, sticky="w")
