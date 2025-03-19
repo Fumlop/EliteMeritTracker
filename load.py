@@ -138,8 +138,8 @@ def checkVersion():
     try:
         data = req.json()
         if data['tag_name'] > this.version:
-            return 0  # Newest
-        return 1  # Newer version available
+            return 1  # Newest
+        return 0  # Newer version available
     except Exception as e:
         # JSON-Parsing-Fehler loggen
         logger.exception('Error while parsing the JSON response')
