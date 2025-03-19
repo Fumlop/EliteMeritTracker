@@ -9,6 +9,7 @@ No data will be exported, all held locally as long as EDMC is running, or overal
 When fdev gives us some journal love, automatic tracking will be implemented. 
 
 Tracking Session Merits for EDMC
+
 ![grafik](https://github.com/user-attachments/assets/13fa4d55-3872-497e-8985-162f4ffbcbf4)
 
 
