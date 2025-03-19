@@ -137,9 +137,8 @@ def plugin_app(parent):
     stateButton = tk.NORMAL if this.debug else tk.DISABLED
     this.frame = tk.Frame(parent)
     this.power = tk.Label(this.frame, text=f"Pledged power : {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}".strip(), anchor="w", justify="left")
-    this.currMerits = tk.Label(this.frame, text=f"Total merits : {this.powerInfo['Merits']} | Last Session : {this.powerInfo['AccumulatedMerits']}".strip(), anchor="w", justify="left")
+    this.currMerits = tk.Label(this.frame, text=f"Total merits : {this.powerInfo['Merits']} | Session merits : {this.powerInfo['AccumulatedMerits']}".strip(), anchor="w", justify="left")
     this.systemPowerLabel = tk.Label(this.frame, text="Status : ", anchor="w", justify="left")
-    this.meritsTrackedLabel = tk.Label(this.frame, text=f"Tracked merits : {this.trackedMerits}".strip(), anchor="w", justify="left")
     this.currentSystemLabel = tk.Label(this.frame, text="Waiting for Events - relog".strip(),width=15, anchor="w", justify="left")
     this.currentSystemEntry = tk.Entry(this.frame, width=6 )
     
@@ -164,15 +163,14 @@ def plugin_app(parent):
         update_display()],
         state=stateButton)
 
-    this.systemPowerLabel.grid(row=3, column=0, sticky='we')
-    this.currentSystemLabel.grid(row=4, column=0, sticky='we')
-    this.currentSystemEntry.grid(row=4, column=1, padx=5, sticky='we')
-    this.currentSystemButton.grid(row=4, column=2, padx=3, sticky='w')
+    this.systemPowerLabel.grid(row=2, column=0, sticky='we')
+    this.currentSystemLabel.grid(row=3, column=0, sticky='we')
+    this.currentSystemEntry.grid(row=3, column=1, padx=5, sticky='we')
+    this.currentSystemButton.grid(row=3, column=2, padx=3, sticky='w')
 
     # Positionierung der Labels
     this.power.grid(row=0, column=0,columnspan=3, sticky='we')
     this.currMerits.grid(row=1, column=0, sticky='we')
-    this.meritsTrackedLabel.grid(row=2, column=0, sticky='we')
     # Button zum Anzeigen der Power Info
     this.showButton = tk.Button(
         this.frame,
@@ -182,16 +180,16 @@ def plugin_app(parent):
         #image=this.frame.iconback,
         compound="center"
     )
-    this.showButton.grid(row=5, column=0, sticky='we', pady=10)
+    this.showButton.grid(row=4, column=0, sticky='we', pady=10)
     this.resetButton = tk.Button(
         this.frame, image=this.frame.icondelete,
         command=lambda: reset(),
         state=stateButton
     )
-    this.resetButton.grid(row=5, column=2, sticky='we', pady=10)
+    this.resetButton.grid(row=4, column=2, sticky='we', pady=10)
     this.updateIndicator = HyperlinkLabel(this.frame, text="Update available", anchor=tk.W, url='https://github.com/Fumlop/EliteMeritTracker/releases')
     if this.newest == 1:
-        this.updateIndicator.grid(padx = 5, row = 6, column = 0)
+        this.updateIndicator.grid(padx = 5, row = 5, column = 0)
     return this.frame
 
 def on_enter(event):
@@ -229,12 +227,12 @@ def plugin_prefs(parent, cmdr, is_beta):
 
     return config_frame
 
-def update_system_merits(merits_value):
+def update_system_merits(merits_value, total):
     logger.debug("Count %s",this.powerInfo["Count"])
     if this.powerInfo["Count"]:
         try:
             merits = int(merits_value)
-            this.trackedMerits += merits
+            this.powerInfo["AccumulatedMerits"] = this.powerInfo["AccumulatedMerits"] + merits
             # Initialisiere das Systems-Objekt in powerInfo, falls es nicht existiert
             if "Systems" not in this.powerInfo:
                 this.powerInfo["Systems"] = {}
@@ -245,6 +243,7 @@ def update_system_merits(merits_value):
             else:
                 this.powerInfo["Systems"][this.currentSystem] = {"sessionMerits": merits}
             # Direkte Aktualisierung der Anzeige
+            this.powerInfo["Merits"] = int(total)
             update_display()
         except ValueError:
             logger.debug("Invalid merits value. Please enter a number.")
@@ -273,8 +272,8 @@ def update_json_file():
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] == 'Powerplay':
         current_merits = entry.get('Merits', this.powerInfo.get("Merits", 0))
-        last_merits = this.powerInfo.get("Merits", 0)
-        earned_merits = current_merits - last_merits
+        #last_merits = this.powerInfo.get("Merits", 0)
+        #earned_merits = current_merits - last_merits
         rank = entry.get("Rank", this.powerInfo.get("Rank", 0))
         power_name = entry.get("Power", this.powerInfo.get("PowerName", ""))
         timestamp = entry.get("timestamp", this.powerInfo.get("LastUpdate", ""))
@@ -287,14 +286,14 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             accumulated_since = current_time
         
         # Berechnung der akkumulierten Merits über 24 Stunden
-        accumulated_merits = this.powerInfo.get("AccumulatedMerits", 0)
-        accumulated_merits = earned_merits
+        #accumulated_merits = this.powerInfo.get("AccumulatedMerits", 0)
+        #accumulated_merits = earned_merits
         # Aktualisiere PowerInfo-Daten
         this.powerInfo["PowerName"] = power_name
         this.powerInfo["Merits"] = current_merits
         this.powerInfo["Rank"] = rank
         this.powerInfo["LastUpdate"] = timestamp
-        this.powerInfo["AccumulatedMerits"] = accumulated_merits
+        this.powerInfo["AccumulatedMerits"] = 0
         this.powerInfo["AccumulatedSince"] = accumulated_since.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # JSON aktualisieren
@@ -302,7 +301,8 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         update_display()
     if entry['event'] in ['PowerplayMerits']:
         merits = entry.get('MeritsGained')
-        update_system_merits(merits)
+        total = entry.get('TotalMerits')
+        update_system_merits(merits,total)
     if entry['event'] in ['MarketBuy']:
         this.test = 'MarketBuy'
     if entry['event'] in ['CargoTransfer']:
@@ -326,12 +326,8 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         update_display()
 
 def update_display():
-    this.currMerits["text"] = f"Total merits : {str(this.powerInfo['Merits'])} | Last Session : {str(this.powerInfo['AccumulatedMerits'])}".strip()
+    this.currMerits["text"] = f"Total merits : {str(this.powerInfo['Merits'])} | Session merits: {str(this.powerInfo['AccumulatedMerits'])}".strip()
     this.currMerits.grid()
-
-    this.meritsTrackedLabel["text"] = f"Tracked merits : {str(this.trackedMerits)}".strip().strip()
-    this.meritsTrackedLabel.grid()
-
     if this.currentSystem and this.currentSysPP:
             this.currentSystemEntry.bind("<Return>", on_enter)
             this.currentSystemButton.config(state=tk.NORMAL)
