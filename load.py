@@ -51,13 +51,8 @@ def auto_update():
             return
         
         data = response.json()
-        zip_url = None
+        zip_url = data.get("zipball_url")  # Holt die ZIP-URL
 
-        for asset in data.get('assets', []):
-            if asset['name'].endswith('.zip'):
-                zip_url = asset['browser_download_url']
-                break
-        
         if not zip_url:
             logger.error("No ZIP file found in latest release.")
             return
@@ -68,10 +63,43 @@ def auto_update():
             logger.error("Failed to download update ZIP.")
             return
         
-        plugin_dir = os.path.dirname(os.path.abspath(__file__))
-        with zipfile.ZipFile(io.BytesIO(zip_response.content), 'r') as zip_ref:
-            zip_ref.extractall(plugin_dir)
+        plugin_dir = os.path.dirname(os.path.abspath(__file__))  # Plugin-Verzeichnis
+        temp_dir = os.path.join(plugin_dir, "temp_update")  # Temporärer Ordner für Entpacken
+        
+        # Vorheriges Update-Verzeichnis löschen, falls vorhanden
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        
+        os.makedirs(temp_dir, exist_ok=True)
 
+        # ZIP entpacken
+        with zipfile.ZipFile(io.BytesIO(zip_response.content), 'r') as zip_ref:
+            zip_ref.extractall(temp_dir)
+
+        # Suche das entpackte Unterverzeichnis (beginnt mit "Fumlop-EliteMeritTracker-")
+        extracted_subdir = None
+        for item in os.listdir(temp_dir):
+            if item.startswith("Fumlop-EliteMeritTracker-"):
+                extracted_subdir = os.path.join(temp_dir, item)
+                break
+
+        if not extracted_subdir or not os.path.isdir(extracted_subdir):
+            logger.error("Extracted directory not found.")
+            return
+
+        # Kopiere die entpackten Dateien ins Plugin-Verzeichnis
+        for item in os.listdir(extracted_subdir):
+            src_path = os.path.join(extracted_subdir, item)
+            dest_path = os.path.join(plugin_dir, item)
+
+            if os.path.isdir(src_path):
+                if os.path.exists(dest_path):
+                    shutil.rmtree(dest_path)  # Vorheriges Verzeichnis löschen
+                shutil.copytree(src_path, dest_path)
+            else:
+                shutil.copy2(src_path, dest_path)
+
+        # Update abgeschlossen
         logger.info("Update successfully installed. Restart required.")
         
         # Ändere den Button-Text und die Funktion auf "Restart EDMC"
@@ -254,7 +282,7 @@ def plugin_app(parent):
     this.resetButton.grid(row=4, column=2, sticky='we', pady=10)
     if this.newest == 1:
         this.updateButton = tk.Button(
-            this.frame, text="Update Available", command=auto_update, fg="red"
+            this.frame, text="Update Available", command=lambda: auto_update(), fg="red"
         )
         this.updateButton.grid(row=5, column=0, padx=5, pady=5, sticky="w")
     return this.frame

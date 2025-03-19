@@ -5,6 +5,7 @@ import json
 import math
 import requests
 import zipfile
+import shutil
 import io
 import os
 import sys
