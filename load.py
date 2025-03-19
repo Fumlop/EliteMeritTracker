@@ -223,7 +223,7 @@ def plugin_stop():
     """
     EDMC is closing
     """
-    this.plugin_stop()
+    logger.info("Shutting down plugin.")
 
 def plugin_app(parent):
     # Adds to the main page UI
