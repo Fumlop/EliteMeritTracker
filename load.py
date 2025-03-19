@@ -11,7 +11,7 @@ this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.3.1.200'
+this.version = 'v0.4.4.1.200'
 this.assetpath = ""
 
 # This could also be returned from plugin_start3()
@@ -103,13 +103,14 @@ def auto_update():
         logger.info("Update successfully installed. Restart required.")
         
         # Ändere den Button-Text und die Funktion auf "Restart EDMC"
-        this.updateButton.config(text="Restart EDMC", command=restart_edmc)
+        this.updateButton.config(text="Close EDMC", command=restart_edmc)
     
     except Exception as e:
         logger.exception("Error occurred during auto-update.")
 
 def restart_edmc():
     logger.info("Restarting EDMC...")
+    this.frame.quit()
     os._exit(0)  # Beendet das aktuelle Python-Programm
 
 def plugin_app(parent):
@@ -223,6 +224,7 @@ def plugin_stop():
     """
     EDMC is closing
     """
+    this.frame.quit()
     logger.info("Shutting down plugin.")
     
 
