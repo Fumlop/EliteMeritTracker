@@ -37,18 +37,18 @@ def show_power_info(parent, power_info, initial_text):
 
     tk.Label(table_frame, text="Powerplay Details", font=("Arial", 14, "bold")).grid(row=0, column=0, columnspan=5, pady=10, sticky="w")
 
-    tk.Label(table_frame, text=f"Power Name: {power_info['PowerName']}", anchor="w").grid(row=1, column=0, columnspan=5, sticky="w", padx=10)
+    tk.Label(table_frame, text=f"Power name: {power_info['PowerName']}", anchor="w").grid(row=1, column=0, columnspan=5, sticky="w", padx=10)
     tk.Label(table_frame, text=f"Rank: {power_info['Rank']}", anchor="w").grid(row=2, column=0, columnspan=5, sticky="w", padx=10)
-    tk.Label(table_frame, text=f"Current Merits: {power_info['Merits']}", anchor="w").grid(row=3, column=0, columnspan=5, sticky="w", padx=10)
-    tk.Label(table_frame, text=f"Last Session Merits: {power_info['AccumulatedMerits']}", anchor="w").grid(row=4, column=0, columnspan=5, sticky="w", padx=10)
-    tk.Label(table_frame, text=f"Last Update: {power_info['LastUpdate']}", anchor="w").grid(row=5, column=0, columnspan=5, sticky="w", padx=10)
+    tk.Label(table_frame, text=f"Current merits: {power_info['Merits']}", anchor="w").grid(row=3, column=0, columnspan=5, sticky="w", padx=10)
+    tk.Label(table_frame, text=f"Last session merits: {power_info['AccumulatedMerits']}", anchor="w").grid(row=4, column=0, columnspan=5, sticky="w", padx=10)
+    tk.Label(table_frame, text=f"Last update: {power_info['LastUpdate']}", anchor="w").grid(row=5, column=0, columnspan=5, sticky="w", padx=10)
 
     systems = power_info.get("Systems", {})
     populate_table(table_frame, systems, update_scrollregion, initial_text)
 
 def populate_table(table_frame, systems, update_scrollregion, initial_text=""):
-    tk.Label(table_frame, text="System Name", width=20, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=0, padx=5, pady=2)
-    tk.Label(table_frame, text="Session Merits", width=15, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=1, padx=5, pady=2)
+    tk.Label(table_frame, text="System name", width=20, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=0, padx=5, pady=2)
+    tk.Label(table_frame, text="Session merits", width=15, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=1, padx=5, pady=2)
     tk.Label(table_frame, text="Text", width=60, anchor="w", font=("Arial", 10, "bold")).grid(row=6, column=3, padx=5, pady=2)
     
     for i, (system_name, system_data) in enumerate(systems.items(), start=7):
@@ -59,4 +59,4 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text=""):
         tk.Label(table_frame, text=merits, width=15, anchor="w").grid(row=i, column=1, padx=5, pady=2, sticky="w")
         tk.Button(table_frame, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)).grid(row=i, column=2, padx=5, pady=2, sticky="w")
         tk.Button(table_frame, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion)).grid(row=i, column=3, padx=5, pady=2, sticky="w")
-        tk.Label(table_frame, text=dcText, width=60, anchor="w", justify="left", wraplength=600).grid(row=i, column=4, padx=5, pady=2, sticky="w")
+        tk.Label(table_frame, text=dcText, width=45, anchor="w", justify="left", wraplength=300).grid(row=i, column=4, padx=5, pady=2, sticky="w")
