@@ -7,30 +7,11 @@ from datetime import datetime, timedelta
 this = sys.modules[__name__]  # For holding module globals
 this.debug = False
 this.count = False
-if (this.debug):
-    this.powerInfo = {}
-    this.currentSysPP = {"sessionMerits":0,"state":"stronghold", "power":"Felicia Winters"}
-    this.currentSystem = "Rhea" 
-    this.trackedMerits = 1750
-    this.newest = 0
-    this.powerInfo = {
-        "PowerName": "Felica Winters",
-        "Merits": 42424242,
-        "Rank": 99,
-        "LastUpdate": "",
-        "AccumulatedMerits": 500,
-        "AccumulatedSince": "",
-        "Systems":{
-        "Rhea":{"sessionMerits":0,"state":"stronghold", "power":"Felicia Winters"},
-        "BD-01 1707":{"sessionMerits":250,"state":"stronghold", "power":"Felicia Winters"},
-        "Urks":{"sessionMerits":1500,"state":"stronghold", "power":"Felicia Winters"}}
-    }
-else:
-    this.powerInfo = {}
-    this.currentSysPP = {}
-    this.currentSystem = "" 
-    this.trackedMerits = 0
-this.version = 'v0.2.40'
+this.powerInfo = {}
+this.currentSysPP = {}
+this.currentSystem = "" 
+this.trackedMerits = 0
+this.version = 'v0.4.1.0.200'
 this.assetpath = ""
 
 # This could also be returned from plugin_start3()
@@ -157,9 +138,9 @@ def plugin_app(parent):
     this.frame = tk.Frame(parent)
     this.power = tk.Label(this.frame, text=f"Pledged power : {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}".strip(), anchor="w", justify="left")
     this.currMerits = tk.Label(this.frame, text=f"Total merits : {this.powerInfo['Merits']} | Last Session : {this.powerInfo['AccumulatedMerits']}".strip(), anchor="w", justify="left")
-    this.meritsTrackedLabel = tk.Label(this.frame, text=f"Tracked merits : {this.trackedMerits}".strip(), anchor="w", justify="left")
     this.systemPowerLabel = tk.Label(this.frame, text="Status : ", anchor="w", justify="left")
-    this.currentSystemLabel = tk.Label(this.frame, text="Waiting for Events".strip(),width=15, anchor="w", justify="left")
+    this.meritsTrackedLabel = tk.Label(this.frame, text=f"Tracked merits : {this.trackedMerits}".strip(), anchor="w", justify="left")
+    this.currentSystemLabel = tk.Label(this.frame, text="Waiting for Events - relog".strip(),width=15, anchor="w", justify="left")
     this.currentSystemEntry = tk.Entry(this.frame, width=6 )
     
     parent.root = tk.Tk()
@@ -174,8 +155,8 @@ def plugin_app(parent):
     imagedelete = load_and_scale_image(f"{this.assetspath}/delete.png", scale)
     this.frame.icondelete = ImageTk.PhotoImage(imagedelete)
 
-    imageback = load_and_scale_image(f"{this.assetspath}/back.png", scale)
-    this.frame.iconback = ImageTk.PhotoImage(imageback)
+    #imageback = load_and_scale_image(f"{this.assetspath}/back.png", scale)
+    #this.frame.iconback = ImageTk.PhotoImage(imageback)
 
     this.currentSystemButton = tk.Button(
         this.frame, image=this.frame.iconplus, text="add merits", 
@@ -183,11 +164,10 @@ def plugin_app(parent):
         update_display()],
         state=stateButton)
 
-    this.systemPowerLabel.grid(row=4, column=0, sticky='we')
-    this.currentSystemEntry.bind("<Return>", on_enter)
-    this.currentSystemLabel.grid(row=3, column=0, sticky='we')
-    this.currentSystemEntry.grid(row=3, column=1, padx=5, sticky='we')
-    this.currentSystemButton.grid(row=3, column=2, padx=3, sticky='w')
+    this.systemPowerLabel.grid(row=3, column=0, sticky='we')
+    this.currentSystemLabel.grid(row=4, column=0, sticky='we')
+    this.currentSystemEntry.grid(row=4, column=1, padx=5, sticky='we')
+    this.currentSystemButton.grid(row=4, column=2, padx=3, sticky='w')
 
     # Positionierung der Labels
     this.power.grid(row=0, column=0,columnspan=3, sticky='we')
@@ -199,7 +179,7 @@ def plugin_app(parent):
         text="Show Merits",
         command=lambda: show_power_info(parent, this.powerInfo, this.discordText.get()),
         state=stateButton,
-        image=this.frame.iconback,
+        #image=this.frame.iconback,
         compound="center"
     )
     this.showButton.grid(row=5, column=0, sticky='we', pady=10)
@@ -298,8 +278,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         rank = entry.get("Rank", this.powerInfo.get("Rank", 0))
         power_name = entry.get("Power", this.powerInfo.get("PowerName", ""))
         timestamp = entry.get("timestamp", this.powerInfo.get("LastUpdate", ""))
-        
-        # Konvertiere Timestamp
+
         current_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
         accumulated_since_str = this.powerInfo.get("AccumulatedSince", "")
         if accumulated_since_str:
@@ -321,14 +300,15 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         # JSON aktualisieren
         update_json_file()
         update_display()
+    if entry['event'] in ['PowerplayMerits']:
+        merits = entry.get('MeritsGained')
+        update_system_merits(merits)
+    if entry['event'] in ['MarketBuy']:
+        this.test = 'MarketBuy'
+    if entry['event'] in ['CargoTransfer']:
+        this.test = 'MarketBuy'
     if entry['event'] in ['FSDJump', 'Location','SupercruiseEntry','SupercruiseExit']:
         this.currentSystem = entry.get('StarSystem',"")
-        if entry['event'] == 'FSDJump' and 'Powers' in entry and this.powerInfo['PowerName'] not in entry['Powers']:
-            this.powerInfo["Count"] = False
-            logger.debug("Count False")
-        else:
-            this.powerInfo["Count"] = True
-            logger.debug("Count True")
         if "Systems" not in this.powerInfo:
             this.powerInfo["Systems"] = {}
         if this.currentSystem not in this.powerInfo["Systems"]:
@@ -344,33 +324,6 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         if entry['event'] in ['SupercruiseEntry','SupercruiseExit']:
             events.resetTargets();
         update_display()
-    if entry['event'] in ['MissionCompleted']:
-        if entry['Name'] in ['Mission_AltruismCredits_name']:
-            logger.debug("MissionCompleted Mission_AltruismCredits")
-            merits = events.handleAltruism(entry, this.default_factor)
-            update_system_merits(merits)
-            logger.debug("Mission_AltruismCredits_name Merits %s", merits)
-    if  entry['event'] in ['MarketSell']:
-        logger.debug("MarketSell")
-        merits = events.handleMarketSell(entry, this.default_factor)
-        logger.debug("Merits %s", merits)
-        update_system_merits(merits)
-    if entry['event'] in ['ShipTargeted']:
-        merits = events.handleShipTargeted(entry, this.default_factor)
-        if merits > 0:
-            update_system_merits(merits)
-    if entry['event'] in ['SearchAndRescue'] and entry['Name'] in ["wreckagecomponents","usscargoblackbox"]:
-        logger.debug("SearchAndRescue - Salvage")
-        merits = events.handleSalvage(entry, this.default_factor)
-        logger.debug("Merits %s", merits)
-        update_system_merits(merits)   
-    if entry['event']  == "HoloscreenHacked":
-        logger.debug("HoloscreenHacked")
-        merits = events.handleAdvertiseHack(entry, this.default_factor, this.powerInfo["PowerName"])
-    if entry['event'] == "Bounty":
-        logger.debug("Bounty earned")
-        merits = events.handleBounty(entry, this.default_factor)
-        update_system_merits(merits)
 
 def update_display():
     this.currMerits["text"] = f"Total merits : {str(this.powerInfo['Merits'])} | Last Session : {str(this.powerInfo['AccumulatedMerits'])}".strip()
@@ -380,6 +333,7 @@ def update_display():
     this.meritsTrackedLabel.grid()
 
     if this.currentSystem and this.currentSysPP:
+            this.currentSystemEntry.bind("<Return>", on_enter)
             this.currentSystemButton.config(state=tk.NORMAL)
             this.showButton.config(state=tk.NORMAL)
             this.resetButton.config(state=tk.NORMAL)

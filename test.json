@@ -1,0 +1,50 @@
+{
+    "timestamp": "2025-03-19T11:49:25Z",
+    "event": "FSDJump",
+    "Taxi": false,
+    "Multicrew": false,
+    "StarSystem": "Hyades Sector ON-R b5-4",
+    "SystemAddress": 9468389762409,
+    "StarPos": [
+        100.87500,
+        34.25000,
+        -158.34375
+    ],
+    "SystemAllegiance": "",
+    "SystemEconomy": "$economy_None;",
+    "SystemEconomy_Localised": "None",
+    "SystemSecondEconomy": "$economy_None;",
+    "SystemSecondEconomy_Localised": "None",
+    "SystemGovernment": "$government_None;",
+    "SystemGovernment_Localised": "None",
+    "SystemSecurity": "$GAlAXY_MAP_INFO_state_anarchy;",
+    "SystemSecurity_Localised": "Anarchy",
+    "Population": 0,
+    "Body": "Hyades Sector ON-R b5-4",
+    "BodyID": 0,
+    "BodyType": "Star",
+    "JumpDist": 13.575,
+    "FuelUsed": 0.175964,
+    "FuelLevel": 31.824036,
+    "Factions": [
+        {
+            "Name": "Congressus Tenebris",
+            "FactionState": "Expansion",
+            "Government": "Corporate",
+            "Influence": 1.000000,
+            "Allegiance": "Independent",
+            "Happiness": "$Faction_HappinessBand2;",
+            "Happiness_Localised": "Happy",
+            "MyReputation": 100.000000,
+            "ActiveStates": [
+                {
+                    "State": "Expansion"
+                }
+            ]
+        }
+    ],
+    "SystemFaction": {
+        "Name": "Congressus Tenebris",
+        "FactionState": "Expansion"
+    }
+}
