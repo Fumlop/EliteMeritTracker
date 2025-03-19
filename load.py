@@ -11,7 +11,7 @@ this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.1.0.200'
+this.version = 'v0.4.0.0.200'
 this.assetpath = ""
 
 # This could also be returned from plugin_start3()
@@ -36,6 +36,65 @@ if not logger.hasHandlers():
     logger_channel.setFormatter(logger_formatter)
     logger.addHandler(logger_channel)
 
+import requests
+import zipfile
+import io
+import os
+import sys
+
+def auto_update():
+    try:
+        url = 'https://api.github.com/repos/Fumlop/EliteMeritTracker/releases/latest'
+        response = requests.get(url)
+        if response.status_code != 200:
+            logger.error("Failed to fetch latest release information.")
+            return
+        
+        data = response.json()
+        zip_url = None
+
+        for asset in data.get('assets', []):
+            if asset['name'].endswith('.zip'):
+                zip_url = asset['browser_download_url']
+                break
+        
+        if not zip_url:
+            logger.error("No ZIP file found in latest release.")
+            return
+        
+        logger.info(f"Downloading update from {zip_url}")
+        zip_response = requests.get(zip_url)
+        if zip_response.status_code != 200:
+            logger.error("Failed to download update ZIP.")
+            return
+        
+        plugin_dir = os.path.dirname(os.path.abspath(__file__))
+        with zipfile.ZipFile(io.BytesIO(zip_response.content), 'r') as zip_ref:
+            zip_ref.extractall(plugin_dir)
+
+        logger.info("Update successfully installed. Restart required.")
+        
+        # Ändere den Button-Text und die Funktion auf "Restart EDMC"
+        this.updateButton.config(text="Restart EDMC", command=restart_edmc)
+    
+    except Exception as e:
+        logger.exception("Error occurred during auto-update.")
+
+def restart_edmc():
+    logger.info("Restarting EDMC...")
+    os._exit(0)  # Beendet das aktuelle Python-Programm
+
+def plugin_app(parent):
+    this.frame = tk.Frame(parent)
+
+    if this.newest == 1:
+        this.updateButton = tk.Button(
+            this.frame, text="Update Available", command=auto_update, fg="red"
+        )
+        this.updateButton.grid(row=5, column=0, padx=5, pady=5, sticky="w")
+
+    return this.frame
+
 def checkVersion():
     try:
         req = requests.get(url='https://api.github.com/repos/Fumlop/EliteMeritTracker/releases/latest')
@@ -59,11 +118,11 @@ def checkVersion():
         return -1
 
 def plugin_start3(plugin_dir):
-    directory_name = path.basename(path.dirname(__file__))
-    plugin_path = path.join(config.plugin_dir, directory_name)
-    file_path = path.join(plugin_path, "power.json")
-    file_path_values = path.join(plugin_path, "values.json")
-    this.file_path_targets = path.join(plugin_path, "targets.json")
+    directory_name = os.path.basename(os.path.dirname(__file__))
+    plugin_path = os.path.join(config.plugin_dir, directory_name)
+    file_path = os.path.join(plugin_path, "power.json")
+    file_path_values = os.path.join(plugin_path, "values.json")
+    this.file_path_targets = os.path.join(plugin_path, "targets.json")
     this.assetspath = f"{plugin_path}/assets"
 
     # Initialize discordText
@@ -92,7 +151,7 @@ def plugin_start3(plugin_dir):
     this.newest = checkVersion()
 
     # JSON prüfen oder initialisieren
-    if not path.exists(file_path):
+    if not os.path.exists(file_path):
         os.makedirs(plugin_path, exist_ok=True)
         with open(file_path, "w") as json_file:
             json.dump(default_data, json_file, indent=4)
@@ -131,6 +190,12 @@ def position_button():
     entry_height = this.currentSystemEntry.winfo_height()
     button_y = entry_y + (entry_height // 2) - (this.currentSystemButton.winfo_height() // 2)
     this.currentSystemButton.place(x=this.currentSystemEntry.winfo_x() + this.currentSystemEntry.winfo_width() + 10, y=button_y)
+
+def plugin_stop():
+    """
+    EDMC is closing
+    """
+    this.plugin_stop()
 
 def plugin_app(parent):
     # Adds to the main page UI
@@ -187,9 +252,11 @@ def plugin_app(parent):
         state=stateButton
     )
     this.resetButton.grid(row=4, column=2, sticky='we', pady=10)
-    this.updateIndicator = HyperlinkLabel(this.frame, text="Update available", anchor=tk.W, url='https://github.com/Fumlop/EliteMeritTracker/releases')
     if this.newest == 1:
-        this.updateIndicator.grid(padx = 5, row = 5, column = 0)
+        this.updateButton = tk.Button(
+            this.frame, text="Update Available", command=auto_update, fg="red"
+        )
+        this.updateButton.grid(row=5, column=0, padx=5, pady=5, sticky="w")
     return this.frame
 
 def on_enter(event):
@@ -259,9 +326,9 @@ def update_target_file(target):
             
 def update_json_file():
     if (this.debug == False):
-        directory_name = path.basename(path.dirname(__file__))
-        plugin_path = path.join(config.plugin_dir, directory_name)
-        file_path = path.join(plugin_path, "power.json")
+        directory_name = os.path.basename(os.path.dirname(__file__))
+        plugin_path = os.path.join(config.plugin_dir, directory_name)
+        file_path = os.path.join(plugin_path, "power.json")
         power_info_copy = this.powerInfo.copy()
         if "Systems" in power_info_copy:
             del power_info_copy["Systems"]
