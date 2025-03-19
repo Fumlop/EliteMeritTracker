@@ -59,4 +59,4 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text=""):
         tk.Label(table_frame, text=merits, width=15, anchor="w").grid(row=i, column=1, padx=5, pady=2, sticky="w")
         tk.Button(table_frame, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)).grid(row=i, column=2, padx=5, pady=2, sticky="w")
         tk.Button(table_frame, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion)).grid(row=i, column=3, padx=5, pady=2, sticky="w")
-        tk.Label(table_frame, text=dcText, width=60, anchor="w", wraplength=600).grid(row=i, column=4, padx=5, pady=2, sticky="w")
+        tk.Label(table_frame, text=dcText, width=60, anchor="w", justify="left", wraplength=600).grid(row=i, column=4, padx=5, pady=2, sticky="w")
