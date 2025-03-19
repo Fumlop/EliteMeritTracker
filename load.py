@@ -137,9 +137,9 @@ def checkVersion():
 
     try:
         data = req.json()
-        if data['tag_name'] > this.version:
-            return 1  # Newest
-        return 0  # Newer version available
+        if data['tag_name'] == this.version:
+            return 0  # Newest
+        return 1  # Newer version available
     except Exception as e:
         # JSON-Parsing-Fehler loggen
         logger.exception('Error while parsing the JSON response')
@@ -224,6 +224,7 @@ def plugin_stop():
     EDMC is closing
     """
     logger.info("Shutting down plugin.")
+    
 
 def plugin_app(parent):
     # Adds to the main page UI
