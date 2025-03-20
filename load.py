@@ -240,6 +240,9 @@ def plugin_stop():
     # Sicherstellen, dass "Systems" existiert
     logger.info("Shutting down plugin.")
     update_json_file()
+    plugin_dir = os.path.dirname(os.path.abspath(__file__))
+    system_merits_path = os.path.join(plugin_dir, "system_merits.json")
+    
     if this.saveSession.get() is True:
         # Sicherstellen, dass "Systems" existiert
         systems_data = this.powerInfo.get("Systems", {})
@@ -253,10 +256,6 @@ def plugin_stop():
             for system, data in systems_data.items()
             if data.get("reported", False) is False and data.get("sessionMerits", 0) > 0
         }
-
-        # Pfad für system_merits.json setzen
-        plugin_dir = os.path.dirname(os.path.abspath(__file__))
-        system_merits_path = os.path.join(plugin_dir, "system_merits.json")
 
         # Immer Datei überschreiben (auch wenn leer)
         try:
