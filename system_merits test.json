@@ -1,0 +1,8 @@
+{ "CHINCHANG" : { "sessionMerits": 5000,
+                  "state": "WOW",
+                  "power": "PETER",
+                  "reported": false},
+  "SCHNUGGI" : { "sessionMerits": 1500,
+                  "state": "WOW",
+                  "power": "PETER",
+                  "reported": false}}
