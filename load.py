@@ -3,7 +3,7 @@ from imports import *
 from datetime import datetime, timedelta
 
 this = sys.modules[__name__]  # For holding module globals
-this.debug = True
+this.debug = False
 this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
