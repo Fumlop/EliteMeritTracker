@@ -8,7 +8,7 @@ this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.7.1.200'
+this.version = 'v0.4.8.1.200'
 this.assetpath = ""
 
 # This could also be returned from plugin_start3()
@@ -455,6 +455,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                 "state": entry.get('PowerplayState', ""),
                 "power": entry.get('ControllingPower', ""),
                 "progress" : entry.get('PowerplayStateControlProgress', 0.0),
+                
                 "statereinforcement": entry.get('PowerplayStateReinforcement', 0),
                 "stateundermining": entry.get('PowerplayStateUndermining',0),
                 "reported:" : False
