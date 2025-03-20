@@ -3,7 +3,7 @@ from imports import *
 from datetime import datetime, timedelta
 
 this = sys.modules[__name__]  # For holding module globals
-this.debug = False
+this.debug = True
 this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
@@ -206,7 +206,7 @@ def plugin_start3(plugin_dir):
                 this.powerInfo["Systems"] = {}
                 
     if this.debug:
-        this.currentSystem = "CHINCHANG"
+        this.currentSystem = "Girlfriends Bedroom"
 
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     if this.currentSystem == "": 
