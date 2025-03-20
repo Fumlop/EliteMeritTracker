@@ -153,7 +153,7 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text=""):
 
     row_index = 7
     for system_name, system_data in systems.items():
-        if detailed_view:
+        if detailed_view and system_data.get("power", "") != "":
             state = system_data.get("state", "")
             progress = system_data.get("progress", 0) * 100
             controlling_power = system_data.get("power", "")
@@ -167,28 +167,30 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text=""):
             tk.Label(table_frame, text=reinforcement, width=15, anchor="w").grid(row=row_index, column=3, padx=5, pady=2, sticky="w")
             tk.Label(table_frame, text=undermining, width=15, anchor="w").grid(row=row_index, column=4, padx=5, pady=2, sticky="w")
             tk.Label(table_frame, text=power_status, width=25, anchor="w").grid(row=row_index, column=5, padx=5, pady=2, sticky="w")
-
+            row_index += 1
         else:
             merits = str(system_data.get("sessionMerits", 0))
-            reported = system_data.get("reported", False) 
-            dcText = initial_text.replace("@MeritsValue", merits).replace("@System", system_name)
-            # BooleanVar für den Checkbutton
-            reported_var = tk.BooleanVar(value=reported)
+            if merits > 0:
+                reported = system_data.get("reported", False) 
+                dcText = initial_text.replace("@MeritsValue", merits).replace("@System", system_name)
+                # BooleanVar für den Checkbutton
+                reported_var = tk.BooleanVar(value=reported)
 
-            # Funktion zum Umschalten des reported-Status
-            def toggle_reported(system=system_name, var=reported_var):
-                systems[system]["reported"] = var.get()
+                # Funktion zum Umschalten des reported-Status
+                def toggle_reported(system=system_name, var=reported_var):
+                    systems[system]["reported"] = var.get()
 
-            # Checkbutton zum Anzeigen und Ändern des reported-Status
-            checkbutton = tk.Checkbutton(table_frame, variable=reported_var, command=lambda s=system_name, v=reported_var: toggle_reported(s, v))
-            checkbutton.grid(row=row_index, column=2, padx=5, pady=2, sticky="w")
-            tk.Label(table_frame, text=system_name, width=15, anchor="w").grid(row=row_index, column=0, padx=5, pady=2, sticky="w")
-            tk.Label(table_frame, text=merits, width=15, anchor="w").grid(row=row_index, column=1, padx=5, pady=2, sticky="w")
-            tk.Button(table_frame, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)).grid(row=row_index, column=3, padx=5, pady=2, sticky="w")
-            tk.Button(table_frame, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion)).grid(row=row_index, column=4, padx=5, pady=2, sticky="w")
-            tk.Label(table_frame, text=dcText, width=45, anchor="w", justify="left", wraplength=300).grid(row=row_index, column=5, padx=5, pady=2, sticky="w")
+                # Checkbutton zum Anzeigen und Ändern des reported-Status
+                checkbutton = tk.Checkbutton(table_frame, variable=reported_var, command=lambda s=system_name, v=reported_var: toggle_reported(s, v))
+                checkbutton.grid(row=row_index, column=2, padx=5, pady=2, sticky="w")
+                tk.Label(table_frame, text=system_name, width=15, anchor="w").grid(row=row_index, column=0, padx=5, pady=2, sticky="w")
+                tk.Label(table_frame, text=merits, width=15, anchor="w").grid(row=row_index, column=1, padx=5, pady=2, sticky="w")
+                tk.Button(table_frame, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)).grid(row=row_index, column=3, padx=5, pady=2, sticky="w")
+                tk.Button(table_frame, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion)).grid(row=row_index, column=4, padx=5, pady=2, sticky="w")
+                tk.Label(table_frame, text=dcText, width=45, anchor="w", justify="left", wraplength=300).grid(row=row_index, column=5, padx=5, pady=2, sticky="w")
+                row_index += 1
 
-        row_index += 1
+        
 
 def get_system_power_status_text(reinforcement, undermining):
     if reinforcement == 0 and undermining == 0:

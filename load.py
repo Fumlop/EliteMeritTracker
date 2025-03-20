@@ -455,6 +455,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                 "state": entry.get('PowerplayState', ""),
                 "power": entry.get('ControllingPower', ""),
                 "progress" : entry.get('PowerplayStateControlProgress', 0.0),
+                
                 "statereinforcement": entry.get('PowerplayStateReinforcement', 0),
                 "stateundermining": entry.get('PowerplayStateUndermining',0),
                 "reported:" : False
