@@ -8,7 +8,7 @@ this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.4.1.200'
+this.version = 'v0.4.5.1.200'
 this.assetpath = ""
 
 # This could also be returned from plugin_start3()
