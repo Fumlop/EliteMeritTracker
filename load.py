@@ -173,7 +173,7 @@ def plugin_start3(plugin_dir):
             "AccumulatedSince": "",
             "Systems":{},
         }
-            
+ 
     this.newest = checkVersion()
 
     # JSON prüfen oder initialisieren
@@ -191,7 +191,7 @@ def plugin_start3(plugin_dir):
         except json.JSONDecodeError:
             this.powerInfo = default_data
     
-    if this.saveSession is True:
+    if this.saveSession.get() is True:
         if "Systems" not in this.powerInfo:
             this.powerInfo["Systems"] = {}
         
@@ -204,6 +204,9 @@ def plugin_start3(plugin_dir):
             except json.JSONDecodeError:
                 logger.error("Failed to load system_merits.json, using empty Systems data.")
                 this.powerInfo["Systems"] = {}
+                
+    if this.debug:
+        this.currentSystem = "CHINCHANG"
 
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     if this.currentSystem == "": 
@@ -217,6 +220,9 @@ def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
             "sessionMerits": 0,
             "state": entry.get('PowerplayState', ""),
             "power": entry.get('ControllingPower', ""),
+            "progress" : entry.get('PowerplayStateControlProgress', 0.0),
+            "statereinforcement": entry.get('PowerplayStateReinforcement', 0),
+            "stateundermining": entry.get('PowerplayStateUndermining',0),
             "reported:" : False
         }
         this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
@@ -233,8 +239,8 @@ def position_button():
 def plugin_stop():
     # Sicherstellen, dass "Systems" existiert
     logger.info("Shutting down plugin.")
-
-    if this.saveSession is True:
+    update_json_file()
+    if this.saveSession.get() is True:
         # Sicherstellen, dass "Systems" existiert
         systems_data = this.powerInfo.get("Systems", {})
 
@@ -263,20 +269,27 @@ def plugin_stop():
                     logger.info(f"Saved {len(filtered_systems)} system(s) to system_merits.json")
         except Exception as e:
             logger.error(f"Failed to save system merits: {e}")
-
+    else:
+        try:
+            with open(system_merits_path, "w") as json_file:
+                json.dump({}, json_file, indent=4)  # Leere JSON-Datei schreiben
+                logger.info("All systems are reported. system_merits.json overwritten as empty.")
+        except Exception as e:
+            logger.error(f"Failed to save system merits: {e}")
+            
     this.frame.quit()
     logger.info("Shutting down plugin.")
     
 
 def plugin_app(parent):
     # Adds to the main page UI
-    stateButton = tk.NORMAL #if this.debug else tk.DISABLED
+    stateButton = tk.NORMAL if this.debug or bool(this.powerInfo.get("Systems")) else tk.DISABLED
     this.frame = tk.Frame(parent)
     this.power = tk.Label(this.frame, text=f"Pledged power : {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}".strip(), anchor="w", justify="left")
     this.currMerits = tk.Label(this.frame, text=f"Total merits : {this.powerInfo['Merits']} | Session merits : {this.powerInfo['AccumulatedMerits']}".strip(), anchor="w", justify="left")
     this.currentSystemLabel = tk.Label(this.frame, text="Waiting for Events - relog".strip(),width=15, anchor="w", justify="left")
     this.systemPowerLabel = tk.Label(this.frame, text="System Status : ", anchor="w", justify="left")
-    
+    this.systemPowerStatusLabel = tk.Label(this.frame, text="Powerplay Status : ", anchor="w", justify="left")
     
     parent.root = tk.Tk()
     parent.root.withdraw()  # Hide the main window
@@ -287,7 +300,8 @@ def plugin_app(parent):
     this.frame.icondelete = ImageTk.PhotoImage(imagedelete)
 
     this.systemPowerLabel.grid(row=2, column=0, sticky='we')
-    this.currentSystemLabel.grid(row=3, column=0, sticky='we')
+    this.systemPowerStatusLabel.grid(row=3, column=0, sticky='we')
+    this.currentSystemLabel.grid(row=4, column=0, sticky='we')
     # Positionierung der Labels
     this.power.grid(row=0, column=0,columnspan=3, sticky='we')
     this.currMerits.grid(row=1, column=0, sticky='we')
@@ -300,19 +314,22 @@ def plugin_app(parent):
         #image=this.frame.iconback,
         compound="center"
     )
-    this.showButton.grid(row=4, column=0, sticky='we', pady=10)
+    this.showButton.grid(row=5, column=0, sticky='we', pady=10)
     this.resetButton = tk.Button(
         this.frame, image=this.frame.icondelete,
         command=lambda: reset(),
         state=stateButton
     )
-    this.resetButton.grid(row=4, column=2, sticky='we', pady=10)
+    this.resetButton.grid(row=5, column=2, sticky='we', pady=10)
     if this.newest == 1:
         this.updateButton = tk.Button(
             this.frame, text="Update Available", command=lambda: auto_update(), fg="red"
         )
-        this.updateButton.grid(row=5, column=0, padx=5, pady=5, sticky="w")
+        this.updateButton.grid(row=6, column=0, padx=5, pady=5, sticky="w")
+    if this.debug:
+       update_display()
     return this.frame
+
 
 def on_enter(event):
     update_system_merits(this.currentSystemEntry.get(), this.powerInfo["Merits"])
@@ -326,12 +343,14 @@ def reset():
         # Füge das aktuelle System mit den letzten bekannten Daten hinzu
         this.powerInfo["Systems"][this.currentSystem] = {
             "sessionMerits": 0,
-            "state": lastState.get("PowerplayState", ""),
-            "power": lastState.get("ControllingPower", ""),
+            "state": lastState.get("state", ""),
+            "power": lastState.get("power", ""),
+            "progress" : lastState.get('progress', 0.0),
+            "statereinforcement": lastState.get('statereinforcement', 0),
+            "stateundermining": lastState.get('stateundermining',0),
             "reported": False
         }
         this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
-
     # Aktualisiere die Anzeige
     update_display()
 
@@ -417,7 +436,6 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         this.powerInfo["AccumulatedSince"] = accumulated_since.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # JSON aktualisieren
-        update_json_file()
         update_display()
     if entry['event'] in ['PowerplayMerits']:
         merits = entry.get('MeritsGained')
@@ -436,7 +454,11 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             this.powerInfo["Systems"][this.currentSystem] = {
                 "sessionMerits": 0,
                 "state": entry.get('PowerplayState', ""),
-                "power": entry.get('ControllingPower', "")
+                "power": entry.get('ControllingPower', ""),
+                "progress" : entry.get('PowerplayStateControlProgress', 0.0),
+                "statereinforcement": entry.get('PowerplayStateReinforcement', 0),
+                "stateundermining": entry.get('PowerplayStateUndermining',0),
+                "reported:" : False
             }
             this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
         else:
@@ -457,12 +479,35 @@ def update_display():
         curr_system_merits = this.powerInfo["Systems"][this.currentSystem]["sessionMerits"]
         power = this.powerInfo["Systems"][this.currentSystem]["power"]
         powerstate = this.powerInfo["Systems"][this.currentSystem]["state"]
-        this.currentSystemLabel["text"] = f"'{this.currentSystem}' : {curr_system_merits} merits".strip()
-        this.systemPowerLabel["text"] = f"Status : {power} - {powerstate}".strip()
+        powerprogress = this.powerInfo["Systems"][this.currentSystem]["progress"]
+        powerprogress_percent =  f"{powerprogress*100:.2f}%".rstrip('0').rstrip('.')
+        this.currentSystemLabel["text"] = f"{this.currentSystem} : {curr_system_merits} merits".strip()
+        this.systemPowerLabel["text"] = f"Status : {power} - {powerstate} - {powerprogress_percent}".strip()
+        reinforcement = this.powerInfo["Systems"][this.currentSystem]["statereinforcement"]
+        undermining = this.powerInfo["Systems"][this.currentSystem]["stateundermining"]
+        systemPowerStatusText = get_system_power_status_text(reinforcement, undermining)
+        this.systemPowerStatusLabel["text"] = systemPowerStatusText.strip()
     except KeyError as e:
         logger.debug(f"KeyError for current system '{this.currentSystem}': {e}")
 
     this.currentSystemLabel.grid()
+
+def get_system_power_status_text(reinforcement, undermining):
+    if reinforcement == 0 and undermining == 0:
+        return "Neutral"  # Falls beides 0 ist, neutral anzeigen
+
+    total = reinforcement + undermining  # Gesamtmenge
+
+    # Berechnung des tatsächlichen Anteils am Gesamtwert
+    reinforcement_percentage = (reinforcement / total) * 100
+    undermining_percentage = (undermining / total) * 100
+
+    if reinforcement > undermining:
+        return f"Reinforced {reinforcement_percentage:.2f}%"
+    else:
+        return f"Undermined {undermining_percentage:.2f}%"
+
+    return percentage_text
 
 def get_scale_factor(current_width: int, current_height: int, base_width: int = 2560, base_height: int = 1440) -> float:
     scale_x = current_width / base_width
