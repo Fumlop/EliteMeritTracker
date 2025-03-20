@@ -153,10 +153,14 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text=""):
 
     row_index = 7
     for system_name, system_data in systems.items():
-        if detailed_view and system_data.get("power", "") != "":
+        controlling_power = system_data.get("power", "").strip() 
+        merits = str(system_data.get("sessionMerits", 0))
+        if (not controlling_power and detailed_view) or (merits == 0 and not detailed_view):
+            continue
+          
+        if detailed_view:
             state = system_data.get("state", "")
             progress = system_data.get("progress", 0) * 100
-            controlling_power = system_data.get("power", "")
             reinforcement = system_data.get("statereinforcement", 0)
             undermining = system_data.get("stateundermining", 0)
             power_status = get_system_power_status_text(reinforcement, undermining)
@@ -167,9 +171,9 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text=""):
             tk.Label(table_frame, text=reinforcement, width=15, anchor="w").grid(row=row_index, column=3, padx=5, pady=2, sticky="w")
             tk.Label(table_frame, text=undermining, width=15, anchor="w").grid(row=row_index, column=4, padx=5, pady=2, sticky="w")
             tk.Label(table_frame, text=power_status, width=25, anchor="w").grid(row=row_index, column=5, padx=5, pady=2, sticky="w")
-            row_index += 1
+            
         else:
-            merits = str(system_data.get("sessionMerits", 0))
+            
             if merits > 0:
                 reported = system_data.get("reported", False) 
                 dcText = initial_text.replace("@MeritsValue", merits).replace("@System", system_name)
@@ -188,7 +192,7 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text=""):
                 tk.Button(table_frame, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)).grid(row=row_index, column=3, padx=5, pady=2, sticky="w")
                 tk.Button(table_frame, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion)).grid(row=row_index, column=4, padx=5, pady=2, sticky="w")
                 tk.Label(table_frame, text=dcText, width=45, anchor="w", justify="left", wraplength=300).grid(row=row_index, column=5, padx=5, pady=2, sticky="w")
-                row_index += 1
+        row_index += 1
 
         
 
