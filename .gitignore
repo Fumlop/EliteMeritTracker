@@ -8,8 +8,8 @@
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
-power.json
-system_merits.json
+*.json
+
 
 #Visual Studio
 .vs/*
