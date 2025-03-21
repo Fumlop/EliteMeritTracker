@@ -161,7 +161,7 @@ def plugin_start3(plugin_dir):
     this.assetspath = f"{plugin_path}/assets"
 
     # Initialize discordText
-    this.discordText = tk.StringVar(value=config.get_str("dText") or "@Leader Earned @MertitsValue merits in @System")
+    this.discordText = tk.StringVar(value=config.get_str("dText") or "@Leader Earned @MeritsValue merits in @System")
     this.saveSession = tk.BooleanVar(value=(config.get_str("saveSession") =="True" if config.get_str("saveSession") else True))
     default_data = {
         "PowerName": "",

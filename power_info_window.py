@@ -189,7 +189,7 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text="", s
         merits = str(system_data.get("sessionMerits", 0))            
         
         if int(merits) > 0:
-            reported = system_data.get("reported", False) 
+            reported = system_data.get("reported", False)
             dcText = initial_text.replace("@MeritsValue", merits).replace("@System", system_name)
             # BooleanVar für den Checkbutton
             reported_var = tk.BooleanVar(value=reported)
