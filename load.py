@@ -8,7 +8,7 @@ this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.8.1.200'
+this.version = 'v0.4.9.1.200'
 this.assetpath = ""
 
 # This could also be returned from plugin_start3()
@@ -155,24 +155,25 @@ def plugin_start3(plugin_dir):
     plugin_path = os.path.join(config.plugin_dir, directory_name)
     file_path = os.path.join(plugin_path, "power.json")
     system_merits_path = os.path.join(plugin_path, "system_merits.json")
+    system_merits_path_debug = os.path.join(plugin_path, "system_merits_test.json")
 
+    if this.debug:
+        system_merits_path = system_merits_path_debug
+    
     this.assetspath = f"{plugin_path}/assets"
 
     # Initialize discordText
     this.discordText = tk.StringVar(value=config.get_str("dText") or "@Leader Earned @MertitsValue merits in @System")
-    this.saveSession = tk.BooleanVar(value=(config.get_str("saveSession") =="True"))
-    if (this.debug == False):
-        logger.info("No Debug active")
-        # Default-Datenstruktur
-        default_data = {
-            "PowerName": "",
-            "Merits": 0,
-            "Rank": 0,
-            "LastUpdate": "",
-            "AccumulatedMerits": 0,
-            "AccumulatedSince": "",
-            "Systems":{},
-        }
+    this.saveSession = tk.BooleanVar(value=(config.get_str("saveSession") =="True" if config.get_str("saveSession") else True))
+    default_data = {
+        "PowerName": "",
+        "Merits": 0,
+        "Rank": 0,
+        "LastUpdate": "",
+        "AccumulatedMerits": 0,
+        "AccumulatedSince": "",
+        "Systems":{},
+    }
  
     this.newest = checkVersion()
 
@@ -206,7 +207,7 @@ def plugin_start3(plugin_dir):
                 this.powerInfo["Systems"] = {}
                 
     if this.debug:
-        this.currentSystem = "Girlfriends Bedroom"
+        this.currentSystem = "Sirius 529"
 
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     if this.currentSystem == "": 
@@ -287,8 +288,8 @@ def plugin_app(parent):
     this.power = tk.Label(this.frame, text=f"Pledged power : {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}".strip(), anchor="w", justify="left")
     this.currMerits = tk.Label(this.frame, text=f"Total merits : {this.powerInfo['Merits']} | Session merits : {this.powerInfo['AccumulatedMerits']}".strip(), anchor="w", justify="left")
     this.currentSystemLabel = tk.Label(this.frame, text="Waiting for Events - relog".strip(),width=15, anchor="w", justify="left")
-    this.systemPowerLabel = tk.Label(this.frame, text="System Status : ", anchor="w", justify="left")
-    this.systemPowerStatusLabel = tk.Label(this.frame, text="Powerplay Status : ", anchor="w", justify="left")
+    this.systemPowerLabel = tk.Label(this.frame, text="Powerplay Status : ", anchor="w", justify="left")
+    this.systemPowerStatusLabel = tk.Label(this.frame, text="Net progress : ", anchor="w", justify="left")
     
     parent.root = tk.Tk()
     parent.root.withdraw()  # Hide the main window
@@ -482,7 +483,7 @@ def update_display():
         powerprogress = this.powerInfo["Systems"][this.currentSystem]["progress"]
         powerprogress_percent =  f"{powerprogress*100:.2f}%".rstrip('0').rstrip('.')
         this.currentSystemLabel["text"] = f"{this.currentSystem} : {curr_system_merits} merits".strip()
-        this.systemPowerLabel["text"] = f"Status : {power} - {powerstate} - {powerprogress_percent}".strip()
+        this.systemPowerLabel["text"] = f"Powerplay : {power} {powerstate} ({powerprogress_percent})".strip()
         reinforcement = this.powerInfo["Systems"][this.currentSystem]["statereinforcement"]
         undermining = this.powerInfo["Systems"][this.currentSystem]["stateundermining"]
         systemPowerStatusText = get_system_power_status_text(reinforcement, undermining)
@@ -494,7 +495,7 @@ def update_display():
 
 def get_system_power_status_text(reinforcement, undermining):
     if reinforcement == 0 and undermining == 0:
-        return "Neutral"  # Falls beides 0 ist, neutral anzeigen
+        return "Current cycle progress neutral"  # Falls beides 0 ist, neutral anzeigen
 
     total = reinforcement + undermining  # Gesamtmenge
 
@@ -503,9 +504,9 @@ def get_system_power_status_text(reinforcement, undermining):
     undermining_percentage = (undermining / total) * 100
 
     if reinforcement > undermining:
-        return f"Reinforced {reinforcement_percentage:.2f}%"
+        return f"Current cycle NET:  {reinforcement_percentage:.2f}%"
     else:
-        return f"Undermined {undermining_percentage:.2f}%"
+        return f"Current cycle NET:  -{undermining_percentage:.2f}%"
 
     return percentage_text
 
