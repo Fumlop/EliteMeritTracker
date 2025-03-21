@@ -3,7 +3,7 @@ from imports import *
 from datetime import datetime, timedelta
 
 this = sys.modules[__name__]  # For holding module globals
-this.debug = True
+this.debug = False
 this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
@@ -157,9 +157,7 @@ def plugin_start3(plugin_dir):
     system_merits_path = os.path.join(plugin_path, "system_merits.json")
     system_merits_path_debug = os.path.join(plugin_path, "system_merits_test.json")
 
-    if this.debug:
-        system_merits_path = system_merits_path_debug
-    
+  
     this.assetspath = f"{plugin_path}/assets"
 
     # Initialize discordText
@@ -207,7 +205,10 @@ def plugin_start3(plugin_dir):
                 this.powerInfo["Systems"] = {}
                 
     if this.debug:
-        this.currentSystem = "Sirius 529"
+        if this.powerInfo.get("Systems"):  # Prüfen, ob Systems gefüllt ist
+            this.currentSystem = random.choice(list(this.powerInfo["Systems"].keys()))
+        else:
+            this.currentSystem = "Orrere 43"  # Fallback, falls leer
 
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     if this.currentSystem == "": 
