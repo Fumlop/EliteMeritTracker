@@ -8,7 +8,7 @@ this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.8.1.200'
+this.version = 'v0.4.9.1.200'
 this.assetpath = ""
 
 # This could also be returned from plugin_start3()
@@ -155,24 +155,23 @@ def plugin_start3(plugin_dir):
     plugin_path = os.path.join(config.plugin_dir, directory_name)
     file_path = os.path.join(plugin_path, "power.json")
     system_merits_path = os.path.join(plugin_path, "system_merits.json")
+    system_merits_path_debug = os.path.join(plugin_path, "system_merits_test.json")
 
+  
     this.assetspath = f"{plugin_path}/assets"
 
     # Initialize discordText
     this.discordText = tk.StringVar(value=config.get_str("dText") or "@Leader Earned @MertitsValue merits in @System")
-    this.saveSession = tk.BooleanVar(value=(config.get_str("saveSession") =="True"))
-    if (this.debug == False):
-        logger.info("No Debug active")
-        # Default-Datenstruktur
-        default_data = {
-            "PowerName": "",
-            "Merits": 0,
-            "Rank": 0,
-            "LastUpdate": "",
-            "AccumulatedMerits": 0,
-            "AccumulatedSince": "",
-            "Systems":{},
-        }
+    this.saveSession = tk.BooleanVar(value=(config.get_str("saveSession") =="True" if config.get_str("saveSession") else True))
+    default_data = {
+        "PowerName": "",
+        "Merits": 0,
+        "Rank": 0,
+        "LastUpdate": "",
+        "AccumulatedMerits": 0,
+        "AccumulatedSince": "",
+        "Systems":{},
+    }
  
     this.newest = checkVersion()
 
@@ -206,7 +205,10 @@ def plugin_start3(plugin_dir):
                 this.powerInfo["Systems"] = {}
                 
     if this.debug:
-        this.currentSystem = "Girlfriends Bedroom"
+        if this.powerInfo.get("Systems"):  # Prüfen, ob Systems gefüllt ist
+            this.currentSystem = random.choice(list(this.powerInfo["Systems"].keys()))
+        else:
+            this.currentSystem = "Orrere 43"  # Fallback, falls leer
 
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     if this.currentSystem == "": 
@@ -284,11 +286,24 @@ def plugin_app(parent):
     # Adds to the main page UI
     stateButton = tk.NORMAL if this.debug or bool(this.powerInfo.get("Systems")) else tk.DISABLED
     this.frame = tk.Frame(parent)
-    this.power = tk.Label(this.frame, text=f"Pledged power : {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}".strip(), anchor="w", justify="left")
-    this.currMerits = tk.Label(this.frame, text=f"Total merits : {this.powerInfo['Merits']} | Session merits : {this.powerInfo['AccumulatedMerits']}".strip(), anchor="w", justify="left")
-    this.currentSystemLabel = tk.Label(this.frame, text="Waiting for Events - relog".strip(),width=15, anchor="w", justify="left")
-    this.systemPowerLabel = tk.Label(this.frame, text="System Status : ", anchor="w", justify="left")
-    this.systemPowerStatusLabel = tk.Label(this.frame, text="Powerplay Status : ", anchor="w", justify="left")
+    frame_row1 = tk.Frame(this.frame)
+    frame_row1.grid(row=0, column=0, columnspan=3, sticky="w")
+    frame_row2 = tk.Frame(this.frame)
+    frame_row2.grid(row=1, column=0, columnspan=3, sticky="w")
+    frame_row3 = tk.Frame(this.frame)
+    frame_row3.grid(row=2, column=0, columnspan=3, sticky="w")
+    frame_row4 = tk.Frame(this.frame)
+    frame_row4.grid(row=3, column=0, columnspan=3, sticky="w")
+    frame_row5 = tk.Frame(this.frame)
+    frame_row5.grid(row=4, column=0, columnspan=3, sticky="w")
+    frame_row6 = tk.Frame(this.frame)
+    frame_row6.grid(row=5, column=0, columnspan=3, sticky="we", padx=0, pady=2)
+
+    this.power = tk.Label(frame_row1, text=f"Pledged: {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}".strip(), anchor="w", justify="left")
+    this.powerMerits = tk.Label(frame_row2 ,text=f"Merits session: {this.powerInfo['AccumulatedMerits']:,} - Total: {this.powerInfo['Merits']:,}".strip(), anchor="w", justify="left")
+    this.currentSystemLabel = tk.Label(frame_row3, text="Waiting for Events".strip(), anchor="w", justify="left")
+    this.systemPowerLabel = tk.Label(frame_row4, text="Powerplay Status : ", anchor="w", justify="left")
+    this.systemPowerStatusLabel = tk.Label(frame_row5, text="Net progress : ", anchor="w", justify="left")
     
     parent.root = tk.Tk()
     parent.root.withdraw()  # Hide the main window
@@ -298,33 +313,39 @@ def plugin_app(parent):
     imagedelete = load_and_scale_image(f"{this.assetspath}/delete.png", scale)
     this.frame.icondelete = ImageTk.PhotoImage(imagedelete)
 
-    this.systemPowerLabel.grid(row=2, column=0, sticky='we')
-    this.systemPowerStatusLabel.grid(row=3, column=0, sticky='we')
-    this.currentSystemLabel.grid(row=4, column=0, sticky='we')
+    this.systemPowerLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
+    this.systemPowerStatusLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
+    this.currentSystemLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
     # Positionierung der Labels
-    this.power.grid(row=0, column=0,columnspan=3, sticky='we')
-    this.currMerits.grid(row=1, column=0, sticky='we')
+    this.power.grid(row=0, column=0, columnspan=3, sticky='w', padx=0, pady=0)
+    this.powerMerits.grid(row=0, column=0, columnspan=3, sticky='w', padx=0, pady=0)
     # Button zum Anzeigen der Power Info
-    this.showButton = tk.Button(
-        this.frame,
-        text="Show Merits",
-        command=lambda: show_power_info(parent, this.powerInfo, this.discordText.get()),
-        state=stateButton,
-        #image=this.frame.iconback,
-        compound="center"
-    )
-    this.showButton.grid(row=5, column=0, sticky='we', pady=10)
     this.resetButton = tk.Button(
-        this.frame, image=this.frame.icondelete,
-        command=lambda: reset(),
+        frame_row6,
+        image=this.frame.icondelete,
+        command=reset,
         state=stateButton
     )
-    this.resetButton.grid(row=5, column=2, sticky='we', pady=10)
+    this.resetButton.pack(side="right", padx=0, pady=2)  # Rechtsbündig platzieren
     if this.newest == 1:
         this.updateButton = tk.Button(
-            this.frame, text="Update Available", command=lambda: auto_update(), fg="red"
+            frame_row6, text="Update Available", 
+            command=lambda: auto_update(), 
+            fg="red", 
+            font=("Arial", 10, "bold"),
+            state=stateButton,
+            compound="right"
         )
-        this.updateButton.grid(row=6, column=0, padx=5, pady=5, sticky="w")
+        this.updateButton.pack(side="left", padx=0, pady=2)   
+    this.showButton = tk.Button(
+        frame_row6,
+        text="Overview",
+        command=lambda: show_power_info(parent, this.powerInfo, this.discordText.get()),
+        state=stateButton,
+        compound="center"
+    )
+    this.showButton.pack(side="left", expand=True, fill="both", padx=0, pady=2) 
+     
     if this.debug:
        update_display()
     return this.frame
@@ -466,8 +487,8 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         update_display()
 
 def update_display():
-    this.currMerits["text"] = f"Total merits : {str(this.powerInfo['Merits'])} | Session merits: {str(this.powerInfo['AccumulatedMerits'])}".strip()
-    this.currMerits.grid()
+    this.power["text"] = f"Pledged: {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}"
+    this.powerMerits["text"] = f"Merits session: {this.powerInfo['AccumulatedMerits']:,} - total: {this.powerInfo['Merits']:,}".strip()
     if this.currentSystem != "" and this.currentSystem and this.currentSysPP:
             this.showButton.config(state=tk.NORMAL)
             this.resetButton.config(state=tk.NORMAL)
@@ -481,8 +502,8 @@ def update_display():
         powerstate = this.powerInfo["Systems"][this.currentSystem]["state"]
         powerprogress = this.powerInfo["Systems"][this.currentSystem]["progress"]
         powerprogress_percent =  f"{powerprogress*100:.2f}%".rstrip('0').rstrip('.')
-        this.currentSystemLabel["text"] = f"{this.currentSystem} : {curr_system_merits} merits".strip()
-        this.systemPowerLabel["text"] = f"Status : {power} - {powerstate} - {powerprogress_percent}".strip()
+        this.currentSystemLabel["text"] = f"'{this.currentSystem}' : {curr_system_merits} merits gained".strip()
+        this.systemPowerLabel["text"] = f"{powerstate} ({powerprogress_percent}) by {power}  ".strip()
         reinforcement = this.powerInfo["Systems"][this.currentSystem]["statereinforcement"]
         undermining = this.powerInfo["Systems"][this.currentSystem]["stateundermining"]
         systemPowerStatusText = get_system_power_status_text(reinforcement, undermining)
@@ -494,7 +515,7 @@ def update_display():
 
 def get_system_power_status_text(reinforcement, undermining):
     if reinforcement == 0 and undermining == 0:
-        return "Neutral"  # Falls beides 0 ist, neutral anzeigen
+        return "Current cycle progress neutral"  # Falls beides 0 ist, neutral anzeigen
 
     total = reinforcement + undermining  # Gesamtmenge
 
@@ -503,9 +524,9 @@ def get_system_power_status_text(reinforcement, undermining):
     undermining_percentage = (undermining / total) * 100
 
     if reinforcement > undermining:
-        return f"Reinforced {reinforcement_percentage:.2f}%"
+        return f"Current cycle NET:  {reinforcement_percentage:.2f}%"
     else:
-        return f"Undermined {undermining_percentage:.2f}%"
+        return f"Current cycle NET:  -{undermining_percentage:.2f}%"
 
     return percentage_text
 

@@ -10,12 +10,9 @@ When fdev gives us some journal love, automatic tracking will be implemented.
 
 Tracking Session Merits for EDMC
 
-![grafik](https://github.com/user-attachments/assets/7865394d-cd3e-4d17-83a5-d9e7ab74af75)
-![grafik](https://github.com/user-attachments/assets/887fd313-8cdd-4adf-9661-4a0f14ed57d7)
-
-![grafik](https://github.com/user-attachments/assets/981a28ad-02eb-4848-bb0c-3b4e704e3e94)
-![grafik](https://github.com/user-attachments/assets/74ed679a-a7c3-477b-bac5-93645a65e4de)
-
+![grafik](https://github.com/user-attachments/assets/459f3422-ade1-4080-bf13-b4a486e78883)
+![grafik](https://github.com/user-attachments/assets/58ba5e65-2a8d-48a6-8b0a-eb59c7eac6d9)
+![grafik](https://github.com/user-attachments/assets/b9aae0a1-4ef8-43d9-8457-545c91d3f213)
 
 Credits
 
