@@ -189,7 +189,7 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text="", s
         merits = str(system_data.get("sessionMerits", 0))            
         
         if int(merits) > 0:
-            reported = system_data.get("reported", False) 
+            reported = system_data.get("reported", False)
             dcText = initial_text.replace("@MeritsValue", merits).replace("@System", system_name)
             # BooleanVar für den Checkbutton
             reported_var = tk.BooleanVar(value=reported)
@@ -206,7 +206,7 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text="", s
             tk.Button(table_frame, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)).grid(row=row_index, column=3, padx=5, pady=2, sticky="w")
             tk.Button(table_frame, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion)).grid(row=row_index, column=4, padx=5, pady=2, sticky="w")
             tk.Label(table_frame, text=dcText, width=45, anchor="w", justify="left", wraplength=300).grid(row=row_index, column=5, padx=5, pady=2, sticky="w")
-        row_index += 1
+            row_index += 1
 
         
 
