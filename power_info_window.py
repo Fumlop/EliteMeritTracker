@@ -7,8 +7,9 @@ filter_power_var = None
 filter_system_var = None
 filter_state_var = None
 filter_frame = None
-data_frame = None
-
+data_frame_default = None
+data_frame_detailed = None
+header_frame_default = None
 
 def copy_to_clipboard(text):
     root = tk.Tk()
@@ -18,14 +19,22 @@ def copy_to_clipboard(text):
     root.update()
     root.destroy()
 
-def delete_entry(system_name, systems, table_frame, update_scrollregion):
+def delete_entry(system_name, systems, table_frame, update_scrollregion,initial_text):
+    global data_frame_default, data_frame_detailed, detailed_view
+
     if system_name in systems:
         del systems[system_name]
-        for widget in table_frame.winfo_children():
-            widget.destroy()
-        populate_table(table_frame, systems, update_scrollregion)
 
-def toggle_view(power_info):
+        if detailed_view and data_frame_detailed:
+            for widget in data_frame_detailed.winfo_children():
+                widget.destroy()
+        elif not detailed_view and data_frame_default:
+            for widget in data_frame_default.winfo_children():
+                widget.destroy()
+
+        populate_table(table_frame, systems, update_scrollregion, initial_text)
+
+def toggle_view(power_info, initial_text):
     global detailed_view, csv_button, systems
 
     detailed_view = not detailed_view  # Switch between views
@@ -48,7 +57,7 @@ def toggle_view(power_info):
         add_power_info_headers(power_info)
 
     # Repopulate the table
-    table_frame.after(100, lambda: populate_table(table_frame, systems, update_scrollregion, ""))
+    table_frame.after(100, lambda: populate_table(table_frame, systems, update_scrollregion, initial_text))
 
 
 
@@ -122,7 +131,7 @@ def show_power_info(parent, power_info, initial_text):
     button_frame = tk.Frame(info_window)
     button_frame.pack(side="top", pady=5, anchor="center")  # Buttons mittig ausrichten
 
-    toggle_button = tk.Button(button_frame, text="Show Detailed View", command=lambda: toggle_view(power_info))
+    toggle_button = tk.Button(button_frame, text="Show Detailed View", command=lambda: toggle_view(power_info, initial_text))
     toggle_button.grid(row=0, column=0, padx=5)
 
     csv_button = tk.Button(button_frame, text="Export CSV", command=export_to_csv)
@@ -151,64 +160,83 @@ def add_power_info_headers(power_info):
     tk.Label(table_frame, text=f"Last update: {power_info['LastUpdate']}", anchor="w").grid(row=5, column=0, columnspan=6, sticky="w", padx=10)
 
 
-def populate_table(table_frame, systems, update_scrollregion, initial_text="", show_filters_only=False):
-    global detailed_view
+def populate_table(table_frame, systems, update_scrollregion, initial_text, show_filters_only=False):
+    global detailed_view, data_frame_default
 
     if detailed_view:
         headers = ["System", "Status", "Controlling Power", "Reinforcement", "Undermining", "Power Status"]
-        col_widths = [25, 20, 25, 15, 15, 25]  # Einheitliche Breiten
+        col_widths = [25, 20, 25, 15, 15, 25]
+        header_row = 6
+        filter_row = 7
+        data_start_row = 8
     else:
-        headers = ["System name", "Session merits","Reported", "", "", "Text"]
-        col_widths = [20, 15, 15, 10, 10, 60]
-    if detailed_view:
-        header_index = 0
-    else: 
-        header_index = 6
-    # Create table headers
-    for col, (header, width) in enumerate(zip(headers, col_widths)):
+        headers = ["System name", "Session merits", "Reported", "", "Text", ""]
+        col_widths = [15, 15, 15, 10, 10, 60]
+        header_row = 0
+        data_start_row = 7
+
+    # Header erzeugen
+    if (detailed_view):
+        for col, (header, width) in enumerate(zip(headers, col_widths)):
             tk.Label(table_frame, text=header, width=width, anchor="w", font=("Arial", 10, "bold")).grid(
-                row=6, column=col, padx=5, pady=2, sticky="w"
+                row=header_row, column=col, padx=5, pady=2, sticky="w"
             )
+
+    # ----- DETAILED VIEW -----
     if detailed_view:
-        # Filterzeile und Datenbereich getrennt behandeln
+        # Filterzeile (unter Header)
         add_detailed_view_filter_buttons(table_frame, systems)
 
-        global data_frame
-        data_frame = tk.Frame(table_frame)
-        data_frame.grid(row=9, column=0, columnspan=6, sticky="w")
+        # alte Datenzeilen entfernen (ab Zeile data_start_row)
+        for widget in table_frame.grid_slaves():
+            row = int(widget.grid_info()["row"])
+            if row >= data_start_row:
+                widget.destroy()
 
         if show_filters_only:
-            return  # Nur Filter anzeigen, keine Datenzeilen
+            return
 
-        populate_table_data_rows(data_frame, systems)
-        return  # kein doppeltes Rendern darunter
-    else:
-        row_index = 7
+        populate_table_data_rows(table_frame, systems, data_start_row)
+        return
+
+    # ----- DEFAULT VIEW -----
+    # ggf. alten Frame entfernen
+    if data_frame_default:
+        data_frame_default.destroy()
+
+    data_frame_default = tk.Frame(table_frame)
+    data_frame_default.grid(row=data_start_row, column=0, columnspan=6, sticky="w")
+
+    for i, width in enumerate(col_widths):
+        data_frame_default.columnconfigure(i, weight=1, minsize=width * 7)
+
+    row_index = 1
     for system_name, system_data in systems.items():
-        controlling_power = system_data.get("power", "").strip() 
-        merits = str(system_data.get("sessionMerits", 0))            
-        
+        controlling_power = system_data.get("power", "").strip()
+        merits = str(system_data.get("sessionMerits", 0))
+
+        for col, (header, width) in enumerate(zip(headers, col_widths)):
+            tk.Label(data_frame_default, text=header, width=width, anchor="w", font=("Arial", 10, "bold")).grid(
+                row=header_row, column=col, padx=5, pady=2, sticky="w"
+            )
+
         if int(merits) > 0:
             reported = system_data.get("reported", False)
-            dcText = initial_text.replace("@MeritsValue", merits).replace("@System", system_name)
-            # BooleanVar für den Checkbutton
+            dcText = f"{initial_text.replace('@MeritsValue', merits).replace('@System', system_name)}"
             reported_var = tk.BooleanVar(value=reported)
 
-            # Funktion zum Umschalten des reported-Status
             def toggle_reported(system=system_name, var=reported_var):
                 systems[system]["reported"] = var.get()
 
-            # Checkbutton zum Anzeigen und Ändern des reported-Status
-            checkbutton = tk.Checkbutton(table_frame, variable=reported_var, command=lambda s=system_name, v=reported_var: toggle_reported(s, v))
+            tk.Label(data_frame_default, text=system_name, width=15, anchor="w").grid(row=row_index, column=0, padx=5, pady=2, sticky="w")
+            tk.Label(data_frame_default, text=f"{merits}", width=15, anchor="w").grid(row=row_index, column=1, padx=5, pady=2, sticky="w")
+            checkbutton = tk.Checkbutton(data_frame_default, variable=reported_var, command=lambda s=system_name, v=reported_var: toggle_reported(s, v))
             checkbutton.grid(row=row_index, column=2, padx=5, pady=2, sticky="w")
-            tk.Label(table_frame, text=system_name, width=15, anchor="w").grid(row=row_index, column=0, padx=5, pady=2, sticky="w")
-            tk.Label(table_frame, text=merits, width=15, anchor="w").grid(row=row_index, column=1, padx=5, pady=2, sticky="w")
-            tk.Button(table_frame, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)).grid(row=row_index, column=3, padx=5, pady=2, sticky="w")
-            tk.Button(table_frame, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion)).grid(row=row_index, column=4, padx=5, pady=2, sticky="w")
-            tk.Label(table_frame, text=dcText, width=45, anchor="w", justify="left", wraplength=300).grid(row=row_index, column=5, padx=5, pady=2, sticky="w")
+            tk.Button(data_frame_default, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)).grid(row=row_index, column=3, padx=5, pady=2, sticky="w")
+            tk.Button(data_frame_default, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion, initial_text)).grid(row=row_index, column=5, padx=5, pady=2, sticky="w")
+            tk.Label(data_frame_default, text=dcText, width=45, anchor="w", justify="left", wraplength=300).grid(row=row_index, column=4, padx=5, pady=2, sticky="w")
             row_index += 1
-
-        
+     
 
 def get_system_power_status_text(reinforcement, undermining):
     if reinforcement == 0 and undermining == 0:
@@ -263,7 +291,7 @@ def add_detailed_view_filter_buttons(parent_frame, systems):
         var.trace_add("write", lambda *args: refresh_filtered_table())
 
 def refresh_filtered_table():
-    global data_frame
+    global table_frame
 
     selected_system = filter_system_var.get()
     selected_state = filter_state_var.get()
@@ -279,19 +307,22 @@ def refresh_filtered_table():
             continue
         filtered[name] = data
 
-    for widget in data_frame.winfo_children():
-        widget.destroy()
+    # Alte Datenzeilen ab Zeile 8 löschen
+    for widget in table_frame.grid_slaves():
+        row = int(widget.grid_info()["row"])
+        if row >= 8:
+            widget.destroy()
 
-    populate_table_data_rows(data_frame, filtered)
+    populate_table_data_rows(table_frame, filtered, start_row=8)
 
-def populate_table_data_rows(parent, systems):
-    for i in range(6):  # Anzahl der Spalten
+
+def populate_table_data_rows(parent, systems, start_row=8):
+    for i in range(6):
         parent.columnconfigure(i, weight=1)
-    row_index = 9
-    for system_name, system_data in systems.items():
-        controlling_power = system_data.get("power", "").strip() 
-        merits = str(system_data.get("sessionMerits", 0))
 
+    row_index = start_row
+    for system_name, system_data in systems.items():
+        controlling_power = system_data.get("power", "").strip()
         if not controlling_power:
             continue
 
@@ -301,12 +332,12 @@ def populate_table_data_rows(parent, systems):
         undermining = system_data.get("stateundermining", 0)
         power_status = get_system_power_status_text(reinforcement, undermining)
 
-
-        tk.Label(table_frame, text=system_name, width=20, anchor="w").grid(row=row_index, column=0, padx=5, pady=2, sticky="w")
-        tk.Label(table_frame, text=f"{state} ({progress:.2f}%)", width=20, anchor="w").grid(row=row_index, column=1, padx=5, pady=2, sticky="w")
-        tk.Label(table_frame, text=controlling_power, width=20, anchor="w").grid(row=row_index, column=2, padx=5, pady=2, sticky="w")
-        tk.Label(table_frame, text=reinforcement, width=15, anchor="w").grid(row=row_index, column=3, padx=5, pady=2, sticky="w")
-        tk.Label(table_frame, text=undermining, width=15, anchor="w").grid(row=row_index, column=4, padx=5, pady=2, sticky="w")
-        tk.Label(table_frame, text=power_status, width=25, anchor="w").grid(row=row_index, column=5, padx=5, pady=2, sticky="w")
+        tk.Label(parent, text=system_name, width=20, anchor="w").grid(row=row_index, column=0, padx=5, pady=2, sticky="w")
+        tk.Label(parent, text=f"{state} ({progress:.2f}%)", width=20, anchor="w").grid(row=row_index, column=1, padx=5, pady=2, sticky="w")
+        tk.Label(parent, text=controlling_power, width=20, anchor="w").grid(row=row_index, column=2, padx=5, pady=2, sticky="w")
+        tk.Label(parent, text=reinforcement, width=15, anchor="w").grid(row=row_index, column=3, padx=5, pady=2, sticky="w")
+        tk.Label(parent, text=undermining, width=15, anchor="w").grid(row=row_index, column=4, padx=5, pady=2, sticky="w")
+        tk.Label(parent, text=power_status, width=25, anchor="w").grid(row=row_index, column=5, padx=5, pady=2, sticky="w")
 
         row_index += 1
+
