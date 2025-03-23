@@ -200,7 +200,6 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
         return
 
     # ----- DEFAULT VIEW -----
-    # ggf. alten Frame entfernen
     if data_frame_default:
         data_frame_default.destroy()
 
@@ -211,14 +210,15 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
         data_frame_default.columnconfigure(i, weight=1, minsize=width * 7)
 
     row_index = 1
+    created_widgets = []
+    for col, (header, width) in enumerate(zip(headers, col_widths)):
+        label = tk.Label(data_frame_default, text=header, width=width, anchor="w", font=("Arial", 10, "bold"))
+        label.grid(row=header_row, column=col, padx=5, pady=2, sticky="w")
+        label.grid_remove()
+        created_widgets.append(label)
     for system_name, system_data in systems.items():
         controlling_power = system_data.get("power", "").strip()
         merits = str(system_data.get("sessionMerits", 0))
-
-        for col, (header, width) in enumerate(zip(headers, col_widths)):
-            tk.Label(data_frame_default, text=header, width=width, anchor="w", font=("Arial", 10, "bold")).grid(
-                row=header_row, column=col, padx=5, pady=2, sticky="w"
-            )
 
         if int(merits) > 0:
             reported = system_data.get("reported", False)
@@ -228,14 +228,25 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
             def toggle_reported(system=system_name, var=reported_var):
                 systems[system]["reported"] = var.get()
 
-            tk.Label(data_frame_default, text=system_name, width=15, anchor="w").grid(row=row_index, column=0, padx=5, pady=2, sticky="w")
-            tk.Label(data_frame_default, text=f"{merits}", width=15, anchor="w").grid(row=row_index, column=1, padx=5, pady=2, sticky="w")
-            checkbutton = tk.Checkbutton(data_frame_default, variable=reported_var, command=lambda s=system_name, v=reported_var: toggle_reported(s, v))
-            checkbutton.grid(row=row_index, column=2, padx=5, pady=2, sticky="w")
-            tk.Button(data_frame_default, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)).grid(row=row_index, column=3, padx=5, pady=2, sticky="w")
-            tk.Button(data_frame_default, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion, initial_text)).grid(row=row_index, column=5, padx=5, pady=2, sticky="w")
-            tk.Label(data_frame_default, text=dcText, width=45, anchor="w", justify="left", wraplength=300).grid(row=row_index, column=4, padx=5, pady=2, sticky="w")
+            widgets = [
+                tk.Label(data_frame_default, text=system_name, width=15, anchor="w"),
+                tk.Label(data_frame_default, text=f"{merits}", width=15, anchor="w"),
+                tk.Checkbutton(data_frame_default, variable=reported_var, command=lambda s=system_name, v=reported_var: toggle_reported(s, v)),
+                tk.Button(data_frame_default, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)),
+                tk.Label(data_frame_default, text=dcText, width=45, anchor="w", justify="left", wraplength=300),
+                tk.Button(data_frame_default, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion, initial_text)),
+            ]
+
+            for col, widget in enumerate(widgets):
+                widget.grid(row=row_index, column=col, padx=5, pady=2, sticky="w")
+                widget.grid_remove()
+                created_widgets.append(widget)
+
             row_index += 1
+
+    # Alles am Ende sichtbar machen
+    for widget in created_widgets:
+        widget.grid()
      
 
 def get_system_power_status_text(reinforcement, undermining):
