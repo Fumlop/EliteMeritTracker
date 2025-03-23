@@ -321,6 +321,8 @@ def populate_table_data_rows(parent, systems, start_row=8):
         parent.columnconfigure(i, weight=1)
 
     row_index = start_row
+    created_widgets = []  # Sammle Widgets für spätere Anzeige
+
     for system_name, system_data in systems.items():
         controlling_power = system_data.get("power", "").strip()
         if not controlling_power:
@@ -332,12 +334,23 @@ def populate_table_data_rows(parent, systems, start_row=8):
         undermining = system_data.get("stateundermining", 0)
         power_status = get_system_power_status_text(reinforcement, undermining)
 
-        tk.Label(parent, text=system_name, width=20, anchor="w").grid(row=row_index, column=0, padx=5, pady=2, sticky="w")
-        tk.Label(parent, text=f"{state} ({progress:.2f}%)", width=20, anchor="w").grid(row=row_index, column=1, padx=5, pady=2, sticky="w")
-        tk.Label(parent, text=controlling_power, width=20, anchor="w").grid(row=row_index, column=2, padx=5, pady=2, sticky="w")
-        tk.Label(parent, text=reinforcement, width=15, anchor="w").grid(row=row_index, column=3, padx=5, pady=2, sticky="w")
-        tk.Label(parent, text=undermining, width=15, anchor="w").grid(row=row_index, column=4, padx=5, pady=2, sticky="w")
-        tk.Label(parent, text=power_status, width=25, anchor="w").grid(row=row_index, column=5, padx=5, pady=2, sticky="w")
+        # Labels vorerst unsichtbar setzen (grid, dann remove)
+        widgets = [
+            tk.Label(parent, text=system_name, width=20, anchor="w"),
+            tk.Label(parent, text=f"{state} ({progress:.2f}%)", width=20, anchor="w"),
+            tk.Label(parent, text=controlling_power, width=20, anchor="w"),
+            tk.Label(parent, text=reinforcement, width=15, anchor="w"),
+            tk.Label(parent, text=undermining, width=15, anchor="w"),
+            tk.Label(parent, text=power_status, width=25, anchor="w")
+        ]
+
+        for col, widget in enumerate(widgets):
+            widget.grid(row=row_index, column=col, padx=5, pady=2, sticky="w")
+            widget.grid_remove()  # Noch unsichtbar
+            created_widgets.append(widget)
 
         row_index += 1
 
+    # Am Ende: alle Widgets anzeigen
+    for widget in created_widgets:
+        widget.grid()
