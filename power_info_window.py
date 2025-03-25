@@ -1,7 +1,4 @@
-import tkinter as tk
-import csv
-import os
-from tkinter import filedialog
+from imports import *
 
 filter_power_var = None
 filter_system_var = None
@@ -74,7 +71,7 @@ def export_to_csv():
     if not file_path:  # User canceled
         return
 
-    headers = ["System", "Status", "Controlling Power", "Reinforcement", "Undermining", "Power Status"]
+    headers = ["System", "Status", "Controlling Power", "Powerplay Cycle","Reinforcement", "Undermining","Opposition" ]
     
     with open(file_path, mode="w", newline="") as file:
         writer = csv.writer(file,delimiter=";")
@@ -84,11 +81,15 @@ def export_to_csv():
             state = system_data.get("state", "")
             progress = system_data.get("progress", 0) * 100
             controlling_power = system_data.get("power", "")
+            if system_data.get("powerCompetition"):
+                opposition = next(p for p in system_data.get("powerCompetition", []) if p != controlling_power)
+            else:
+                opposition = ""
             reinforcement = system_data.get("statereinforcement", 0)
             undermining = system_data.get("stateundermining", 0)
             power_status = get_system_power_status_text(reinforcement, undermining)
 
-            writer.writerow([system_name, f"{state} ({progress:.2f}%)", controlling_power, reinforcement, undermining, power_status])
+            writer.writerow([system_name, f"{state} ({progress:.2f}%)", controlling_power, power_status, reinforcement, undermining, opposition ])
 
     print(f"CSV export successful: {file_path}")  # Debug log (replace with a messagebox if needed)
 
@@ -164,8 +165,8 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
     global detailed_view, data_frame_default
 
     if detailed_view:
-        headers = ["System", "Status", "Controlling Power", "Reinforcement", "Undermining", "Power Status"]
-        col_widths = [25, 20, 25, 15, 15, 25]
+        headers = ["System", "Status", "Controlling Power", "Powerplay Cycle", "Reinforcement", "Undermining","Opposition" ]
+        col_widths = [25, 20, 25, 15, 15, 15, 25]
         header_row = 6
         filter_row = 7
         data_start_row = 8
@@ -200,7 +201,6 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
         return
 
     # ----- DEFAULT VIEW -----
-    # ggf. alten Frame entfernen
     if data_frame_default:
         data_frame_default.destroy()
 
@@ -211,14 +211,15 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
         data_frame_default.columnconfigure(i, weight=1, minsize=width * 7)
 
     row_index = 1
+    created_widgets = []
+    for col, (header, width) in enumerate(zip(headers, col_widths)):
+        label = tk.Label(data_frame_default, text=header, width=width, anchor="w", font=("Arial", 10, "bold"))
+        label.grid(row=header_row, column=col, padx=5, pady=2, sticky="w")
+        label.grid_remove()
+        created_widgets.append(label)
     for system_name, system_data in systems.items():
         controlling_power = system_data.get("power", "").strip()
         merits = str(system_data.get("sessionMerits", 0))
-
-        for col, (header, width) in enumerate(zip(headers, col_widths)):
-            tk.Label(data_frame_default, text=header, width=width, anchor="w", font=("Arial", 10, "bold")).grid(
-                row=header_row, column=col, padx=5, pady=2, sticky="w"
-            )
 
         if int(merits) > 0:
             reported = system_data.get("reported", False)
@@ -228,30 +229,25 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
             def toggle_reported(system=system_name, var=reported_var):
                 systems[system]["reported"] = var.get()
 
-            tk.Label(data_frame_default, text=system_name, width=15, anchor="w").grid(row=row_index, column=0, padx=5, pady=2, sticky="w")
-            tk.Label(data_frame_default, text=f"{merits}", width=15, anchor="w").grid(row=row_index, column=1, padx=5, pady=2, sticky="w")
-            checkbutton = tk.Checkbutton(data_frame_default, variable=reported_var, command=lambda s=system_name, v=reported_var: toggle_reported(s, v))
-            checkbutton.grid(row=row_index, column=2, padx=5, pady=2, sticky="w")
-            tk.Button(data_frame_default, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)).grid(row=row_index, column=3, padx=5, pady=2, sticky="w")
-            tk.Button(data_frame_default, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion, initial_text)).grid(row=row_index, column=5, padx=5, pady=2, sticky="w")
-            tk.Label(data_frame_default, text=dcText, width=45, anchor="w", justify="left", wraplength=300).grid(row=row_index, column=4, padx=5, pady=2, sticky="w")
+            widgets = [
+                tk.Label(data_frame_default, text=system_name, width=15, anchor="w"),
+                tk.Label(data_frame_default, text=f"{merits}", width=15, anchor="w"),
+                tk.Checkbutton(data_frame_default, variable=reported_var, command=lambda s=system_name, v=reported_var: toggle_reported(s, v)),
+                tk.Button(data_frame_default, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)),
+                tk.Label(data_frame_default, text=dcText, width=45, anchor="w", justify="left", wraplength=300),
+                tk.Button(data_frame_default, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion, initial_text)),
+            ]
+
+            for col, widget in enumerate(widgets):
+                widget.grid(row=row_index, column=col, padx=5, pady=2, sticky="w")
+                widget.grid_remove()
+                created_widgets.append(widget)
+
             row_index += 1
-     
 
-def get_system_power_status_text(reinforcement, undermining):
-    if reinforcement == 0 and undermining == 0:
-        return "Neutral"  # If both are 0, show neutral
-
-    total = reinforcement + undermining  # Total value
-
-    # Calculate actual percentage share
-    reinforcement_percentage = (reinforcement / total) * 100
-    undermining_percentage = (undermining / total) * 100
-
-    if reinforcement > undermining:
-        return f"Reinforced {reinforcement_percentage:.2f}%"
-    else:
-        return f"Undermined {undermining_percentage:.2f}%"
+    # Alles am Ende sichtbar machen
+    for widget in created_widgets:
+        widget.grid()
     
 def add_detailed_view_filter_buttons(parent_frame, systems):
     global filter_power_var, filter_system_var, filter_state_var, filter_frame
@@ -315,29 +311,58 @@ def refresh_filtered_table():
 
     populate_table_data_rows(table_frame, filtered, start_row=8)
 
-
 def populate_table_data_rows(parent, systems, start_row=8):
     for i in range(6):
         parent.columnconfigure(i, weight=1)
 
     row_index = start_row
+    created_widgets = []  # Sammle Widgets für spätere Anzeige
+
     for system_name, system_data in systems.items():
-        controlling_power = system_data.get("power", "").strip()
-        if not controlling_power:
-            continue
+        
+        system_state = system_data.get("state")
+        
+        controlling_power = get_system_state_power(system_data)[0]
+        #logger.debug(f"controlling_power - {controlling_power}")
+        opposition = get_system_state_power(system_data)[1]
+        #logger.debug(f"opposition - {opposition}")
+        progress = get_progress(system_data)
+        #logger.debug(f"progress - {progress}")
+        state = f"{get_system_state(system_data)} ({progress:.2f}%)"
+        #logger.debug(f"state - {state}")
+        powercycle = get_reinf_undermine(system_data)        
+        #logger.debug(f"powercycle - {powercycle}")
+        reinforcement = powercycle[0]
+        #logger.debug(f"reinforcement - {reinforcement}")
+        undermining = powercycle[1]
+        #logger.debug(f"undermining - {undermining}")
 
-        state = system_data.get("state", "")
-        progress = system_data.get("progress", 0) * 100
-        reinforcement = system_data.get("statereinforcement", 0)
-        undermining = system_data.get("stateundermining", 0)
-        power_status = get_system_power_status_text(reinforcement, undermining)
+        if not system_data.get("powerConflict"):
+            power_status = get_system_power_status_text(reinforcement, undermining)
+        else:
+            power_status = ""
+        #logger.debug(f"power_status - {power_status}")
+        
+        reinforce_font = ("Arial", 10, "bold") if "NET +" in power_status else ("Arial", 10, "normal")
+        undermining_font = ("Arial", 10, "bold") if "NET -" in power_status else ("Arial", 10, "normal")
+        # Labels vorerst unsichtbar setzen (grid, dann remove)
+        widgets = [
+            tk.Label(parent, text=system_name, width=20, anchor="w"),
+            tk.Label(parent, text=state, width=20, anchor="w"),
+            tk.Label(parent, text=controlling_power, width=20, anchor="w", font=reinforce_font),
+            tk.Label(parent, text=power_status, width=25, anchor="w"),
+            tk.Label(parent, text=reinforcement, width=15, anchor="w"),
+            tk.Label(parent, text=undermining, width=15, anchor="w"),
+            tk.Label(parent, text=opposition, width=15, anchor="w", font=undermining_font)
+        ]
 
-        tk.Label(parent, text=system_name, width=20, anchor="w").grid(row=row_index, column=0, padx=5, pady=2, sticky="w")
-        tk.Label(parent, text=f"{state} ({progress:.2f}%)", width=20, anchor="w").grid(row=row_index, column=1, padx=5, pady=2, sticky="w")
-        tk.Label(parent, text=controlling_power, width=20, anchor="w").grid(row=row_index, column=2, padx=5, pady=2, sticky="w")
-        tk.Label(parent, text=reinforcement, width=15, anchor="w").grid(row=row_index, column=3, padx=5, pady=2, sticky="w")
-        tk.Label(parent, text=undermining, width=15, anchor="w").grid(row=row_index, column=4, padx=5, pady=2, sticky="w")
-        tk.Label(parent, text=power_status, width=25, anchor="w").grid(row=row_index, column=5, padx=5, pady=2, sticky="w")
+        for col, widget in enumerate(widgets):
+            widget.grid(row=row_index, column=col, padx=5, pady=2, sticky="w")
+            widget.grid_remove()  # Noch unsichtbar
+            created_widgets.append(widget)
 
         row_index += 1
 
+    # Am Ende: alle Widgets anzeigen
+    for widget in created_widgets:
+        widget.grid()
