@@ -39,7 +39,7 @@ if not logger.hasHandlers():
 def get_system_state_power(system_data):
     system_state = system_data.get("state")
     if system_state in ['Stronghold', 'Fortified', 'Exploited']:
-        if len(system_data.get("power"))>1:
+        if len(system_data.get("powerCompetition"))>1:
             return  [system_data.get("power"),next(p for p in system_data.get("powerCompetition") if p != system_data.get("power"))]
         else: 
             return  [system_data.get("power"),"None"]
@@ -85,6 +85,9 @@ def get_system_power_status_text(reinforcement, undermining):
 def get_reinf_undermine(system_data):
     system_state = system_data.get("state")
     if system_state in ['Stronghold', 'Fortified', 'Exploited']:
-       return [system_data.get("statereinforcement", 0),system_data.get("stateundermining", 0)]
+       if len(system_data.get("powerCompetition"))>1:
+            return [system_data.get("statereinforcement", 0),system_data.get("stateundermining", 0)]
+       else:
+            return [system_data.get("statereinforcement", 0),0]
     else:
        return [system_data.get('powerConflict')[0]['ConflictProgress'],0]
