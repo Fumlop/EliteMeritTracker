@@ -248,25 +248,6 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
     # Alles am Ende sichtbar machen
     for widget in created_widgets:
         widget.grid()
-     
-
-def get_system_power_status_text(reinforcement, undermining):
-    if reinforcement == 0 and undermining == 0:
-        return "Neutral"  # If both are 0, show neutral
-
-    total = reinforcement + undermining  # Total value
-
-    # Calculate actual percentage share
-    reinforcement_percentage = (reinforcement / total) * 100
-    undermining_percentage = (undermining / total) * 100
-
-    if reinforcement > undermining:
-        return f"NET {reinforcement_percentage:.2f}%"
-    else:
-        return f"NET -{undermining_percentage:.2f}%"
-    
-def get_system_power_status_text_contested(progress1,progress2):
-    return f"Contested {progress1-progress2:.2f}%"
     
 def add_detailed_view_filter_buttons(parent_frame, systems):
     global filter_power_var, filter_system_var, filter_state_var, filter_frame
@@ -330,7 +311,6 @@ def refresh_filtered_table():
 
     populate_table_data_rows(table_frame, filtered, start_row=8)
 
-
 def populate_table_data_rows(parent, systems, start_row=8):
     for i in range(6):
         parent.columnconfigure(i, weight=1)
@@ -339,45 +319,32 @@ def populate_table_data_rows(parent, systems, start_row=8):
     created_widgets = []  # Sammle Widgets für spätere Anzeige
 
     for system_name, system_data in systems.items():
-        if system_data.get("state") == "Unoccupied":
-            if system_data.get("powerConflict"):
-                controlling_power = system_data.get("powerConflict")[0]["Power"]
-            else:
-                controlling_power = "No power closeby"
-        else:
-            controlling_power = system_data.get("power", "").strip()
-        progress = system_data.get("progress", 0) * 100
-        state = f"{system_data.get('state')} ({progress:.2f}%)"
         
+        system_state = system_data.get("state")
         
-        if not system_data.get("powerConflict"):
-            reinforcement = system_data.get("statereinforcement", 0)
-            undermining = system_data.get("stateundermining", 0)
-        else:
-            reinforcement = f"{system_data.get('powerConflict')[0]['ConflictProgress']:.2f}"
-            undermining = f"{system_data.get('powerConflict')[1]['ConflictProgress']:.2f}"
-        if system_data.get("powerCompetition"):
-            opposition = next(p for p in system_data.get("powerCompetition") if p != controlling_power)
-        else:
-            opposition = system_data.get('powerConflict')[1]['Power']
+        controlling_power = get_system_state_power(system_data)[0]
+        #logger.debug(f"controlling_power - {controlling_power}")
+        opposition = get_system_state_power(system_data)[1]
+        #logger.debug(f"opposition - {opposition}")
+        progress = get_progress(system_data)
+        #logger.debug(f"progress - {progress}")
+        state = f"{get_system_state(system_data)} ({progress:.2f}%)"
+        #logger.debug(f"state - {state}")
+        powercycle = get_reinf_undermine(system_data)        
+        #logger.debug(f"powercycle - {powercycle}")
+        reinforcement = powercycle[0]
+        #logger.debug(f"reinforcement - {reinforcement}")
+        undermining = powercycle[1]
+        #logger.debug(f"undermining - {undermining}")
+
         if not system_data.get("powerConflict"):
             power_status = get_system_power_status_text(reinforcement, undermining)
         else:
-            undermining = ""
-            reinforcement = ""
-            value = system_data.get('powerConflict')[0]['ConflictProgress']*100
             power_status = ""
-            if value < 30:
-                state = f"Uncontested ({system_data.get('powerConflict')[0]['ConflictProgress']*100:.2f})%"
-            elif value < 100:
-                state = f"Contested ({system_data.get('powerConflict')[0]['ConflictProgress']*100:.2f})%"
-            elif value >= 100:
-                state = f"Control ({system_data.get('powerConflict')[0]['ConflictProgress']*100:.2f})%"
-
-
+        #logger.debug(f"power_status - {power_status}")
         
-        reinforce_font = ("Arial", 10, "bold") if "Reinforced" in power_status else ("Arial", 10, "normal")
-        undermining_font = ("Arial", 10, "bold") if "Undermined" in power_status else ("Arial", 10, "normal")
+        reinforce_font = ("Arial", 10, "bold") if "NET +" in power_status else ("Arial", 10, "normal")
+        undermining_font = ("Arial", 10, "bold") if "NET -" in power_status else ("Arial", 10, "normal")
         # Labels vorerst unsichtbar setzen (grid, dann remove)
         widgets = [
             tk.Label(parent, text=system_name, width=20, anchor="w"),

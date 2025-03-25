@@ -490,41 +490,26 @@ def update_display():
 
     try:
         # Aktuelle Merits aus Systems abrufen
+        system_data = this.powerInfo["Systems"][this.currentSystem]
         curr_system_merits = this.powerInfo["Systems"][this.currentSystem]["sessionMerits"]
-        power = this.powerInfo["Systems"][this.currentSystem]["power"]
-        powerstate = this.powerInfo["Systems"][this.currentSystem]["state"]
-        powerprogress = this.powerInfo["Systems"][this.currentSystem]["progress"]
-        powerprogress_percent =  f"{powerprogress*100:.2f}%".rstrip('0').rstrip('.')
+        power = get_system_state_power(system_data)[0]
+        powerstate = get_system_state(system_data)
+        powerprogress = get_progress(system_data)
+        powerprogress_percent =  f"{powerprogress:.2f}%".rstrip('0').rstrip('.')
         this.currentSystemLabel["text"] = f"'{this.currentSystem}' : {curr_system_merits} merits gained".strip()
-        if power == "":
-            this.systemPowerLabel["text"] = f"Unoccupied".strip()
+        this.systemPowerLabel["text"] = f"{powerstate} ({powerprogress_percent}) by {power}  ".strip()
+        powercycle = get_reinf_undermine(system_data)
+        reinforcement = powercycle[0]
+        undermining = powercycle[1]
+        if not system_data.get("powerConflict"):
+            systemPowerStatusText = get_system_power_status_text(reinforcement, undermining)
         else:
-            this.systemPowerLabel["text"] = f"{powerstate} ({powerprogress_percent}) by {power}  ".strip()
-        reinforcement = this.powerInfo["Systems"][this.currentSystem]["statereinforcement"]
-        undermining = this.powerInfo["Systems"][this.currentSystem]["stateundermining"]
-        systemPowerStatusText = get_system_power_status_text(reinforcement, undermining)
+            systemPowerStatusText = ""
         this.systemPowerStatusLabel["text"] = systemPowerStatusText.strip()
     except KeyError as e:
         logger.debug(f"KeyError for current system '{this.currentSystem}': {e}")
 
     this.currentSystemLabel.grid()
-
-def get_system_power_status_text(reinforcement, undermining):
-    if reinforcement == 0 and undermining == 0:
-        return "Current cycle progress neutral"  # Falls beides 0 ist, neutral anzeigen
-
-    total = reinforcement + undermining  # Gesamtmenge
-
-    # Berechnung des tatsächlichen Anteils am Gesamtwert
-    reinforcement_percentage = (reinforcement / total) * 100
-    undermining_percentage = (undermining / total) * 100
-
-    if reinforcement > undermining:
-        return f"Current cycle NET:  {reinforcement_percentage:.2f}%"
-    else:
-        return f"Current cycle NET:  -{undermining_percentage:.2f}%"
-
-    return percentage_text
 
 def get_scale_factor(current_width: int, current_height: int, base_width: int = 2560, base_height: int = 1440) -> float:
     scale_x = current_width / base_width
