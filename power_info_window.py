@@ -71,7 +71,7 @@ def export_to_csv():
     if not file_path:  # User canceled
         return
 
-    headers = ["System", "Status", "Controlling Power", "Reinforcement", "Undermining", "Power Status"]
+    headers = ["System", "Status", "Controlling Power", "Powerplay Cycle","Reinforcement", "Undermining","Opposition" ]
     
     with open(file_path, mode="w", newline="") as file:
         writer = csv.writer(file,delimiter=";")
@@ -89,7 +89,7 @@ def export_to_csv():
             undermining = system_data.get("stateundermining", 0)
             power_status = get_system_power_status_text(reinforcement, undermining)
 
-            writer.writerow([system_name, f"{state} ({progress:.2f}%)", controlling_power, reinforcement, undermining, opposition, power_status])
+            writer.writerow([system_name, f"{state} ({progress:.2f}%)", controlling_power, power_status, reinforcement, undermining, opposition ])
 
     print(f"CSV export successful: {file_path}")  # Debug log (replace with a messagebox if needed)
 
@@ -165,7 +165,7 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
     global detailed_view, data_frame_default
 
     if detailed_view:
-        headers = ["System", "Status", "Controlling Power", "Reinforcement", "Undermining","Opposition", "Power Status"]
+        headers = ["System", "Status", "Controlling Power", "Powerplay Cycle", "Reinforcement", "Undermining","Opposition" ]
         col_widths = [25, 20, 25, 15, 15, 15, 25]
         header_row = 6
         filter_row = 7
@@ -261,9 +261,9 @@ def get_system_power_status_text(reinforcement, undermining):
     undermining_percentage = (undermining / total) * 100
 
     if reinforcement > undermining:
-        return f"Reinforced {reinforcement_percentage:.2f}%"
+        return f"NET {reinforcement_percentage:.2f}%"
     else:
-        return f"Undermined {undermining_percentage:.2f}%"
+        return f"NET -{undermining_percentage:.2f}%"
     
 def get_system_power_status_text_contested(progress1,progress2):
     return f"Contested {progress1-progress2:.2f}%"
@@ -346,10 +346,8 @@ def populate_table_data_rows(parent, systems, start_row=8):
                 controlling_power = "No power closeby"
         else:
             controlling_power = system_data.get("power", "").strip()
-        logger.debug(f"Power:{controlling_power}")   
         progress = system_data.get("progress", 0) * 100
         state = f"{system_data.get('state')} ({progress:.2f}%)"
-        logger.debug(f"State:{state}")    
         
         
         if not system_data.get("powerConflict"):
@@ -364,19 +362,17 @@ def populate_table_data_rows(parent, systems, start_row=8):
             opposition = system_data.get('powerConflict')[1]['Power']
         if not system_data.get("powerConflict"):
             power_status = get_system_power_status_text(reinforcement, undermining)
-            logger.debug("No Conflict")
         else:
             undermining = ""
             reinforcement = ""
-            logger.debug(system_data.get('powerConflict')[0]['ConflictProgress'])
             value = system_data.get('powerConflict')[0]['ConflictProgress']*100
             power_status = ""
             if value < 30:
-                state = f"Uncontested {system_data.get('powerConflict')[0]['ConflictProgress']*100:.2f}%"
+                state = f"Uncontested ({system_data.get('powerConflict')[0]['ConflictProgress']*100:.2f})%"
             elif value < 100:
-                state = f"Contested {system_data.get('powerConflict')[0]['ConflictProgress']*100:.2f}%"
+                state = f"Contested ({system_data.get('powerConflict')[0]['ConflictProgress']*100:.2f})%"
             elif value >= 100:
-                state = f"Control {system_data.get('powerConflict')[0]['ConflictProgress']*100:.2f}%"
+                state = f"Control ({system_data.get('powerConflict')[0]['ConflictProgress']*100:.2f})%"
 
 
         
@@ -387,10 +383,10 @@ def populate_table_data_rows(parent, systems, start_row=8):
             tk.Label(parent, text=system_name, width=20, anchor="w"),
             tk.Label(parent, text=state, width=20, anchor="w"),
             tk.Label(parent, text=controlling_power, width=20, anchor="w", font=reinforce_font),
+            tk.Label(parent, text=power_status, width=25, anchor="w"),
             tk.Label(parent, text=reinforcement, width=15, anchor="w"),
             tk.Label(parent, text=undermining, width=15, anchor="w"),
-            tk.Label(parent, text=opposition, width=15, anchor="w", font=undermining_font),
-            tk.Label(parent, text=power_status, width=25, anchor="w")
+            tk.Label(parent, text=opposition, width=15, anchor="w", font=undermining_font)
         ]
 
         for col, widget in enumerate(widgets):

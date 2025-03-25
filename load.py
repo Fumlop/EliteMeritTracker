@@ -2,12 +2,12 @@ from imports import *
 from power_info_window import show_power_info
 
 this = sys.modules[__name__]  # For holding module globals
-this.debug = True
+this.debug = False
 this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.10.1.200'
+this.version = 'v0.4.11.1.200'
 this.assetpath = ""
 
 def auto_update():
