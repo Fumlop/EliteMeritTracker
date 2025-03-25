@@ -336,11 +336,14 @@ def populate_table_data_rows(parent, systems, start_row=8):
         #logger.debug(f"reinforcement - {reinforcement}")
         undermining = powercycle[1]
         #logger.debug(f"undermining - {undermining}")
+            
 
         if not system_data.get("powerConflict"):
             power_status = get_system_power_status_text(reinforcement, undermining)
         else:
             power_status = ""
+            reinforcement = 0
+            undermining = 0
         #logger.debug(f"power_status - {power_status}")
         
         reinforce_font = ("Arial", 10, "bold") if "NET +" in power_status else ("Arial", 10, "normal")
