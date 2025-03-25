@@ -502,7 +502,7 @@ def update_display():
         reinforcement = powercycle[0]
         undermining = powercycle[1]
         if not system_data.get("powerConflict"):
-            systemPowerStatusText = get_system_power_status_text(reinforcement, undermining)
+            systemPowerStatusText = f"Powerplaycycle {get_system_power_status_text(reinforcement, undermining)}"
         else:
             systemPowerStatusText = ""
         this.systemPowerStatusLabel["text"] = systemPowerStatusText.strip()
