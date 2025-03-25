@@ -1,43 +1,14 @@
 from imports import *
-
-from datetime import datetime, timedelta
+from power_info_window import show_power_info
 
 this = sys.modules[__name__]  # For holding module globals
-this.debug = False
+this.debug = True
 this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
 this.version = 'v0.4.10.1.200'
 this.assetpath = ""
-
-# This could also be returned from plugin_start3()
-plugin_name = os.path.basename(os.path.dirname(__file__))
-
-# A Logger is used per 'found' plugin to make it easy to include the plugin's
-# folder name in the logging output format.
-# NB: plugin_name here *must* be the plugin's folder name as per the preceding
-#     code, else the logger won't be properly set up.
-logger = logging.getLogger(f'{appname}.{plugin_name}')
-
-# If the Logger has handlers then it was already set up by the core code, else
-# it needs setting up here.
-if not logger.hasHandlers():
-    level = logging.INFO  # So logger.info(...) is equivalent to print()
-
-    logger.setLevel(level)
-    logger_channel = logging.StreamHandler()
-    logger_formatter = logging.Formatter(f'%(asctime)s - %(name)s - %(levelname)s - %(module)s:%(lineno)d:%(funcName)s: %(message)s')
-    logger_formatter.default_time_format = '%Y-%m-%d %H:%M:%S'
-    logger_formatter.default_msec_format = '%s.%03d'
-    logger_channel.setFormatter(logger_formatter)
-    logger.addHandler(logger_channel)
-
-import requests
-import zipfile
-import io
-import os
-import sys
 
 def auto_update():
     try:
@@ -203,12 +174,21 @@ def plugin_start3(plugin_dir):
             except json.JSONDecodeError:
                 logger.error("Failed to load system_merits.json, using empty Systems data.")
                 this.powerInfo["Systems"] = {}
-                
+    
+    for system in this.powerInfo.get("Systems", {}).values():
+        if system.get("powerConflict"):
+            system["powerConflict"] = sorted(
+                system["powerConflict"],
+                key=lambda x: x["ConflictProgress"],
+                reverse=True
+            )[:2]
+            
     if this.debug:
-        if this.powerInfo.get("Systems"):  # Prüfen, ob Systems gefüllt ist
-            this.currentSystem = random.choice(list(this.powerInfo["Systems"].keys()))
-        else:
-            this.currentSystem = "Orrere 43"  # Fallback, falls leer
+        #if this.powerInfo.get("Systems"):  # Prüfen, ob Systems gefüllt ist
+        #    this.currentSystem = random.choice(list(this.powerInfo["Systems"].keys()))
+        #else:
+        this.currentSystem = "Barillian"  # Fallback, falls leer
+        
 
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     if this.currentSystem == "": 
@@ -222,6 +202,8 @@ def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
             "sessionMerits": 0,
             "state": entry.get('PowerplayState', ""),
             "power": entry.get('ControllingPower', ""),
+            "powerCompetition": entry.get('Powers', []),
+            "powerConflict": entry.get('PowerplayConflictProgress', []),
             "progress" : entry.get('PowerplayStateControlProgress', 0.0),
             "statereinforcement": entry.get('PowerplayStateReinforcement', 0),
             "stateundermining": entry.get('PowerplayStateUndermining',0),
@@ -229,6 +211,10 @@ def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
         }
         this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
     else:
+        if this.powerInfo["Systems"][this.currentSystem]["powerConflict"]:
+            this.powerInfo["Systems"][this.currentSystem]["powerConflict"] = sorted(this.powerInfo["Systems"][this.currentSystem]["powerConflict"], key=lambda x: x["ConflictProgress"], reverse=True)[:2]
+        else:
+           this.powerInfo["Systems"][this.currentSystem]["powerConflict"] = []
         this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
     update_display()
 
@@ -365,6 +351,8 @@ def reset():
             "sessionMerits": 0,
             "state": lastState.get("state", ""),
             "power": lastState.get("power", ""),
+            "powerCompetition": lastState.get('powerCompetition',  []),
+            "powerConflict": lastState.get('powerConflict', []),
             "progress" : lastState.get('progress', 0.0),
             "statereinforcement": lastState.get('statereinforcement', 0),
             "stateundermining": lastState.get('stateundermining',0),
@@ -475,12 +463,17 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                 "sessionMerits": 0,
                 "state": entry.get('PowerplayState', ""),
                 "power": entry.get('ControllingPower', ""),
+                "powerCompetition": entry.get('Powers',  []),
+                "powerConflict": entry.get('PowerplayConflictProgress', []),
                 "progress" : entry.get('PowerplayStateControlProgress', 0.0),
-                
                 "statereinforcement": entry.get('PowerplayStateReinforcement', 0),
                 "stateundermining": entry.get('PowerplayStateUndermining',0),
                 "reported:" : False
             }
+            if this.powerInfo["Systems"][this.currentSystem]["powerConflict"]:
+                this.powerInfo["Systems"][this.currentSystem]["powerConflict"] = sorted(this.powerInfo["Systems"][this.currentSystem]["powerConflict"], key=lambda x: x["ConflictProgress"], reverse=True)[:2]
+            else:
+                this.powerInfo["Systems"][this.currentSystem]["powerConflict"] = []
             this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
         else:
             this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]

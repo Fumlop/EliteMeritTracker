@@ -1,7 +1,4 @@
-import tkinter as tk
-import csv
-import os
-from tkinter import filedialog
+from imports import *
 
 filter_power_var = None
 filter_system_var = None
@@ -84,11 +81,15 @@ def export_to_csv():
             state = system_data.get("state", "")
             progress = system_data.get("progress", 0) * 100
             controlling_power = system_data.get("power", "")
+            if system_data.get("powerCompetition"):
+                opposition = next(p for p in system_data.get("powerCompetition", []) if p != controlling_power)
+            else:
+                opposition = ""
             reinforcement = system_data.get("statereinforcement", 0)
             undermining = system_data.get("stateundermining", 0)
             power_status = get_system_power_status_text(reinforcement, undermining)
 
-            writer.writerow([system_name, f"{state} ({progress:.2f}%)", controlling_power, reinforcement, undermining, power_status])
+            writer.writerow([system_name, f"{state} ({progress:.2f}%)", controlling_power, reinforcement, undermining, opposition, power_status])
 
     print(f"CSV export successful: {file_path}")  # Debug log (replace with a messagebox if needed)
 
@@ -164,8 +165,8 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
     global detailed_view, data_frame_default
 
     if detailed_view:
-        headers = ["System", "Status", "Controlling Power", "Reinforcement", "Undermining", "Power Status"]
-        col_widths = [25, 20, 25, 15, 15, 25]
+        headers = ["System", "Status", "Controlling Power", "Reinforcement", "Undermining","Opposition", "Power Status"]
+        col_widths = [25, 20, 25, 15, 15, 15, 25]
         header_row = 6
         filter_row = 7
         data_start_row = 8
@@ -264,6 +265,9 @@ def get_system_power_status_text(reinforcement, undermining):
     else:
         return f"Undermined {undermining_percentage:.2f}%"
     
+def get_system_power_status_text_contested(progress1,progress2):
+    return f"Contested {progress1-progress2:.2f}%"
+    
 def add_detailed_view_filter_buttons(parent_frame, systems):
     global filter_power_var, filter_system_var, filter_state_var, filter_frame
 
@@ -335,23 +339,57 @@ def populate_table_data_rows(parent, systems, start_row=8):
     created_widgets = []  # Sammle Widgets für spätere Anzeige
 
     for system_name, system_data in systems.items():
-        controlling_power = system_data.get("power", "").strip()
-        if not controlling_power:
-            continue
-
-        state = system_data.get("state", "")
+        if system_data.get("state") == "Unoccupied":
+            if system_data.get("powerConflict"):
+                controlling_power = system_data.get("powerConflict")[0]["Power"]
+            else:
+                controlling_power = "No power closeby"
+        else:
+            controlling_power = system_data.get("power", "").strip()
+        logger.debug(f"Power:{controlling_power}")   
         progress = system_data.get("progress", 0) * 100
-        reinforcement = system_data.get("statereinforcement", 0)
-        undermining = system_data.get("stateundermining", 0)
-        power_status = get_system_power_status_text(reinforcement, undermining)
+        state = f"{system_data.get('state')} ({progress:.2f}%)"
+        logger.debug(f"State:{state}")    
+        
+        
+        if not system_data.get("powerConflict"):
+            reinforcement = system_data.get("statereinforcement", 0)
+            undermining = system_data.get("stateundermining", 0)
+        else:
+            reinforcement = f"{system_data.get('powerConflict')[0]['ConflictProgress']:.2f}"
+            undermining = f"{system_data.get('powerConflict')[1]['ConflictProgress']:.2f}"
+        if system_data.get("powerCompetition"):
+            opposition = next(p for p in system_data.get("powerCompetition") if p != controlling_power)
+        else:
+            opposition = system_data.get('powerConflict')[1]['Power']
+        if not system_data.get("powerConflict"):
+            power_status = get_system_power_status_text(reinforcement, undermining)
+            logger.debug("No Conflict")
+        else:
+            undermining = ""
+            reinforcement = ""
+            logger.debug(system_data.get('powerConflict')[0]['ConflictProgress'])
+            value = system_data.get('powerConflict')[0]['ConflictProgress']*100
+            power_status = ""
+            if value < 30:
+                state = f"Uncontested {system_data.get('powerConflict')[0]['ConflictProgress']*100:.2f}%"
+            elif value < 100:
+                state = f"Contested {system_data.get('powerConflict')[0]['ConflictProgress']*100:.2f}%"
+            elif value >= 100:
+                state = f"Control {system_data.get('powerConflict')[0]['ConflictProgress']*100:.2f}%"
 
+
+        
+        reinforce_font = ("Arial", 10, "bold") if "Reinforced" in power_status else ("Arial", 10, "normal")
+        undermining_font = ("Arial", 10, "bold") if "Undermined" in power_status else ("Arial", 10, "normal")
         # Labels vorerst unsichtbar setzen (grid, dann remove)
         widgets = [
             tk.Label(parent, text=system_name, width=20, anchor="w"),
-            tk.Label(parent, text=f"{state} ({progress:.2f}%)", width=20, anchor="w"),
-            tk.Label(parent, text=controlling_power, width=20, anchor="w"),
+            tk.Label(parent, text=state, width=20, anchor="w"),
+            tk.Label(parent, text=controlling_power, width=20, anchor="w", font=reinforce_font),
             tk.Label(parent, text=reinforcement, width=15, anchor="w"),
             tk.Label(parent, text=undermining, width=15, anchor="w"),
+            tk.Label(parent, text=opposition, width=15, anchor="w", font=undermining_font),
             tk.Label(parent, text=power_status, width=25, anchor="w")
         ]
 
