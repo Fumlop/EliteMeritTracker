@@ -54,8 +54,14 @@ def get_system_state_power(system_data):
 def get_progress(system_data):
     system_state = system_data.get("state")
     if system_state in ['Stronghold', 'Fortified', 'Exploited']:
-       return  system_data.get("progress", 0) * 100
-    return system_data.get('powerConflict')[0]['ConflictProgress']*100
+        return  system_data.get("progress", 0) * 100
+    
+    power_conflict = system_data.get('powerConflict')
+    
+    if power_conflict is None:
+        return None
+    
+    return power_conflict[0]['ConflictProgress']*100
 
 def get_system_state(system_data):
     system_state = system_data.get("state")
@@ -67,7 +73,7 @@ def get_system_state(system_data):
         if progress < 30: return 'Unoccupied'
         if progress < 100: return 'Contested'
         if progress >= 100: return 'Controlled'
-       
+
 def get_system_power_status_text(reinforcement, undermining):
     if reinforcement == 0 and undermining == 0:
         return "Neutral"  # If both are 0, show neutral
@@ -82,7 +88,7 @@ def get_system_power_status_text(reinforcement, undermining):
         return f"NET +{reinforcement_percentage:.2f}%"
     else:
         return f"NET -{undermining_percentage:.2f}%"
-    
+
 def get_reinf_undermine(system_data):
     system_state = system_data.get("state")
     if system_state in ['Stronghold', 'Fortified', 'Exploited']:
@@ -91,4 +97,9 @@ def get_reinf_undermine(system_data):
         else:
             return [system_data.get("statereinforcement", 0),0]
     else:
-        return [system_data.get('powerConflict')[0]['ConflictProgress'],0]
+        power_conflict = system_data.get('powerConflict')
+        
+        if power_conflict is None:
+            return None
+
+        return [power_conflict[0]['ConflictProgress'],0]
