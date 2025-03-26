@@ -274,7 +274,7 @@ def plugin_stop():
         except Exception as e:
             logger.error(f"Failed to save system merits: {e}")
             
-        this.frame.quit()
+    this.frame.quit()
     logger.info("Shutting down plugin.")
     
 
