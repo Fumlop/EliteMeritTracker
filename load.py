@@ -8,7 +8,7 @@ this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.21.1.200'
+this.version = 'v0.4.22.1.200'
 this.assetpath = ""
 
 def auto_update():
@@ -329,7 +329,7 @@ def plugin_app(parent):
             command=lambda: auto_update(), 
             fg="red", 
             font=("Arial", 10, "bold"),
-            state=stateButton,
+            state=tk.NORMAL,
             compound="right"
         )
         this.updateButton.pack(side="left", padx=0, pady=2)   
