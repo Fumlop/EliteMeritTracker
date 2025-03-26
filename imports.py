@@ -44,11 +44,12 @@ def get_system_state_power(system_data):
         else: 
             return  [system_data.get("power"),"None"]
     if system_state == 'Unoccupied':
-       conflict = system_data.get('powerConflict')
-       if len(conflict) == 1: 
-           return [system_data.get("powerConflict")[0]['Power'], "None"]
-       else:
-           return [system_data.get("powerConflict")[0]['Power'], system_data.get("powerConflict")[1]['Power']]
+        conflict = system_data.get('powerConflict')
+        if len(conflict) == 1: 
+            return [system_data.get("powerConflict")[0]['Power'], "None"]
+        else:
+            return [system_data.get("powerConflict")[0]['Power'], system_data.get("powerConflict")[1]['Power']]
+    return ["None","None"]
 
 def get_progress(system_data):
     system_state = system_data.get("state")
@@ -59,13 +60,13 @@ def get_progress(system_data):
 def get_system_state(system_data):
     system_state = system_data.get("state")
     if system_state in ['Stronghold', 'Fortified', 'Exploited']:
-       return  system_state
+        return  system_state
 
     if system_state == 'Unoccupied':
-       progress = system_data.get('powerConflict')[0]['ConflictProgress']*100
-       if progress < 30: return 'Unoccupied'
-       if progress < 100: return 'Contested'
-       if progress >= 100: return 'Controlled'
+        progress = system_data.get('powerConflict')[0]['ConflictProgress']*100
+        if progress < 30: return 'Unoccupied'
+        if progress < 100: return 'Contested'
+        if progress >= 100: return 'Controlled'
        
 def get_system_power_status_text(reinforcement, undermining):
     if reinforcement == 0 and undermining == 0:
@@ -85,9 +86,9 @@ def get_system_power_status_text(reinforcement, undermining):
 def get_reinf_undermine(system_data):
     system_state = system_data.get("state")
     if system_state in ['Stronghold', 'Fortified', 'Exploited']:
-       if len(system_data.get("powerCompetition"))>1:
+        if len(system_data.get("powerCompetition"))>1:
             return [system_data.get("statereinforcement", 0),system_data.get("stateundermining", 0)]
-       else:
+        else:
             return [system_data.get("statereinforcement", 0),0]
     else:
-       return [system_data.get('powerConflict')[0]['ConflictProgress'],0]
+        return [system_data.get('powerConflict')[0]['ConflictProgress'],0]
