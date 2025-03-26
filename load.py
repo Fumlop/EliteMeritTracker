@@ -505,16 +505,27 @@ def update_display():
         power = get_system_state_power(system_data)[0]
         powerstate = get_system_state(system_data)
         powerprogress = get_progress(system_data)
-        powerprogress_percent =  f"{powerprogress:.2f}%".rstrip('0').rstrip('.')
+
+        if powerprogress is None:
+            powerprogress_percent = "--%"
+        else:
+            powerprogress_percent = f"{powerprogress:.2f}%".rstrip('0').rstrip('.')
+
         this.currentSystemLabel["text"] = f"'{this.currentSystem}' : {curr_system_merits} merits gained".strip()
         this.systemPowerLabel["text"] = f"{powerstate} ({powerprogress_percent}) by {power}  ".strip()
         powercycle = get_reinf_undermine(system_data)
-        reinforcement = powercycle[0]
-        undermining = powercycle[1]
-        if not system_data.get("powerConflict"):
-            systemPowerStatusText = f"Powerplaycycle {get_system_power_status_text(reinforcement, undermining)}"
-        else:
+        
+        if powercycle is None:
             systemPowerStatusText = ""
+        else:
+            reinforcement = powercycle[0]
+            undermining = powercycle[1]
+
+            if not system_data.get("powerConflict"):
+                systemPowerStatusText = f"Powerplaycycle {get_system_power_status_text(reinforcement, undermining)}"
+            else:
+                systemPowerStatusText = ""
+
         this.systemPowerStatusLabel["text"] = systemPowerStatusText.strip()
     except KeyError as e:
         logger.debug(f"KeyError for current system '{this.currentSystem}': {e}")
