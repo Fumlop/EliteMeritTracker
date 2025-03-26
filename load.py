@@ -176,6 +176,8 @@ def plugin_start3(plugin_dir):
                 logger.error("Failed to load system_merits.json, using empty Systems data.")
                 this.powerInfo["Systems"] = {}
     
+    #check_json_remove_invalid(this.powerInfo["Systems"])
+    
     for system in this.powerInfo.get("Systems", {}).values():
         if system.get("powerConflict"):
             system["powerConflict"] = sorted(
@@ -189,7 +191,33 @@ def plugin_start3(plugin_dir):
         #    this.currentSystem = random.choice(list(this.powerInfo["Systems"].keys()))
         #else:
         this.currentSystem = "Barillian"  # Fallback, falls leer
-        
+
+def check_json_remove_invalid(systems):
+    valid_systems = {}
+    for name, data in systems.items():
+        try:
+            if name == "" or not name:
+                continue
+            # Pflichtfelder vorhanden?
+            if not isinstance(data.get("state"), str):
+                continue
+            if not isinstance(data.get("powerCompetition"), list):
+                continue
+            if not isinstance(data.get("powerConflict"), list):
+                continue
+            if not isinstance(data.get("progress"), float):
+                continue
+            if not isinstance(data.get("statereinforcement"), int):
+                continue
+            if not isinstance(data.get("stateundermining"), int):
+                continue
+
+            # Alles okay → behalten
+            valid_systems = data
+        except Exception as e:
+            print(f"Fehler bei {name}: {e}")
+    this.powerInfo["Systems"] = valid_systems
+    return
 
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     if this.currentSystem == "": 
