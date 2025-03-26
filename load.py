@@ -3,11 +3,12 @@ from power_info_window import show_power_info
 
 this = sys.modules[__name__]  # For holding module globals
 this.debug = False
+this.dump_test = False
 this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.20.1.200'
+this.version = 'v0.4.21.1.200'
 this.assetpath = ""
 
 def auto_update():
@@ -230,6 +231,7 @@ def plugin_stop():
     update_json_file()
     plugin_dir = os.path.dirname(os.path.abspath(__file__))
     system_merits_path = os.path.join(plugin_dir, "system_merits.json")
+    test_system_merits_path = os.path.join(plugin_dir, "system_merits_test.json")
     
     if this.saveSession.get() is True:
         # Sicherstellen, dass "Systems" existiert
@@ -261,10 +263,18 @@ def plugin_stop():
             with open(system_merits_path, "w") as json_file:
                 json.dump({}, json_file, indent=4)  # Leere JSON-Datei schreiben
                 logger.info("All systems are reported. system_merits.json overwritten as empty.")
+                
+        except Exception as e:
+            logger.error(f"Failed to save system merits: {e}")
+    if this.dump_test:
+        try:
+            with open(test_system_merits_path, "w") as json_file_test:
+                with open(test_system_merits_path, "w") as json_file_test:
+                        json.dump(systems_data, json_file_test, indent=4)  # Leere JSON-Datei schreiben
         except Exception as e:
             logger.error(f"Failed to save system merits: {e}")
             
-    this.frame.quit()
+        this.frame.quit()
     logger.info("Shutting down plugin.")
     
 
@@ -502,7 +512,7 @@ def update_display():
         reinforcement = powercycle[0]
         undermining = powercycle[1]
         if not system_data.get("powerConflict"):
-            systemPowerStatusText = get_system_power_status_text(reinforcement, undermining)
+            systemPowerStatusText = f"Powerplaycycle {get_system_power_status_text(reinforcement, undermining)}"
         else:
             systemPowerStatusText = ""
         this.systemPowerStatusLabel["text"] = systemPowerStatusText.strip()

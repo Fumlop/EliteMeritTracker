@@ -26,6 +26,8 @@ def generate_test_systems_json(path="system_merits_test.json", count=100):
             "sessionMerits": random.randint(1, 1000),
             "state": state,
             "power": random.choice(powers),
+            "powerCompetition": [],
+            "powerConflict":[],
             "progress": round(random.uniform(0.0, 1.0 if state == "Stronghold" else 2.0), 2),
             "statereinforcement": random.randint(0, 5000),
             "stateundermining": random.randint(0, 5000),
