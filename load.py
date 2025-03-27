@@ -8,7 +8,7 @@ this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.22.1.200'
+this.version = 'v0.4.23.1.200'
 this.assetpath = ""
 
 def auto_update():
@@ -440,7 +440,6 @@ def prefs_changed(cmdr, is_beta):
     # Speichere den aktuellen Wert der StringVar in die Konfiguration
     config.set("dText", this.discordText.get())
     config.set("saveSession", str(this.saveSession.get()))
-    logger.info("DEBUG Conf")
     logger.info(str(this.saveSession.get()))
     update_display()
            
