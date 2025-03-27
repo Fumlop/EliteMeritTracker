@@ -8,7 +8,7 @@ this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.22.1.200'
+this.version = 'v0.4.23.1.200'
 this.assetpath = ""
 
 def auto_update():
@@ -176,6 +176,8 @@ def plugin_start3(plugin_dir):
                 logger.error("Failed to load system_merits.json, using empty Systems data.")
                 this.powerInfo["Systems"] = {}
     
+    #check_json_remove_invalid(this.powerInfo["Systems"])
+    
     for system in this.powerInfo.get("Systems", {}).values():
         if system.get("powerConflict"):
             system["powerConflict"] = sorted(
@@ -189,7 +191,33 @@ def plugin_start3(plugin_dir):
         #    this.currentSystem = random.choice(list(this.powerInfo["Systems"].keys()))
         #else:
         this.currentSystem = "Barillian"  # Fallback, falls leer
-        
+
+def check_json_remove_invalid(systems):
+    valid_systems = {}
+    for name, data in systems.items():
+        try:
+            if name == "" or not name:
+                continue
+            # Pflichtfelder vorhanden?
+            if not isinstance(data.get("state"), str):
+                continue
+            if not isinstance(data.get("powerCompetition"), list):
+                continue
+            if not isinstance(data.get("powerConflict"), list):
+                continue
+            if not isinstance(data.get("progress"), float):
+                continue
+            if not isinstance(data.get("statereinforcement"), int):
+                continue
+            if not isinstance(data.get("stateundermining"), int):
+                continue
+
+            # Alles okay → behalten
+            valid_systems = data
+        except Exception as e:
+            print(f"Fehler bei {name}: {e}")
+    this.powerInfo["Systems"] = valid_systems
+    return
 
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     if this.currentSystem == "": 
@@ -385,6 +413,8 @@ def plugin_prefs(parent, cmdr, is_beta):
     tk.Label(config_frame, text="Save non-reported system merits on exiting edmc").grid(row=3, column=0, sticky="w", padx=5, pady=5)
     bool_entry = tk.Checkbutton(config_frame, variable=this.saveSession)
     bool_entry.grid(row=3, column=3, sticky="w", padx=5, pady=5)
+    
+    tk.Label(config_frame, text=f"Version {this.version}").grid(row=10, column=0, sticky="w", padx=5, pady=5)
     return config_frame
 
 def update_system_merits(merits_value, total):
@@ -410,7 +440,6 @@ def prefs_changed(cmdr, is_beta):
     # Speichere den aktuellen Wert der StringVar in die Konfiguration
     config.set("dText", this.discordText.get())
     config.set("saveSession", str(this.saveSession.get()))
-    logger.info("DEBUG Conf")
     logger.info(str(this.saveSession.get()))
     update_display()
            
