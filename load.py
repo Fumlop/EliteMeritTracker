@@ -413,6 +413,8 @@ def plugin_prefs(parent, cmdr, is_beta):
     tk.Label(config_frame, text="Save non-reported system merits on exiting edmc").grid(row=3, column=0, sticky="w", padx=5, pady=5)
     bool_entry = tk.Checkbutton(config_frame, variable=this.saveSession)
     bool_entry.grid(row=3, column=3, sticky="w", padx=5, pady=5)
+    
+    tk.Label(config_frame, text=f"Version {this.version}").grid(row=10, column=0, sticky="w", padx=5, pady=5)
     return config_frame
 
 def update_system_merits(merits_value, total):
