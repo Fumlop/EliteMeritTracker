@@ -42,14 +42,14 @@ def get_system_state_power(system_data):
         if len(system_data.get("powerCompetition"))>1:
             return  [system_data.get("power"),next(p for p in system_data.get("powerCompetition") if p != system_data.get("power"))]
         else: 
-            return  [system_data.get("power"),"None"]
+            return  [system_data.get("power"),None]
     if system_state == 'Unoccupied':
         conflict = system_data.get('powerConflict')
         if len(conflict) == 1: 
-            return [system_data.get("powerConflict")[0]['Power'], "None"]
+            return [system_data.get("powerConflict")[0]['Power'], None]
         else:
             return [system_data.get("powerConflict")[0]['Power'], system_data.get("powerConflict")[1]['Power']]
-    return ["None","None"]
+    return [None,None]
 
 def get_progress(system_data):
     system_state = system_data.get("state")
