@@ -336,7 +336,8 @@ def populate_table_data_rows(parent, systems, start_row=8):
         #logger.debug(f"reinforcement - {reinforcement}")
         undermining = powercycle[1]
         #logger.debug(f"undermining - {undermining}")
-            
+        if (not controlling_power or controlling_power == None or controlling_power == ""):            
+            continue
 
         if not system_data.get("powerConflict"):
             power_status = get_system_power_status_text(reinforcement, undermining)
