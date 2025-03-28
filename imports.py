@@ -58,7 +58,7 @@ def get_progress(system_data):
     
     power_conflict = system_data.get('powerConflict')
     
-    if power_conflict is None:
+    if power_conflict is None or not power_conflict:
         return None
     
     return power_conflict[0]['ConflictProgress']*100
