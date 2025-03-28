@@ -320,8 +320,6 @@ def populate_table_data_rows(parent, systems, start_row=8):
 
     for system_name, system_data in systems.items():
         
-        system_state = system_data.get("state")
-        
         controlling_power = get_system_state_power(system_data)[0]
         #logger.debug(f"controlling_power - {controlling_power}")
         opposition = get_system_state_power(system_data)[1]
@@ -336,17 +334,14 @@ def populate_table_data_rows(parent, systems, start_row=8):
         #logger.debug(f"reinforcement - {reinforcement}")
         undermining = powercycle[1]
         #logger.debug(f"undermining - {undermining}")
-        if (not controlling_power or controlling_power == None or controlling_power == ""):            
-            continue
-
-        if not system_data.get("powerConflict"):
+        if not system_data.get("powerConflict") or len(system_data.get("powerConflict"))==0:
             power_status = get_system_power_status_text(reinforcement, undermining)
         else:
             power_status = ""
             reinforcement = 0
             undermining = 0
         #logger.debug(f"power_status - {power_status}")
-        
+        #logger.debug(power_status)
         reinforce_font = ("Arial", 10, "bold") if "NET +" in power_status else ("Arial", 10, "normal")
         undermining_font = ("Arial", 10, "bold") if "NET -" in power_status else ("Arial", 10, "normal")
         # Labels vorerst unsichtbar setzen (grid, dann remove)
@@ -364,7 +359,6 @@ def populate_table_data_rows(parent, systems, start_row=8):
             widget.grid(row=row_index, column=col, padx=5, pady=2, sticky="w")
             widget.grid_remove()  # Noch unsichtbar
             created_widgets.append(widget)
-
         row_index += 1
 
     # Am Ende: alle Widgets anzeigen

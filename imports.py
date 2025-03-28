@@ -38,33 +38,36 @@ if not logger.hasHandlers():
 
 def get_system_state_power(system_data):
     system_state = system_data.get("state")
+    #logger.debug(f"get_system_state_power.{system_state}")
     if system_state in ['Stronghold', 'Fortified', 'Exploited']:
         if len(system_data.get("powerCompetition"))>1:
             return  [system_data.get("power"),next(p for p in system_data.get("powerCompetition") if p != system_data.get("power"))]
         else: 
-            return  [system_data.get("power"),None]
+            return  [system_data.get("power"),""]
     if system_state == 'Unoccupied':
         conflict = system_data.get('powerConflict')
         if len(conflict) == 1: 
-            return [system_data.get("powerConflict")[0]['Power'], None]
+            return [system_data.get("powerConflict")[0]['Power'], ""]
         else:
             return [system_data.get("powerConflict")[0]['Power'], system_data.get("powerConflict")[1]['Power']]
-    return [None,None]
+    return ["NoPower",""]
 
 def get_progress(system_data):
     system_state = system_data.get("state")
+    #logger.debug(f"get_system_state_power.{system_state}")
     if system_state in ['Stronghold', 'Fortified', 'Exploited']:
         return  system_data.get("progress", 0) * 100
     
     power_conflict = system_data.get('powerConflict')
     
     if power_conflict is None or not power_conflict:
-        return None
+        return 0
     
     return power_conflict[0]['ConflictProgress']*100
 
 def get_system_state(system_data):
     system_state = system_data.get("state")
+    if not system_state: return "NoState"
     if system_state in ['Stronghold', 'Fortified', 'Exploited']:
         return  system_state
 
@@ -100,6 +103,6 @@ def get_reinf_undermine(system_data):
         power_conflict = system_data.get('powerConflict')
         
         if power_conflict is None or not power_conflict:
-            return None
+            return [0,0]
 
         return [power_conflict[0]['ConflictProgress'],0]

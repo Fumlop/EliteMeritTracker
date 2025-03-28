@@ -8,7 +8,7 @@ this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.24b.1.200'
+this.version = 'v0.4.25.1.200'
 this.assetpath = ""
 
 def auto_update():
@@ -229,9 +229,9 @@ def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
         # Neues System zu powerInfo hinzufügen
         this.powerInfo["Systems"][this.currentSystem] = {
             "sessionMerits": 0,
-            "state": entry.get('PowerplayState', ""),
-            "power": entry.get('ControllingPower', ""),
-            "powerCompetition": entry.get('Powers', []),
+            "state": entry.get('PowerplayState', "NoState"),
+            "power": entry.get('ControllingPower', "NoPower"),
+            "powerCompetition": entry.get('Powers', ["NoPower"]),
             "powerConflict": entry.get('PowerplayConflictProgress', []),
             "progress" : entry.get('PowerplayStateControlProgress', 0.0),
             "statereinforcement": entry.get('PowerplayStateReinforcement', 0),
@@ -389,7 +389,7 @@ def reset():
             "sessionMerits": 0,
             "state": lastState.get("state", ""),
             "power": lastState.get("power", ""),
-            "powerCompetition": lastState.get('powerCompetition',  []),
+            "powerCompetition": lastState.get('powerCompetition',  ["NoPower"]),
             "powerConflict": lastState.get('powerConflict', []),
             "progress" : lastState.get('progress', 0.0),
             "statereinforcement": lastState.get('statereinforcement', 0),
@@ -500,9 +500,9 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             # Neues System zu powerInfo hinzufügen
             this.powerInfo["Systems"][this.currentSystem] = {
                 "sessionMerits": 0,
-                "state": entry.get('PowerplayState', ""),
-                "power": entry.get('ControllingPower', ""),
-                "powerCompetition": entry.get('Powers',  []),
+                "state": entry.get('PowerplayState', "NoState"),
+                "power": entry.get('ControllingPower', "NoPower"),
+                "powerCompetition": entry.get('Powers',  ["NoPower"]),
                 "powerConflict": entry.get('PowerplayConflictProgress', []),
                 "progress" : entry.get('PowerplayStateControlProgress', 0.0),
                 "statereinforcement": entry.get('PowerplayStateReinforcement', 0),
@@ -529,9 +529,12 @@ def update_display():
 
     try:
         # Aktuelle Merits aus Systems abrufen
+        #logger.debug(this.currentSystem)
         system_data = this.powerInfo["Systems"][this.currentSystem]
         curr_system_merits = this.powerInfo["Systems"][this.currentSystem]["sessionMerits"]
+        #logger.debug(system_data)
         power = get_system_state_power(system_data)[0]
+        #logger.debug("ZEFIX")
         powerstate = get_system_state(system_data)
         powerprogress = get_progress(system_data)
 
