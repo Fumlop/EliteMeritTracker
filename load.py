@@ -8,7 +8,7 @@ this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.23.1.200'
+this.version = 'v0.4.24.1.200'
 this.assetpath = ""
 
 def auto_update():
