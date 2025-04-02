@@ -259,10 +259,14 @@ def add_detailed_view_filter_buttons(parent_frame, systems):
     filter_frame.grid(row=8, column=0, columnspan=6, sticky="w", padx=10)  # Linksbündig setzen
     for i in range(6):  # 6 Spalten anpassen
         filter_frame.columnconfigure(i, weight=1)
+    filtered_systems = {
+        name: data for name, data in systems.items()
+        if data.get("power") != "NoPower"
+    }
 
-    powers = sorted(set(data.get("power", "") for data in systems.values() if data.get("power", "")))
-    states = sorted(set(data.get("state", "") for data in systems.values() if data.get("state", "")))
-    system_names = sorted(systems.keys())
+    powers = sorted(set(data.get("power", "") for data in filtered_systems.values() if data.get("power", "")))
+    states = sorted(set(data.get("state", "") for data in filtered_systems.values() if data.get("state", "")))
+    system_names = sorted(filtered_systems.keys())
 
     filter_system_var = tk.StringVar(value="All")
     filter_state_var = tk.StringVar(value="All")
@@ -289,12 +293,17 @@ def add_detailed_view_filter_buttons(parent_frame, systems):
 def refresh_filtered_table():
     global table_frame
 
+    filtered_systems = {
+        name: data for name, data in systems.items()
+        if data.get("power") != "NoPower"
+    }
+
     selected_system = filter_system_var.get()
     selected_state = filter_state_var.get()
     selected_power = filter_power_var.get()
 
     filtered = {}
-    for name, data in systems.items():
+    for name, data in filtered_systems.items():
         if selected_system != "All" and name != selected_system:
             continue
         if selected_state != "All" and data.get("state") != selected_state:
@@ -303,7 +312,6 @@ def refresh_filtered_table():
             continue
         filtered[name] = data
 
-    # Alte Datenzeilen ab Zeile 8 löschen
     for widget in table_frame.grid_slaves():
         row = int(widget.grid_info()["row"])
         if row >= 8:
@@ -321,7 +329,7 @@ def populate_table_data_rows(parent, systems, start_row=8):
     for system_name, system_data in systems.items():
         
         controlling_power = get_system_state_power(system_data)[0]
-        #logger.debug(f"controlling_power - {controlling_power}")
+         #logger.debug(f"controlling_power - {controlling_power}")
         opposition = get_system_state_power(system_data)[1]
         #logger.debug(f"opposition - {opposition}")
         progress = get_progress(system_data)
