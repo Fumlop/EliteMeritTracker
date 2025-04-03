@@ -49,7 +49,11 @@ def get_system_state_power(system_data):
         if len(conflict) == 1: 
             return [system_data.get("powerConflict")[0]['Power'], ""]
         else:
-            return [system_data.get("powerConflict")[0]['Power'], system_data.get("powerConflict")[1]['Power']]
+            arr = []
+            for item in system_data.get("powerConflict"):
+                arr.append(item['Power'])
+            result = ', '.join(system_data.get(arr))
+            return [system_data.get("powerConflict")[0]['Power'], result]
     return ["NoPower",""]
 
 def get_progress(system_data):

@@ -139,7 +139,10 @@ def show_power_info(parent, power_info, initial_text):
     csv_button.grid(row=0, column=1, padx=5)
     csv_button.grid_forget()  # Erst in detailed_view anzeigen
 
-    systems = power_info.get("Systems", {})
+    systems = {
+        name: data for name, data in power_info.get("Systems", {}).items()
+        if data.get("power") != "NoPower"
+    }
 
     populate_table(table_frame, systems, update_scrollregion, initial_text)
 
@@ -259,7 +262,6 @@ def add_detailed_view_filter_buttons(parent_frame, systems):
     filter_frame.grid(row=8, column=0, columnspan=6, sticky="w", padx=10)  # Linksbündig setzen
     for i in range(6):  # 6 Spalten anpassen
         filter_frame.columnconfigure(i, weight=1)
-
     powers = sorted(set(data.get("power", "") for data in systems.values() if data.get("power", "")))
     states = sorted(set(data.get("state", "") for data in systems.values() if data.get("state", "")))
     system_names = sorted(systems.keys())
@@ -303,7 +305,6 @@ def refresh_filtered_table():
             continue
         filtered[name] = data
 
-    # Alte Datenzeilen ab Zeile 8 löschen
     for widget in table_frame.grid_slaves():
         row = int(widget.grid_info()["row"])
         if row >= 8:
@@ -321,7 +322,7 @@ def populate_table_data_rows(parent, systems, start_row=8):
     for system_name, system_data in systems.items():
         
         controlling_power = get_system_state_power(system_data)[0]
-        #logger.debug(f"controlling_power - {controlling_power}")
+         #logger.debug(f"controlling_power - {controlling_power}")
         opposition = get_system_state_power(system_data)[1]
         #logger.debug(f"opposition - {opposition}")
         progress = get_progress(system_data)

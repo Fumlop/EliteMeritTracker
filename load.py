@@ -8,7 +8,8 @@ this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
-this.version = 'v0.4.26.1.200'
+this.version = 'v0.4.27.1.200'
+
 this.assetpath = ""
 
 def auto_update():
@@ -190,7 +191,7 @@ def plugin_start3(plugin_dir):
         #if this.powerInfo.get("Systems"):  # Prüfen, ob Systems gefüllt ist
         #    this.currentSystem = random.choice(list(this.powerInfo["Systems"].keys()))
         #else:
-        this.currentSystem = "Barillian"  # Fallback, falls leer
+        this.currentSystem = "Caill"  # Fallback, falls leer
 
 def check_json_remove_invalid(systems):
     valid_systems = {}
