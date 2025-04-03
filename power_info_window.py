@@ -139,7 +139,10 @@ def show_power_info(parent, power_info, initial_text):
     csv_button.grid(row=0, column=1, padx=5)
     csv_button.grid_forget()  # Erst in detailed_view anzeigen
 
-    systems = power_info.get("Systems", {})
+    systems = {
+        name: data for name, data in power_info.get("Systems", {}).items()
+        if data.get("power") != "NoPower"
+    }
 
     populate_table(table_frame, systems, update_scrollregion, initial_text)
 
@@ -259,14 +262,9 @@ def add_detailed_view_filter_buttons(parent_frame, systems):
     filter_frame.grid(row=8, column=0, columnspan=6, sticky="w", padx=10)  # Linksbündig setzen
     for i in range(6):  # 6 Spalten anpassen
         filter_frame.columnconfigure(i, weight=1)
-    filtered_systems = {
-        name: data for name, data in systems.items()
-        if data.get("power") != "NoPower"
-    }
-
-    powers = sorted(set(data.get("power", "") for data in filtered_systems.values() if data.get("power", "")))
-    states = sorted(set(data.get("state", "") for data in filtered_systems.values() if data.get("state", "")))
-    system_names = sorted(filtered_systems.keys())
+    powers = sorted(set(data.get("power", "") for data in systems.values() if data.get("power", "")))
+    states = sorted(set(data.get("state", "") for data in systems.values() if data.get("state", "")))
+    system_names = sorted(systems.keys())
 
     filter_system_var = tk.StringVar(value="All")
     filter_state_var = tk.StringVar(value="All")
@@ -293,17 +291,12 @@ def add_detailed_view_filter_buttons(parent_frame, systems):
 def refresh_filtered_table():
     global table_frame
 
-    filtered_systems = {
-        name: data for name, data in systems.items()
-        if data.get("power") != "NoPower"
-    }
-
     selected_system = filter_system_var.get()
     selected_state = filter_state_var.get()
     selected_power = filter_power_var.get()
 
     filtered = {}
-    for name, data in filtered_systems.items():
+    for name, data in systems.items():
         if selected_system != "All" and name != selected_system:
             continue
         if selected_state != "All" and data.get("state") != selected_state:
