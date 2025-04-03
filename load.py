@@ -9,6 +9,7 @@ this.currentSysPP = {}
 this.currentSystem = "" 
 this.trackedMerits = 0
 this.version = 'v0.4.27.1.200'
+
 this.assetpath = ""
 
 def auto_update():
