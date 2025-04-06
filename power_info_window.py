@@ -141,7 +141,7 @@ def show_power_info(parent, power_info, initial_text):
 
     systems = {
         name: data for name, data in power_info.get("Systems", {}).items()
-        if data.get("power") != "NoPower"
+        if (data.get("power") != "NoPower" or len(data.get("powerCompetition"))>0)
     }
 
     populate_table(table_frame, systems, update_scrollregion, initial_text)
