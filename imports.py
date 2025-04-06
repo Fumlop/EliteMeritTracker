@@ -52,7 +52,8 @@ def get_system_state_power(system_data):
             arr = []
             for item in system_data.get("powerConflict"):
                 arr.append(item['Power'])
-            result = ', '.join(system_data.get(arr))
+            if arr and len(arr)>0:
+                result = arr[0]
             return [system_data.get("powerConflict")[0]['Power'], result]
     return ["NoPower",""]
 
@@ -110,3 +111,12 @@ def get_reinf_undermine(system_data):
             return [0,0]
 
         return [power_conflict[0]['ConflictProgress'],0]
+    
+def get_station_eco(station_ecos):
+    text_arr = []
+    for item in station_ecos:
+        name = item.get("Name_Localised")
+        prop = item.get("Proportion")*100
+        text_arr.append(f"Eco: {name} - Proportion {prop}%")
+    return text_arr
+        

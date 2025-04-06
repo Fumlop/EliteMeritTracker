@@ -7,8 +7,10 @@ this.dump_test = False
 this.powerInfo = {}
 this.currentSysPP = {}
 this.currentSystem = "" 
+this.station_ecos = []
 this.trackedMerits = 0
-this.version = 'v0.4.27.1.200'
+this.version = 'v0.4.28.1.200'
+
 this.assetpath = ""
 
 def auto_update():
@@ -127,8 +129,6 @@ def plugin_start3(plugin_dir):
     plugin_path = os.path.join(config.plugin_dir, directory_name)
     file_path = os.path.join(plugin_path, "power.json")
     system_merits_path = os.path.join(plugin_path, "system_merits.json")
-    system_merits_path_debug = os.path.join(plugin_path, "system_merits_test.json")
-
   
     this.assetspath = f"{plugin_path}/assets"
 
@@ -187,10 +187,8 @@ def plugin_start3(plugin_dir):
             )[:2]
             
     if this.debug:
-        #if this.powerInfo.get("Systems"):  # Prüfen, ob Systems gefüllt ist
-        #    this.currentSystem = random.choice(list(this.powerInfo["Systems"].keys()))
-        #else:
-        this.currentSystem = "Caill"  # Fallback, falls leer
+        this.currentSystem = "Hyades Sector YF-M b8-6"  # Fallback, falls leer
+        #update_display()
 
 def check_json_remove_invalid(systems):
     valid_systems = {}
@@ -322,12 +320,15 @@ def plugin_app(parent):
     this.frame_row5.grid(row=4, column=0, columnspan=3, sticky="w")
     this.frame_row6 = tk.Frame(this.frame)
     this.frame_row6.grid(row=5, column=0, columnspan=3, sticky="we", padx=0, pady=2)
+    #this.frame_row7= tk.Frame(this.frame)
+    #this.frame_row7.grid(row=6, column=0, columnspan=3, sticky="w")
 
     this.power = tk.Label(this.frame_row1, text=f"Pledged: {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}".strip(), anchor="w", justify="left")
     this.powerMerits = tk.Label(this.frame_row2 ,text=f"Merits session: {this.powerInfo['AccumulatedMerits']:,} - Total: {this.powerInfo['Merits']:,}".strip(), anchor="w", justify="left")
     this.currentSystemLabel = tk.Label(this.frame_row3, text="Waiting for Events".strip(), anchor="w", justify="left")
     this.systemPowerLabel = tk.Label(this.frame_row4, text="Powerplay Status", anchor="w", justify="left")
     this.systemPowerStatusLabel = tk.Label(this.frame_row5, text="Net progress", anchor="w", justify="left")
+    #this.station_eco_label = tk.Label(this.frame_row7, text="", anchor="w", justify="left")
     
     parent.root = tk.Tk()
     parent.root.withdraw()  # Hide the main window
@@ -339,6 +340,7 @@ def plugin_app(parent):
 
     this.systemPowerLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
     this.systemPowerStatusLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
+    #this.station_eco_label.grid(row=0, column=0, sticky='w', padx=0, pady=0)
     this.currentSystemLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
     # Positionierung der Labels
     this.power.grid(row=0, column=0, columnspan=3, sticky='w', padx=0, pady=0)
@@ -370,8 +372,8 @@ def plugin_app(parent):
     )
     this.showButton.pack(side="left", expand=True, fill="both", padx=0, pady=2) 
      
-    if this.debug:
-       update_display()
+    #if this.debug:
+    #   update_display()
     return this.frame
 
 
@@ -456,6 +458,13 @@ def update_json_file():
             json.dump(power_info_copy, json_file, indent=4)
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
+    if entry['event'] == 'Docked':
+        docked_eco =  entry.get('StationEconomies')
+        this.station_ecos = get_station_eco(docked_eco)
+        update_display()
+    if entry['event'] == 'Undocked':
+        this.station_ecos = []
+        update_display()
     if entry['event'] == 'Powerplay':
         current_merits = entry.get('Merits', this.powerInfo.get("Merits", 0))
         #last_merits = this.powerInfo.get("Merits", 0)
@@ -561,7 +570,8 @@ def update_display():
         this.systemPowerStatusLabel["text"] = systemPowerStatusText.strip()
     except KeyError as e:
         logger.debug(f"KeyError for current system '{this.currentSystem}': {e}")
-
+    #if len(this.station_ecos) > 0:
+    #    this.station_eco_label["text"] = "\n".join(this.station_ecos)
     this.currentSystemLabel.grid()
 
 def get_scale_factor(current_width: int, current_height: int, base_width: int = 2560, base_height: int = 1440) -> float:
