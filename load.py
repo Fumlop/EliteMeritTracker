@@ -1,12 +1,14 @@
 from imports import *
+from system import *
+from power import *
 from power_info_window import show_power_info
 
 this = sys.modules[__name__]  # For holding module globals
 this.debug = False
 this.dump_test = False
-this.powerInfo = {}
-this.currentSysPP = {}
-this.currentSystem = "" 
+this.systems = {}
+this.pledgedPower = PledgedPower()
+this.currentSystemFlying = StarSystem()
 this.station_ecos = []
 this.trackedMerits = 0
 this.version = 'v0.4.28.1.200'
@@ -129,120 +131,69 @@ def plugin_start3(plugin_dir):
     plugin_path = os.path.join(config.plugin_dir, directory_name)
     file_path = os.path.join(plugin_path, "power.json")
     system_merits_path = os.path.join(plugin_path, "system_merits.json")
+    systems_path = os.path.join(plugin_path, "systems.json")
   
     this.assetspath = f"{plugin_path}/assets"
 
     # Initialize discordText
     this.discordText = tk.StringVar(value=config.get_str("dText") or "@Leader Earned @MeritsValue merits in @System")
     this.saveSession = tk.BooleanVar(value=(config.get_str("saveSession") =="True" if config.get_str("saveSession") else True))
-    default_data = {
-        "PowerName": "",
-        "Merits": 0,
-        "Rank": 0,
-        "LastUpdate": "",
-        "AccumulatedMerits": 0,
-        "AccumulatedSince": "",
-        "Systems":{},
-    }
- 
+    default_system:StarSystem = StarSystem(eventEntry={},reported=False)
+    default_pledgedPower:PledgedPower = PledgedPower(eventEntry={})
+    
     this.newest = checkVersion()
 
     # JSON prüfen oder initialisieren
     if not os.path.exists(file_path):
         os.makedirs(plugin_path, exist_ok=True)
         with open(file_path, "w") as json_file:
-            json.dump(default_data, json_file, indent=4)
-        this.powerInfo = default_data
+            json.dump(default_pledgedPower.to_dict(), json_file, indent=4)
+        this.pledgedPower = default_pledgedPower
     else:
         try:
             with open(file_path, "r") as json_file:
-                this.powerInfo = json.load(json_file)
-                if not this.powerInfo:
-                    this.powerInfo = default_data
+                this.pledgedPower.from_dict(json.load(json_file))
+                if not this.pledgedPower:
+                    this.pledgedPower = default_pledgedPower
         except json.JSONDecodeError:
-            this.powerInfo = default_data
+            this.pledgedPower = default_pledgedPower
     
-    if this.saveSession.get() is True:
-        if "Systems" not in this.powerInfo:
-            this.powerInfo["Systems"] = {}
+    if os.path.exists(system_merits_path):
+        powerInfo = {}
+        if "Systems" not in powerInfo:
+            powerInfo["Systems"] = {}
         
-        # Laden der gespeicherten Systeme
-        if os.path.exists(system_merits_path):
-            try:
-                with open(system_merits_path, "r") as json_file:
-                    this.powerInfo["Systems"] = json.load(json_file)
-                logger.info("Loaded system merits from system_merits.json")
-            except json.JSONDecodeError:
-                logger.error("Failed to load system_merits.json, using empty Systems data.")
-                this.powerInfo["Systems"] = {}
-    
-    #check_json_remove_invalid(this.powerInfo["Systems"])
-    
-    for system in this.powerInfo.get("Systems", {}).values():
-        if system.get("powerConflict"):
-            system["powerConflict"] = sorted(
-                system["powerConflict"],
-                key=lambda x: x["ConflictProgress"],
-                reverse=True
-            )[:2]
-            
-    if this.debug:
-        this.currentSystem = "Hyades Sector YF-M b8-6"  # Fallback, falls leer
-        #update_display()
-
-def check_json_remove_invalid(systems):
-    valid_systems = {}
-    for name, data in systems.items():
         try:
-            if name == "" or not name:
-                continue
-            # Pflichtfelder vorhanden?
-            if not isinstance(data.get("state"), str):
-                continue
-            if not isinstance(data.get("powerCompetition"), list):
-                continue
-            if not isinstance(data.get("powerConflict"), list):
-                continue
-            if not isinstance(data.get("progress"), float):
-                continue
-            if not isinstance(data.get("statereinforcement"), int):
-                continue
-            if not isinstance(data.get("stateundermining"), int):
-                continue
-
-            # Alles okay → behalten
-            valid_systems = data
-        except Exception as e:
-            print(f"Fehler bei {name}: {e}")
-    this.powerInfo["Systems"] = valid_systems
-    return
-
+            with open(system_merits_path, "r") as json_file:
+                powerInfo["Systems"] = json.load(json_file)
+            logger.info("Loaded system merits from system_merits.json")
+        except json.JSONDecodeError:
+            logger.error("Failed to load system_merits.json, using empty Systems data.")
+            powerInfo["Systems"] = {}
+            
+        for system_name, system_data in powerInfo["Systems"].items():
+            tmpSys = StarSystem()
+            tmpSys.getFromOldDict(system_name, system_data)
+            this.systems[system_name] = tmpSys
+            logdump("loading olddata", tmpSys.to_dict())
+        os.remove(system_merits_path) 
+           
+    # Laden der gespeicherten Systeme
+    if os.path.exists(systems_path):
+        try:
+            with open(systems_path, "r") as json_file:
+                tmp = json.load(json_file)
+                for system_data in tmp.items():
+                    if not isinstance(system_data, dict):
+                        continue
+                    n = StarSystem()
+                    n.from_dict(system_data)
+                    this.systems[n.StarSystem] = n
+        except json.JSONDecodeError:
+            logger.error("Failed to load system_merits.json, using empty Systems data.")
+            this.systems = {}
+        
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
-    if this.currentSystem == "": 
-        return
-    this.currentSystem = entry.get('StarSystem', this.currentSystem)
-    if "Systems" not in this.powerInfo:
-        this.powerInfo["Systems"] = {}
-    if this.currentSystem not in this.powerInfo["Systems"]:
-        # Neues System zu powerInfo hinzufügen
-        this.powerInfo["Systems"][this.currentSystem] = {
-            "sessionMerits": 0,
-            "state": entry.get('PowerplayState', "NoState"),
-            "power": entry.get('ControllingPower', "NoPower"),
-            "powerCompetition": entry.get('Powers', ["NoPower"]),
-            "powerConflict": entry.get('PowerplayConflictProgress', []),
-            "progress" : entry.get('PowerplayStateControlProgress', 0.0),
-            "statereinforcement": entry.get('PowerplayStateReinforcement', 0),
-            "stateundermining": entry.get('PowerplayStateUndermining',0),
-            "reported:" : False
-        }
-        this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
-    else:
-        if this.powerInfo["Systems"][this.currentSystem]["powerConflict"]:
-            this.powerInfo["Systems"][this.currentSystem]["powerConflict"] = sorted(this.powerInfo["Systems"][this.currentSystem]["powerConflict"], key=lambda x: x["ConflictProgress"], reverse=True)[:2]
-        else:
-           this.powerInfo["Systems"][this.currentSystem]["powerConflict"] = []
-        this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
     update_display()
 
 def position_button():
@@ -256,47 +207,26 @@ def plugin_stop():
     logger.info("Shutting down plugin.")
     update_json_file()
     plugin_dir = os.path.dirname(os.path.abspath(__file__))
-    system_merits_path = os.path.join(plugin_dir, "system_merits.json")
+    systems_path = os.path.join(plugin_dir, "systems.json")
     test_system_merits_path = os.path.join(plugin_dir, "system_merits_test.json")
     
-    if this.saveSession.get() is True:
-        # Sicherstellen, dass "Systems" existiert
-        systems_data = this.powerInfo.get("Systems", {})
-
-        # Prüfen, ob ALLE Systeme `reported = True` sind
-        all_reported = all(data.get("reported", False) for data in systems_data.values()) if systems_data else False
-
-        # Filter: Nur Systeme mit `reported=True` und `sessionMerits > 0` speichern
-        filtered_systems = {
-            system: data
-            for system, data in systems_data.items()
-            if data.get("reported", False) is False and data.get("sessionMerits", 0) > 0
-        }
-
-        # Immer Datei überschreiben (auch wenn leer)
-        try:
-            with open(system_merits_path, "w") as json_file:
-                if all_reported:
-                    json.dump({}, json_file, indent=4)  # Leere JSON-Datei schreiben
-                    logger.info("All systems are reported. system_merits.json overwritten as empty.")
-                else:
-                    json.dump(filtered_systems, json_file, indent=4)
-                    logger.info(f"Saved {len(filtered_systems)} system(s) to system_merits.json")
-        except Exception as e:
-            logger.error(f"Failed to save system merits: {e}")
-    else:
-        try:
-            with open(system_merits_path, "w") as json_file:
-                json.dump({}, json_file, indent=4)  # Leere JSON-Datei schreiben
-                logger.info("All systems are reported. system_merits.json overwritten as empty.")
-                
-        except Exception as e:
-            logger.error(f"Failed to save system merits: {e}")
+    filtered_systems = {
+        name: data.to_dict()
+        for name, data in this.systems.items()
+        if not data.reported and data.Merits > 0
+    }
+    try:
+        with open(systems_path, "w") as json_file:
+            json.dump(filtered_systems, json_file, indent=4)
+            logger.info(f"Saved {len(filtered_systems)} system(s) to system_merits.json")
+    except Exception as e:
+        logger.error(f"Failed to save system merits: {e}")
+            
     if this.dump_test:
         try:
             with open(test_system_merits_path, "w") as json_file_test:
                 with open(test_system_merits_path, "w") as json_file_test:
-                        json.dump(systems_data, json_file_test, indent=4)  # Leere JSON-Datei schreiben
+                    json.dump(filtered_systems, json_file_test, indent=4)  # Leere JSON-Datei schreiben
         except Exception as e:
             logger.error(f"Failed to save system merits: {e}")
             
@@ -306,7 +236,7 @@ def plugin_stop():
 
 def plugin_app(parent):
     # Adds to the main page UI
-    stateButton = tk.NORMAL if this.debug or bool(this.powerInfo.get("Systems")) else tk.DISABLED
+    stateButton = tk.NORMAL if this.debug or len(this.systems)>0 else tk.DISABLED
     this.frame = tk.Frame(parent)
     this.frame_row1 = tk.Frame(this.frame)
     this.frame_row1.grid(row=0, column=0, columnspan=3, sticky="w")
@@ -320,15 +250,15 @@ def plugin_app(parent):
     this.frame_row5.grid(row=4, column=0, columnspan=3, sticky="w")
     this.frame_row6 = tk.Frame(this.frame)
     this.frame_row6.grid(row=5, column=0, columnspan=3, sticky="we", padx=0, pady=2)
-    #this.frame_row7= tk.Frame(this.frame)
-    #this.frame_row7.grid(row=6, column=0, columnspan=3, sticky="w")
+    this.frame_row7= tk.Frame(this.frame)
+    this.frame_row7.grid(row=6, column=0, columnspan=3, sticky="w")
 
-    this.power = tk.Label(this.frame_row1, text=f"Pledged: {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}".strip(), anchor="w", justify="left")
-    this.powerMerits = tk.Label(this.frame_row2 ,text=f"Merits session: {this.powerInfo['AccumulatedMerits']:,} - Total: {this.powerInfo['Merits']:,}".strip(), anchor="w", justify="left")
+    this.power = tk.Label(this.frame_row1, text=f"Pledged: {this.pledgedPower.Power} - Rank : {this.pledgedPower.Rank}".strip(), anchor="w", justify="left")
+    this.powerMerits = tk.Label(this.frame_row2 ,text=f"Merits session: {this.pledgedPower.MeritsSession:,} - Total: {this.pledgedPower.Merits:,}".strip(), anchor="w", justify="left")
     this.currentSystemLabel = tk.Label(this.frame_row3, text="Waiting for Events".strip(), anchor="w", justify="left")
     this.systemPowerLabel = tk.Label(this.frame_row4, text="Powerplay Status", anchor="w", justify="left")
     this.systemPowerStatusLabel = tk.Label(this.frame_row5, text="Net progress", anchor="w", justify="left")
-    #this.station_eco_label = tk.Label(this.frame_row7, text="", anchor="w", justify="left")
+    this.station_eco_label = tk.Label(this.frame_row7, text="", anchor="w", justify="left")
     
     parent.root = tk.Tk()
     parent.root.withdraw()  # Hide the main window
@@ -340,7 +270,7 @@ def plugin_app(parent):
 
     this.systemPowerLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
     this.systemPowerStatusLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
-    #this.station_eco_label.grid(row=0, column=0, sticky='w', padx=0, pady=0)
+    this.station_eco_label.grid(row=0, column=0, sticky='w', padx=0, pady=0)
     this.currentSystemLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
     # Positionierung der Labels
     this.power.grid(row=0, column=0, columnspan=3, sticky='w', padx=0, pady=0)
@@ -366,7 +296,7 @@ def plugin_app(parent):
     this.showButton = tk.Button(
         this.frame_row6,
         text="Overview",
-        command=lambda: show_power_info(parent, this.powerInfo, this.discordText.get()),
+        command=lambda: show_power_info(parent, this.pledgedPower, this.systems, this.discordText.get()),
         state=stateButton,
         compound="center"
     )
@@ -376,30 +306,12 @@ def plugin_app(parent):
     #   update_display()
     return this.frame
 
-
-def on_enter(event):
-    update_system_merits(this.currentSystemEntry.get(), this.powerInfo["Merits"])
-
 def reset():
     # Initialisiere ein neues Dictionary für Systeme
-    this.powerInfo["Systems"] = {}
-    # Prüfe, ob currentSysPP gültig ist und aktuelle Systemdaten enthält
-    if this.currentSystem and this.currentSysPP:
-        lastState = this.currentSysPP
-        # Füge das aktuelle System mit den letzten bekannten Daten hinzu
-        this.powerInfo["Systems"][this.currentSystem] = {
-            "sessionMerits": 0,
-            "state": lastState.get("state", ""),
-            "power": lastState.get("power", ""),
-            "powerCompetition": lastState.get('powerCompetition',  ["NoPower"]),
-            "powerConflict": lastState.get('powerConflict', []),
-            "progress" : lastState.get('progress', 0.0),
-            "statereinforcement": lastState.get('statereinforcement', 0),
-            "stateundermining": lastState.get('stateundermining',0),
-            "reported": False
-        }
-        this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
-    # Aktualisiere die Anzeige
+    if this.currentSystemFlying:
+       lastState = this.currentSystemFlying
+       this.systems = {}
+       this.systems[this.currentSystemFlying.StarSystem] = this.currentSystemFlying
     update_display()
 
 
@@ -422,18 +334,15 @@ def plugin_prefs(parent, cmdr, is_beta):
 def update_system_merits(merits_value, total):
     try:
         merits = int(merits_value)
-        this.powerInfo["AccumulatedMerits"] = this.powerInfo["AccumulatedMerits"] + merits
-        # Initialisiere das Systems-Objekt in powerInfo, falls es nicht existiert
-        if "Systems" not in this.powerInfo:
-            this.powerInfo["Systems"] = {}
-        #this.currentSystemEntry.delete(0, tk.END)
+        this.pledgedPower.MeritsSession += merits
         # Aktualisiere Merits im aktuellen System
-        if this.currentSystem in this.powerInfo["Systems"]:
-            this.powerInfo["Systems"][this.currentSystem]["sessionMerits"] += merits
+        if this.currentSystemFlying.StarSystem in this.systems:
+            this.systems[this.currentSystemFlying.StarSystem].Merits += merits
         else:
-            this.powerInfo["Systems"][this.currentSystem] = {"sessionMerits": merits}
+            this.systems[this.currentSystemFlying.StarSystem]= this.currentSystemFlying.StarSystem
+            this.systems[this.currentSystemFlying.StarSystem].Merits = merits
         # Direkte Aktualisierung der Anzeige
-        this.powerInfo["Merits"] = int(total)
+        this.plegedPower.Merits = int(total)
         update_display()
     except ValueError:
         logger.debug("Invalid merits value. Please enter a number.")
@@ -450,12 +359,8 @@ def update_json_file():
         directory_name = os.path.basename(os.path.dirname(__file__))
         plugin_path = os.path.join(config.plugin_dir, directory_name)
         file_path = os.path.join(plugin_path, "power.json")
-        power_info_copy = this.powerInfo.copy()
-        if "Systems" in power_info_copy:
-            del power_info_copy["Systems"]
-
         with open(file_path, "w") as json_file:
-            json.dump(power_info_copy, json_file, indent=4)
+            json.dump(this.pledgedPower.to_dict(), json_file, indent=4)
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] == 'Docked':
@@ -466,95 +371,47 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         this.station_ecos = []
         update_display()
     if entry['event'] == 'Powerplay':
-        current_merits = entry.get('Merits', this.powerInfo.get("Merits", 0))
-        #last_merits = this.powerInfo.get("Merits", 0)
-        #earned_merits = current_merits - last_merits
-        rank = entry.get("Rank", this.powerInfo.get("Rank", 0))
-        power_name = entry.get("Power", this.powerInfo.get("PowerName", ""))
-        timestamp = entry.get("timestamp", this.powerInfo.get("LastUpdate", ""))
-
-        current_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
-        accumulated_since_str = this.powerInfo.get("AccumulatedSince", "")
-        if accumulated_since_str:
-            accumulated_since = datetime.strptime(accumulated_since_str, "%Y-%m-%dT%H:%M:%SZ")
-        else:
-            accumulated_since = current_time
-        
-        # Berechnung der akkumulierten Merits über 24 Stunden
-        #accumulated_merits = this.powerInfo.get("AccumulatedMerits", 0)
-        #accumulated_merits = earned_merits
-        # Aktualisiere PowerInfo-Daten
-        this.powerInfo["PowerName"] = power_name
-        this.powerInfo["Merits"] = current_merits
-        this.powerInfo["Rank"] = rank
-        this.powerInfo["LastUpdate"] = timestamp
-        this.powerInfo["AccumulatedMerits"] = 0
-        this.powerInfo["AccumulatedSince"] = accumulated_since.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-        # JSON aktualisieren
+        this.pledgedPower = PledgedPower(eventEntry=entry)
         update_display()
     if entry['event'] in ['PowerplayMerits']:
         merits = entry.get('MeritsGained')
         total = entry.get('TotalMerits')
         update_system_merits(merits,total)
-    if entry['event'] in ['MarketBuy']:
-        this.test = 'MarketBuy'
-    if entry['event'] in ['CargoTransfer']:
-        this.test = 'MarketBuy'
     if entry['event'] in ['FSDJump', 'Location','SupercruiseEntry','SupercruiseExit']:
-        this.currentSystem = entry.get('StarSystem',"")
-        if "Systems" not in this.powerInfo:
-            this.powerInfo["Systems"] = {}
-        if this.currentSystem not in this.powerInfo["Systems"]:
-            # Neues System zu powerInfo hinzufügen
-            this.powerInfo["Systems"][this.currentSystem] = {
-                "sessionMerits": 0,
-                "state": entry.get('PowerplayState', "NoState"),
-                "power": entry.get('ControllingPower', "NoPower"),
-                "powerCompetition": entry.get('Powers',  ["NoPower"]),
-                "powerConflict": entry.get('PowerplayConflictProgress', []),
-                "progress" : entry.get('PowerplayStateControlProgress', 0.0),
-                "statereinforcement": entry.get('PowerplayStateReinforcement', 0),
-                "stateundermining": entry.get('PowerplayStateUndermining',0),
-                "reported:" : False
-            }
-            if this.powerInfo["Systems"][this.currentSystem]["powerConflict"]:
-                this.powerInfo["Systems"][this.currentSystem]["powerConflict"] = sorted(this.powerInfo["Systems"][this.currentSystem]["powerConflict"], key=lambda x: x["ConflictProgress"], reverse=True)[:2]
-            else:
-                this.powerInfo["Systems"][this.currentSystem]["powerConflict"] = []
-            this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
-        else:
-            this.currentSysPP = this.powerInfo["Systems"][this.currentSystem]
+        
+        nameSystem = entry.get('StarSystem',"")
+        if (not this.systems or len(this.systems)==0 or nameSystem not in this.systems):
+            new_system = StarSystem(eventEntry=entry)
+            logger.debug(f"Created new system- {nameSystem}")
+            logger.debug(f"Existing systems- {len(this.systems)}")
+            this.systems[new_system.StarSystem] = new_system
+            logger.debug(new_system.to_dict())
+        this.currentSystemFlying = this.systems[nameSystem]
         update_display()
 
 def update_display():
-    this.power["text"] = f"Pledged: {this.powerInfo['PowerName']} - Rank : {this.powerInfo['Rank']}"
-    this.powerMerits["text"] = f"Merits session: {this.powerInfo['AccumulatedMerits']:,} - total: {this.powerInfo['Merits']:,}".strip()
-    if this.currentSystem != "" and this.currentSystem and this.currentSysPP:
+    this.power["text"] = f"Pledged: {this.pledgedPower.Power} - Rank : {this.pledgedPower.Rank}"
+    this.powerMerits["text"] = f"Merits session: {this.pledgedPower.MeritsSession:,} - total: {this.pledgedPower.Merits:,}".strip()
+    if this.currentSystemFlying.StarSystem != "":
             this.showButton.config(state=tk.NORMAL)
             this.resetButton.config(state=tk.NORMAL)
     else:
         logger.info("No Current System")
 
     try:
-        # Aktuelle Merits aus Systems abrufen
-        #logger.debug(this.currentSystem)
-        system_data = this.powerInfo["Systems"][this.currentSystem]
-        curr_system_merits = this.powerInfo["Systems"][this.currentSystem]["sessionMerits"]
         #logger.debug(system_data)
-        power = get_system_state_power(system_data)[0]
+        power = this.currentSystemFlying.getSystemStatePowerPlay(pledged=this.pledgedPower.Power)[0]
         #logger.debug("ZEFIX")
-        powerstate = get_system_state(system_data)
-        powerprogress = get_progress(system_data)
+        powerprogress = this.currentSystemFlying.getSystemProgressNumber()
 
         if powerprogress is None:
             powerprogress_percent = "--%"
         else:
             powerprogress_percent = f"{powerprogress:.2f}%".rstrip('0').rstrip('.')
 
-        this.currentSystemLabel["text"] = f"'{this.currentSystem}' : {curr_system_merits} merits gained".strip()
-        this.systemPowerLabel["text"] = f"{powerstate} ({powerprogress_percent}) by {power}  ".strip()
-        powercycle = get_reinf_undermine(system_data)
+        this.currentSystemLabel["text"] = f"'{this.currentSystemFlying.StarSystem}' : {this.currentSystemFlying.Merits} merits gained".strip()
+        this.systemPowerLabel["text"] = f"{this.currentSystemFlying.getSystemStateText()} ({powerprogress_percent}) by {power}  ".strip()
+        powercycle = this.currentSystemFlying.getPowerplayCycleNetValue()
         
         if powercycle is None:
             systemPowerStatusText = ""
@@ -562,16 +419,16 @@ def update_display():
             reinforcement = powercycle[0]
             undermining = powercycle[1]
 
-            if not system_data.get("powerConflict"):
-                systemPowerStatusText = f"Powerplaycycle {get_system_power_status_text(reinforcement, undermining)}"
+            if not this.currentSystemFlying.PowerplayConflictProgress:
+                systemPowerStatusText = f"Powerplaycycle {this.currentSystemFlying.getPowerPlayCycleNetStatusText()}"
             else:
                 systemPowerStatusText = ""
 
         this.systemPowerStatusLabel["text"] = systemPowerStatusText.strip()
     except KeyError as e:
-        logger.debug(f"KeyError for current system '{this.currentSystem}': {e}")
-    #if len(this.station_ecos) > 0:
-    #    this.station_eco_label["text"] = "\n".join(this.station_ecos)
+        logger.debug(f"KeyError for current system '{this.currentSystemFlying}': {e}")
+    if len(this.station_ecos) > 0:
+        this.station_eco_label["text"] = "\n".join(this.station_ecos)
     this.currentSystemLabel.grid()
 
 def get_scale_factor(current_width: int, current_height: int, base_width: int = 2560, base_height: int = 1440) -> float:
@@ -591,4 +448,6 @@ def load_and_scale_image(path: str, scale: float) -> Image:
 
     return image.resize(new_size, resample_filter)
 
-
+def logdump(here:str, data:dict):
+    if this.debug:
+        logger.debug(f"{here} - {json.dumps(data, indent=2)}")

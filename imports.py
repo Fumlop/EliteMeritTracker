@@ -117,6 +117,6 @@ def get_station_eco(station_ecos):
     for item in station_ecos:
         name = item.get("Name_Localised")
         prop = item.get("Proportion")*100
-        text_arr.append(f"Eco: {name} - Proportion {prop}%")
+        text_arr.append(f"Eco: {name} - Proportion {prop:.2f}%")
     return text_arr
         
