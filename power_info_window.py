@@ -31,7 +31,7 @@ def delete_entry(system_name, systems, table_frame, update_scrollregion,initial_
 
         populate_table(table_frame, systems, update_scrollregion, initial_text)
 
-def toggle_view(power_info, initial_text):
+def toggle_view(pledgedpower, systemsflown, initial_text):
     global detailed_view, csv_button, systems
 
     detailed_view = not detailed_view  # Switch between views
@@ -51,7 +51,7 @@ def toggle_view(power_info, initial_text):
 
     # Show headers only in default view
     if not detailed_view:
-        add_power_info_headers(power_info)
+        add_power_info_headers(pledgedpower)
 
     # Repopulate the table
     table_frame.after(100, lambda: populate_table(table_frame, systems, update_scrollregion, initial_text))
@@ -93,7 +93,7 @@ def export_to_csv():
 
     print(f"CSV export successful: {file_path}")  # Debug log (replace with a messagebox if needed)
 
-def show_power_info(parent, power_info, initial_text):
+def show_power_info(parent, pledgedpower, systemflown, initial_text):
     global table_frame, systems, update_scrollregion, toggle_button, csv_button, detailed_view, filter_frame, data_frame
 
     detailed_view = False  
@@ -126,13 +126,13 @@ def show_power_info(parent, power_info, initial_text):
     
     # Zeige Powerplay-Details in Default View
     if not detailed_view:
-        add_power_info_headers(power_info)
+        add_power_info_headers(pledgedpower)
 
 
     button_frame = tk.Frame(info_window)
     button_frame.pack(side="top", pady=5, anchor="center")  # Buttons mittig ausrichten
 
-    toggle_button = tk.Button(button_frame, text="Show Detailed View", command=lambda: toggle_view(power_info, initial_text))
+    toggle_button = tk.Button(button_frame, text="Show Detailed View", command=lambda: toggle_view(pledgedpower, systemflown, initial_text))
     toggle_button.grid(row=0, column=0, padx=5)
 
     csv_button = tk.Button(button_frame, text="Export CSV", command=export_to_csv)
@@ -140,8 +140,8 @@ def show_power_info(parent, power_info, initial_text):
     csv_button.grid_forget()  # Erst in detailed_view anzeigen
 
     systems = {
-        name: data for name, data in power_info.get("Systems", {}).items()
-        if (data.get("power") != "NoPower" or len(data.get("powerCompetition"))>0)
+        name: data for name, data in systemflown.items()
+        if ((data.ControllingPower != "NoPower" or len(data.Powers)>0) and data.PowerplayState != "None")
     }
 
     populate_table(table_frame, systems, update_scrollregion, initial_text)
@@ -157,11 +157,10 @@ def add_power_info_headers(power_info):
 
     tk.Label(table_frame, text="Powerplay Details", font=("Arial", 14, "bold")).grid(row=0, column=0, columnspan=6, pady=10, sticky="w")
 
-    tk.Label(table_frame, text=f"Power name: {power_info['PowerName']}", anchor="w").grid(row=1, column=0, columnspan=6, sticky="w", padx=10)
-    tk.Label(table_frame, text=f"Rank: {power_info['Rank']}", anchor="w").grid(row=2, column=0, columnspan=6, sticky="w", padx=10)
-    tk.Label(table_frame, text=f"Current merits: {power_info['Merits']}", anchor="w").grid(row=3, column=0, columnspan=6, sticky="w", padx=10)
-    tk.Label(table_frame, text=f"Last session merits: {power_info['AccumulatedMerits']}", anchor="w").grid(row=4, column=0, columnspan=6, sticky="w", padx=10)
-    #tk.Label(table_frame, text=f"Last update: {power_info['LastUpdate']}", anchor="w").grid(row=5, column=0, columnspan=6, sticky="w", padx=10)
+    tk.Label(table_frame, text=f"Power name: {power_info.Power}", anchor="w").grid(row=1, column=0, columnspan=6, sticky="w", padx=10)
+    tk.Label(table_frame, text=f"Rank: {power_info.Rank}", anchor="w").grid(row=2, column=0, columnspan=6, sticky="w", padx=10)
+    tk.Label(table_frame, text=f"Current merits: {power_info.Merits}", anchor="w").grid(row=3, column=0, columnspan=6, sticky="w", padx=10)
+    tk.Label(table_frame, text=f"Time pledged: {power_info.TimePledgedStr}", anchor="w").grid(row=4, column=0, columnspan=6, sticky="w", padx=10)
 
 
 def populate_table(table_frame, systems, update_scrollregion, initial_text, show_filters_only=False):
@@ -221,11 +220,10 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
         label.grid_remove()
         created_widgets.append(label)
     for system_name, system_data in systems.items():
-        controlling_power = system_data.get("power", "").strip()
-        merits = str(system_data.get("sessionMerits", 0))
+        merits = str(system_data.Merits)
 
         if int(merits) > 0:
-            reported = system_data.get("reported", False)
+            reported = system_data.reported
             dcText = f"{initial_text.replace('@MeritsValue', merits).replace('@System', system_name)}"
             reported_var = tk.BooleanVar(value=reported)
 
@@ -262,8 +260,8 @@ def add_detailed_view_filter_buttons(parent_frame, systems):
     filter_frame.grid(row=8, column=0, columnspan=6, sticky="w", padx=10)  # Linksbündig setzen
     for i in range(6):  # 6 Spalten anpassen
         filter_frame.columnconfigure(i, weight=1)
-    powers = sorted(set(data.get("power", "") for data in systems.values() if data.get("power", "")))
-    states = sorted(set(data.get("state", "") for data in systems.values() if data.get("state", "")))
+    powers = sorted(data.ControllingPower for data in systems.values() if data.ControllingPower)
+    states = sorted(data.PowerplayState for data in systems.values() if data.PowerplayState)
     system_names = sorted(systems.keys())
 
     filter_system_var = tk.StringVar(value="All")
@@ -299,9 +297,9 @@ def refresh_filtered_table():
     for name, data in systems.items():
         if selected_system != "All" and name != selected_system:
             continue
-        if selected_state != "All" and data.get("state") != selected_state:
+        if selected_state != "All" and data.PowerplayState != selected_state:
             continue
-        if selected_power != "All" and data.get("power") != selected_power:
+        if selected_power != "All" and data.ControllingPower != selected_power:
             continue
         filtered[name] = data
 
@@ -321,28 +319,18 @@ def populate_table_data_rows(parent, systems, start_row=8):
 
     for system_name, system_data in systems.items():
         
-        controlling_power = get_system_state_power(system_data)[0]
-         #logger.debug(f"controlling_power - {controlling_power}")
-        opposition = get_system_state_power(system_data)[1]
-        #logger.debug(f"opposition - {opposition}")
-        progress = get_progress(system_data)
-        #logger.debug(f"progress - {progress}")
-        state = f"{get_system_state(system_data)} ({progress:.2f}%)"
-        #logger.debug(f"state - {state}")
-        powercycle = get_reinf_undermine(system_data)        
-        #logger.debug(f"powercycle - {powercycle}")
-        reinforcement = powercycle[0]
-        #logger.debug(f"reinforcement - {reinforcement}")
-        undermining = powercycle[1]
-        #logger.debug(f"undermining - {undermining}")
-        if not system_data.get("powerConflict") or len(system_data.get("powerConflict"))==0:
-            power_status = get_system_power_status_text(reinforcement, undermining)
+        controlling_power = system_data.ControllingPower
+        opposition = ", ".join(system_data.Opposition)
+        progress = system_data.getSystemProgressNumber()
+        state = f"{(system_data.PowerplayState)} ({progress:.2f}%)"
+        if not system_data.PowerplayConflictProgress or len(system_data.PowerplayConflictProgress)==0:
+            power_status = system_data.getPowerPlayCycleNetStatusText()
+            reinforcement = system_data.PowerplayStateReinforcement
+            undermining = system_data.PowerplayStateUndermining
         else:
             power_status = ""
             reinforcement = 0
             undermining = 0
-        #logger.debug(f"power_status - {power_status}")
-        #logger.debug(power_status)
         reinforce_font = ("Arial", 10, "bold") if "NET +" in power_status else ("Arial", 10, "normal")
         undermining_font = ("Arial", 10, "bold") if "NET -" in power_status else ("Arial", 10, "normal")
         # Labels vorerst unsichtbar setzen (grid, dann remove)
@@ -353,7 +341,7 @@ def populate_table_data_rows(parent, systems, start_row=8):
             tk.Label(parent, text=power_status, width=25, anchor="w"),
             tk.Label(parent, text=reinforcement, width=15, anchor="w"),
             tk.Label(parent, text=undermining, width=15, anchor="w"),
-            tk.Label(parent, text=opposition, width=15, anchor="w", font=undermining_font)
+            tk.Label(parent, text=opposition, width=45, anchor="w", font=undermining_font)
         ]
 
         for col, widget in enumerate(widgets):
