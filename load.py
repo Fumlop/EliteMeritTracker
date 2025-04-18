@@ -363,14 +363,8 @@ def update_json_file():
             json.dump(this.pledgedPower.to_dict(), json_file, indent=4)
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
-    if entry['event'] == 'Docked':
-        docked_eco =  entry.get('StationEconomies')
-        this.station_ecos = get_station_eco(docked_eco)
-        update_display()
-    if entry['event'] == 'Undocked':
-        this.station_ecos = []
-        update_display()
-    if entry['event'] == 'Powerplay':
+    if entry['event'] in ['Powerplay']:
+        logger.debug("POWERPLAY EVENT")
         this.pledgedPower = PledgedPower(eventEntry=entry)
         update_display()
     if entry['event'] in ['PowerplayMerits']:

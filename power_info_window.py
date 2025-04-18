@@ -259,8 +259,8 @@ def add_detailed_view_filter_buttons(parent_frame, systems):
     filter_frame.grid(row=8, column=0, columnspan=6, sticky="w", padx=10)  # Linksbündig setzen
     for i in range(6):  # 6 Spalten anpassen
         filter_frame.columnconfigure(i, weight=1)
-    powers = sorted(set(data.ControllingPower for data in systems.values() if data.ControllingPower))
-    states = sorted(set(data.PowerplayState) for data in systems.values() if data.PowerplayState)
+    powers = sorted(data.ControllingPower for data in systems.values() if data.ControllingPower)
+    states = sorted(data.PowerplayState for data in systems.values() if data.PowerplayState)
     system_names = sorted(systems.keys())
 
     filter_system_var = tk.StringVar(value="All")

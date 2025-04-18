@@ -27,7 +27,7 @@ class StarSystem:
         else:
             if not self.PowerplayConflictProgress:
                 return [0, 0]
-            return [self.PowerplayConflictProgress[0].get('ConflictProgress', 0), 0]
+            return [self.PowerplayConflictProgress[0].progress, 0, 0]
         
     def addMerits(self, gained=0):
         self.Merits += gained
@@ -41,7 +41,7 @@ class StarSystem:
             return  self.PowerplayStateControlProgress * 100
         if self.PowerplayConflictProgress is None or not self.PowerplayConflictProgress:
             return 0
-        return self.PowerplayConflictProgress[0]['ConflictProgress']*100
+        return self.PowerplayConflictProgress[0].progress*100
 
     def to_dict(self):
         return {
@@ -92,7 +92,7 @@ class StarSystem:
             return  self.PowerplayState
 
         if self.PowerplayState == 'Unoccupied':
-            progress = self.PowerplayConflictProgress[0]['ConflictProgress']*100
+            progress = self.PowerplayConflictProgress[0].progress*100
             if progress < 30: return 'Unoccupied'
             if progress < 100: return 'Contested'
             if progress >= 100: return 'Controlled'
@@ -104,16 +104,16 @@ class StarSystem:
             else: 
                 return  [self.ControllingPower,""]
         if self.PowerplayState == 'Unoccupied':
-            conflict = self.PowerplayConflictProgress
-            if len(conflict) == 1: 
-                return [self.PowerplayConflictProgress[0]['Power'], ""]
+            if len(self.PowerplayConflictProgress) == 1: 
+                return [self.PowerplayConflictProgress[0].power, ""]
             else:
                 arr = []
                 for item in self.PowerplayConflictProgress:
-                    arr.append(item['Power'])
+                    if (item.power):
+                        arr.append(item.power)
                 if arr and len(arr)>0:
                     result = arr[0]
-                return [self.PowerplayConflictProgress[0]['Power'], result]
+                return [self.PowerplayConflictProgress[0].power, result]
         return ["NoPower",""]
     
     def getFromOldDict(self, name:str, data:dict={}):
