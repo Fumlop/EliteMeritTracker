@@ -183,12 +183,12 @@ def plugin_start3(plugin_dir):
         try:
             with open(systems_path, "r") as json_file:
                 tmp = json.load(json_file)
-                for system_data in tmp.items():
+                for name, system_data in tmp.items():
                     if not isinstance(system_data, dict):
                         continue
                     n = StarSystem()
                     n.from_dict(system_data)
-                    this.systems[n.StarSystem] = n
+                    this.systems[name] = n
         except json.JSONDecodeError:
             logger.error("Failed to load system_merits.json, using empty Systems data.")
             this.systems = {}
@@ -339,7 +339,7 @@ def update_system_merits(merits_value, total):
         if this.currentSystemFlying.StarSystem in this.systems:
             this.systems[this.currentSystemFlying.StarSystem].Merits += merits
         else:
-            this.systems[this.currentSystemFlying.StarSystem]= this.currentSystemFlying.StarSystem
+            this.systems[this.currentSystemFlying.StarSystem]= this.currentSystemFlying
             this.systems[this.currentSystemFlying.StarSystem].Merits = merits
         # Direkte Aktualisierung der Anzeige
         this.pledgedPower.Merits = int(total)

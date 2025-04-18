@@ -7,8 +7,7 @@ class PledgedPower:
         self.MeritsSession: int = eventEntry.get("MeritsSession",0)
         self.Rank: str = eventEntry.get("Rank","")
         self.TimePledged: int = eventEntry.get("TimePledged",0)
-        seconds = eventEntry.get("TimePledged", 0)
-        days, remainder = divmod(seconds, 86400)
+        days, remainder = divmod(self.TimePledged, 86400)
         hours, remainder = divmod(remainder, 3600)
         minutes, _ = divmod(remainder, 60)
         self.TimePledgedStr: str = f"{days}d {hours}h {minutes}m"
@@ -26,4 +25,8 @@ class PledgedPower:
         self.Merits = data.get("Merits",0)
         self.Rank = data.get("Rank","")
         self.TimePledged = data.get("TimePledged","")
+        days, remainder = divmod(self.TimePledged, 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, _ = divmod(remainder, 60)
+        self.TimePledgedStr: str = f"{days}d {hours}h {minutes}m"
     
