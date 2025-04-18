@@ -7,6 +7,7 @@ class StarSystem:
         self.PowerplayState: str = eventEntry.get("PowerplayState", "stateless")
         self.ControllingPower: str = eventEntry.get("ControllingPower", "Mr.Nobody")
         self.Powers: list[str] = eventEntry.get("Powers", [])
+        self.Opposition: list[str] = [p for p in self.Powers if p != self.ControllingPower]
         self.PowerplayConflictProgress: list[PowerConflictEntry] = sorted(
             PowerConflict(eventEntry).entries,
             key=lambda p: p.progress,
@@ -38,12 +39,8 @@ class StarSystem:
         #logger.debug(f"get_system_state_power.{system_state}")
         if self.PowerplayState in ['Stronghold', 'Fortified', 'Exploited']:
             return  self.PowerplayStateControlProgress * 100
-        
-        
-        
         if self.PowerplayConflictProgress is None or not self.PowerplayConflictProgress:
             return 0
-        
         return self.PowerplayConflictProgress[0]['ConflictProgress']*100
 
     def to_dict(self):
@@ -79,9 +76,7 @@ class StarSystem:
     def getPowerPlayCycleNetStatusText(self):
         if self.PowerplayStateReinforcement == 0 and self.PowerplayStateUndermining == 0:
             return "Neutral"  # If both are 0, show neutral
-
         total = self.PowerplayStateReinforcement + self.PowerplayStateUndermining  # Total value
-
         # Calculate actual percentage share
         reinforcement_percentage = (self.PowerplayStateReinforcement / total) * 100
         undermining_percentage = (self.PowerplayStateUndermining / total) * 100

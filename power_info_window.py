@@ -259,8 +259,8 @@ def add_detailed_view_filter_buttons(parent_frame, systems):
     filter_frame.grid(row=8, column=0, columnspan=6, sticky="w", padx=10)  # Linksbündig setzen
     for i in range(6):  # 6 Spalten anpassen
         filter_frame.columnconfigure(i, weight=1)
-    powers = sorted(set(data.get("power", "") for data in systems.values() if data.get("power", "")))
-    states = sorted(set(data.get("state", "") for data in systems.values() if data.get("state", "")))
+    powers = sorted(set(data.ControllingPower for data in systems.values() if data.ControllingPower))
+    states = sorted(set(data.PowerplayState) for data in systems.values() if data.PowerplayState)
     system_names = sorted(systems.keys())
 
     filter_system_var = tk.StringVar(value="All")
@@ -296,9 +296,9 @@ def refresh_filtered_table():
     for name, data in systems.items():
         if selected_system != "All" and name != selected_system:
             continue
-        if selected_state != "All" and data.get("state") != selected_state:
+        if selected_state != "All" and data.PowerplayState != selected_state:
             continue
-        if selected_power != "All" and data.get("power") != selected_power:
+        if selected_power != "All" and data.ControllingPower != selected_power:
             continue
         filtered[name] = data
 
@@ -318,28 +318,18 @@ def populate_table_data_rows(parent, systems, start_row=8):
 
     for system_name, system_data in systems.items():
         
-        controlling_power = get_system_state_power(system_data)[0]
-         #logger.debug(f"controlling_power - {controlling_power}")
-        opposition = get_system_state_power(system_data)[1]
-        #logger.debug(f"opposition - {opposition}")
-        progress = get_progress(system_data)
-        #logger.debug(f"progress - {progress}")
-        state = f"{get_system_state(system_data)} ({progress:.2f}%)"
-        #logger.debug(f"state - {state}")
-        powercycle = get_reinf_undermine(system_data)        
-        #logger.debug(f"powercycle - {powercycle}")
-        reinforcement = powercycle[0]
-        #logger.debug(f"reinforcement - {reinforcement}")
-        undermining = powercycle[1]
-        #logger.debug(f"undermining - {undermining}")
-        if not system_data.get("powerConflict") or len(system_data.get("powerConflict"))==0:
-            power_status = get_system_power_status_text(reinforcement, undermining)
+        controlling_power = system_data.ControllingPower
+        opposition = ", ".join(system_data.Opposition)
+        progress = system_data.getSystemProgressNumber()
+        state = f"{(system_data.PowerplayState)} ({progress:.2f}%)"
+        if not system_data.PowerplayConflictProgress or len(system_data.PowerplayConflictProgress)==0:
+            power_status = system_data.getPowerPlayCycleNetStatusText()
+            reinforcement = system_data.PowerplayStateReinforcement
+            undermining = system_data.PowerplayStateUndermining
         else:
             power_status = ""
             reinforcement = 0
             undermining = 0
-        #logger.debug(f"power_status - {power_status}")
-        #logger.debug(power_status)
         reinforce_font = ("Arial", 10, "bold") if "NET +" in power_status else ("Arial", 10, "normal")
         undermining_font = ("Arial", 10, "bold") if "NET -" in power_status else ("Arial", 10, "normal")
         # Labels vorerst unsichtbar setzen (grid, dann remove)
