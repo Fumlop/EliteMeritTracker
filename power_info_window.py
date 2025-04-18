@@ -341,7 +341,7 @@ def populate_table_data_rows(parent, systems, start_row=8):
             tk.Label(parent, text=power_status, width=25, anchor="w"),
             tk.Label(parent, text=reinforcement, width=15, anchor="w"),
             tk.Label(parent, text=undermining, width=15, anchor="w"),
-            tk.Label(parent, text=opposition, width=15, anchor="w", font=undermining_font)
+            tk.Label(parent, text=opposition, width=45, anchor="w", font=undermining_font)
         ]
 
         for col, widget in enumerate(widgets):

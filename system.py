@@ -49,7 +49,8 @@ class StarSystem:
             "Merits": self.Merits,
             "PowerplayState": self.PowerplayState,
             "ControllingPower": self.ControllingPower,
-            "Powers": self.Powers,  
+            "Powers": self.Powers,
+            "Opposition": self.Opposition,
             "PowerplayConflictProgress":  [vars(p) for p in self.PowerplayConflictProgress],
             "PowerplayStateControlProgress": self.PowerplayStateControlProgress,
             "PowerplayStateReinforcement": self.PowerplayStateReinforcement,
@@ -63,6 +64,7 @@ class StarSystem:
         self.PowerplayState: str = data.get("PowerplayState", "stateless")
         self.ControllingPower: str = data.get("ControllingPower", "Mr.Nobody")
         self.Powers: list[str] = data.get("Powers", [])
+        self.Opposition: list[str] = data.get("Opposition", [])
         self.PowerplayConflictProgress: list[PowerConflictEntry] = sorted(
             PowerConflict(data).entries,
             key=lambda p: p.progress,
