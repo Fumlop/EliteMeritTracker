@@ -11,7 +11,7 @@ this.pledgedPower = PledgedPower()
 this.currentSystemFlying = StarSystem()
 this.station_ecos = []
 this.trackedMerits = 0
-this.version = 'v0.4.28.1.200'
+this.version = 'v0.4.5.1.200'
 
 this.assetpath = ""
 
@@ -342,7 +342,7 @@ def update_system_merits(merits_value, total):
             this.systems[this.currentSystemFlying.StarSystem]= this.currentSystemFlying.StarSystem
             this.systems[this.currentSystemFlying.StarSystem].Merits = merits
         # Direkte Aktualisierung der Anzeige
-        this.plegedPower.Merits = int(total)
+        this.pledgedPower.Merits = int(total)
         update_display()
     except ValueError:
         logger.debug("Invalid merits value. Please enter a number.")
@@ -364,7 +364,6 @@ def update_json_file():
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] in ['Powerplay']:
-        logger.debug("POWERPLAY EVENT")
         this.pledgedPower = PledgedPower(eventEntry=entry)
         update_display()
     if entry['event'] in ['PowerplayMerits']:

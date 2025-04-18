@@ -160,6 +160,7 @@ def add_power_info_headers(power_info):
     tk.Label(table_frame, text=f"Power name: {power_info.Power}", anchor="w").grid(row=1, column=0, columnspan=6, sticky="w", padx=10)
     tk.Label(table_frame, text=f"Rank: {power_info.Rank}", anchor="w").grid(row=2, column=0, columnspan=6, sticky="w", padx=10)
     tk.Label(table_frame, text=f"Current merits: {power_info.Merits}", anchor="w").grid(row=3, column=0, columnspan=6, sticky="w", padx=10)
+    tk.Label(table_frame, text=f"Time pledged: {power_info.TimePledgedStr}", anchor="w").grid(row=4, column=0, columnspan=6, sticky="w", padx=10)
 
 
 def populate_table(table_frame, systems, update_scrollregion, initial_text, show_filters_only=False):
