@@ -2,6 +2,8 @@ from imports import *
 
 class StarSystem:
     def __init__(self, eventEntry:dict = {}, reported: bool = False):
+        self.debug = False
+        
         self.StarSystem: str = eventEntry.get("StarSystem", "Nomansland")
         self.Merits: int = 0
         self.PowerplayState: str = eventEntry.get("PowerplayState", "stateless")
@@ -133,6 +135,11 @@ class StarSystem:
         self.PowerplayStateReinforcement: int = data.get("statereinforcement", 0)
         self.PowerplayStateUndermining: int = data.get("stateundermining", 0)
         self.reported: bool = data.get("reported",False)
+        
+    def debug(self, what):
+        if self.debug == True:
+            logger.debug(what)
+            
         
 class PowerConflictEntry:
     def __init__(self, power: str, progress: float):

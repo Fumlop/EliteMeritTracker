@@ -20,7 +20,7 @@ def delete_entry(system_name, systems, table_frame, update_scrollregion,initial_
     global data_frame_default, data_frame_detailed, detailed_view
 
     if system_name in systems:
-        del systems[system_name]
+        systems[system_name].Merits = 0
 
         if detailed_view and data_frame_detailed:
             for widget in data_frame_detailed.winfo_children():
@@ -228,7 +228,7 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
             reported_var = tk.BooleanVar(value=reported)
 
             def toggle_reported(system=system_name, var=reported_var):
-                systems[system]["reported"] = var.get()
+                systems[system].reported = var.get()
 
             widgets = [
                 tk.Label(data_frame_default, text=system_name, width=15, anchor="w"),
