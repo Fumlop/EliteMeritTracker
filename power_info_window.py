@@ -56,7 +56,11 @@ def toggle_view(pledgedpower, systemsflown, initial_text):
     # Repopulate the table
     table_frame.after(100, lambda: populate_table(table_frame, systems, update_scrollregion, initial_text))
 
-
+def save_window_size(info_window):
+    w = info_window.winfo_width()
+    h = info_window.winfo_height()
+    config.set("power_info_width", str(w))
+    config.set("power_info_height", str(h))
 
 def export_to_csv():
     """
@@ -100,7 +104,9 @@ def show_power_info(parent, pledgedpower, systemflown, initial_text):
 
     info_window = tk.Toplevel(parent)
     info_window.title("Power Info")
-    info_window.geometry("1280x800")
+    saved_width = config.get_str("power_info_width") or "1280"
+    saved_height = config.get_str("power_info_height") or "800"
+    info_window.geometry(f"{saved_width}x{saved_height}")
 
     main_frame = tk.Frame(info_window)
     main_frame.pack(fill="both", expand=True)
@@ -113,7 +119,8 @@ def show_power_info(parent, pledgedpower, systemflown, initial_text):
     canvas.configure(yscrollcommand=v_scrollbar.set)
     canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(-1*(event.delta//120), "units"))
 
-
+    info_window.protocol("WM_DELETE_WINDOW", lambda: (save_window_size(info_window), info_window.destroy()))
+    
     table_frame = tk.Frame(canvas)
     for i in range(6):  # 6 Spalten, falls mehr, erhöhe die Zahl
         table_frame.columnconfigure(i, weight=1)
@@ -225,6 +232,11 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
         if int(merits) > 0:
             reported = system_data.reported
             dcText = f"{initial_text.replace('@MeritsValue', merits).replace('@System', system_name)}"
+            if '@CPOpposition' in dcText:
+                dcText = dcText.replace('@CPOpposition', system_data.PowerplayStateUndermining)
+
+            if '@CPPledged' in dcText:
+                dcText = dcText.replace('@CPPledged', system_data.PowerplayStateReinforcement)
             reported_var = tk.BooleanVar(value=reported)
 
             def toggle_reported(system=system_name, var=reported_var):

@@ -328,6 +328,8 @@ def plugin_prefs(parent, cmdr, is_beta):
     bool_entry = tk.Checkbutton(config_frame, variable=this.saveSession)
     bool_entry.grid(row=3, column=3, sticky="w", padx=5, pady=5)
     
+    tk.Label(config_frame, text="Optional place holder @CPOppositon, @CPPledged").grid(row=5, column=0, sticky="w", padx=5, pady=5)
+    
     tk.Label(config_frame, text=f"Version {this.version}").grid(row=10, column=0, sticky="w", padx=5, pady=5)
     return config_frame
 
