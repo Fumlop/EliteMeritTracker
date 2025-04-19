@@ -24,7 +24,7 @@ class PledgedPower:
         self.Power = data.get("Power") or data.get("PowerName","")
         self.Merits = data.get("Merits",0)
         self.Rank = data.get("Rank","")
-        self.TimePledged = data.get("TimePledged","")
+        self.TimePledged = int(data.get("TimePledged",0))
         days, remainder = divmod(self.TimePledged, 86400)
         hours, remainder = divmod(remainder, 3600)
         minutes, _ = divmod(remainder, 60)
