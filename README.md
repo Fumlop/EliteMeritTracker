@@ -1,3 +1,5 @@
+# IF Autoupdate fails, please update manually
+
 # EliteMeritTracker
 EDMC-Plugin to track Powerplay Merits
 
