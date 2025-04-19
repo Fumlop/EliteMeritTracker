@@ -11,7 +11,7 @@ this.pledgedPower = PledgedPower()
 this.currentSystemFlying = StarSystem()
 this.station_ecos = []
 this.trackedMerits = 0
-this.version = 'v0.4.53.1.200'
+this.version = 'v0.4.54.1.200'
 
 this.assetpath = ""
 
