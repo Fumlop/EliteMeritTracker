@@ -233,10 +233,10 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
             reported = system_data.reported
             dcText = f"{initial_text.replace('@MeritsValue', merits).replace('@System', system_name)}"
             if '@CPOpposition' in dcText:
-                dcText = dcText.replace('@CPOpposition', system_data.PowerplayStateUndermining)
+                dcText = dcText.replace('@CPOpposition', str(system_data.PowerplayStateUndermining))
 
             if '@CPPledged' in dcText:
-                dcText = dcText.replace('@CPPledged', system_data.PowerplayStateReinforcement)
+                dcText = dcText.replace('@CPPledged', str(system_data.PowerplayStateReinforcement))
             reported_var = tk.BooleanVar(value=reported)
 
             def toggle_reported(system=system_name, var=reported_var):
