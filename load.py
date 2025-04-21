@@ -11,7 +11,7 @@ this.pledgedPower = PledgedPower()
 this.currentSystemFlying = StarSystem()
 this.station_ecos = []
 this.trackedMerits = 0
-this.version = 'v0.4.57.1.200'
+this.version = 'v0.4.58.1.200'
 
 this.assetpath = ""
 
@@ -168,6 +168,9 @@ def plugin_start3(plugin_dir):
                     n = StarSystem()
                     n.from_dict(system_data)
                     this.systems[name] = n
+                    if n.Active == True:
+                        this.currentSystemFlying = this.systems[name]
+                    
         except json.JSONDecodeError:
             logger.error("Failed to load systems.json, using empty Systems data.")
             this.systems = {}
@@ -352,15 +355,22 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         update_system_merits(merits,total)
     if entry['event'] in ['FSDJump', 'Location','SupercruiseEntry','SupercruiseExit']:
         
-        nameSystem = entry.get('StarSystem',"")
+        nameSystem = entry.get('StarSystem',"Nomansland")
         if (not this.systems or len(this.systems)==0 or nameSystem not in this.systems):
             new_system = StarSystem(eventEntry=entry)
             logger.debug(f"Created new system- {nameSystem}")
             logger.debug(f"Existing systems- {len(this.systems)}")
             this.systems[new_system.StarSystem] = new_system
             logger.debug(new_system.to_dict())
-        this.currentSystemFlying = this.systems[nameSystem]
+        updateSystemTracker(this.currentSystemFlying,this.systems[nameSystem])
+        
         update_display()
+
+def updateSystemTracker(oldSystem, newSystem):
+    this.systems[oldSystem.StarSystem].Active = False
+    this.systems[newSystem.StarSystem].Active = True
+    this.currentSystemFlying = newSystem
+    
 
 def update_display():
     this.power["text"] = f"Pledged: {this.pledgedPower.Power} - Rank : {this.pledgedPower.Rank}"
