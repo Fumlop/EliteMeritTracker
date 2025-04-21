@@ -94,34 +94,49 @@ class StarSystem:
             return f"NET -{undermining_percentage:.2f}%"
 
     def getSystemStateText(self):
-        if not self.PowerplayState: return "NoState"
+        if not self.PowerplayState:
+            return "NoState"
+
         if self.PowerplayState in ['Stronghold', 'Fortified', 'Exploited']:
-            return  self.PowerplayState
+            return self.PowerplayState
 
         if self.PowerplayState == 'Unoccupied':
-            progress = self.PowerplayConflictProgress[0].progress*100
-            if progress < 30: return 'Unoccupied'
-            if progress < 100: return 'Contested'
-            if progress >= 100: return 'Controlled'
+            if not self.PowerplayConflictProgress:
+                return 'Unoccupied'  # Kein Konflikt erkennbar
+
+            progress = self.PowerplayConflictProgress[0].progress * 100
+            if progress < 30:
+                return 'Unoccupied'
+            if progress < 100:
+                return 'Contested'
+            return 'Controlled'
+
+        return self.PowerplayState  # Fallback
     
     def getSystemStatePowerPlay(self, pledged):
+        # Fälle mit klarer Kontrolle
         if self.PowerplayState in ['Stronghold', 'Fortified', 'Exploited']:
-            if len(self.Powers)>1:
-                return  [self.ControllingPower,next(p for p in self.Powers if p != pledged)]
-            else: 
-                return  [self.ControllingPower,""]
-        if self.PowerplayState == 'Unoccupied':
-            if len(self.PowerplayConflictProgress) == 1: 
-                return [self.PowerplayConflictProgress[0].power, ""]
+            if len(self.Powers) > 1:
+                # Zwei Mächte im System – Opposition ermitteln
+                return [self.ControllingPower, next((p for p in self.Powers if p != pledged), "")]
             else:
-                arr = []
-                for item in self.PowerplayConflictProgress:
-                    if (item.power):
-                        arr.append(item.power)
-                if arr and len(arr)>0:
-                    result = arr[0]
-                return [self.PowerplayConflictProgress[0].power, result]
-        return ["NoPower",""]
+                return [self.ControllingPower, ""]
+
+        # Konfliktzone – unbesetzt
+        if self.PowerplayState == 'Unoccupied':
+            if len(self.PowerplayConflictProgress) == 1:
+                return [self.PowerplayConflictProgress[0].power, ""]
+            elif len(self.PowerplayConflictProgress) > 1:
+                arr = [item.power for item in self.PowerplayConflictProgress if item.power]
+                if len(arr) >= 2:
+                    return [arr[0], arr[1]]
+                elif len(arr) == 1:
+                    return [arr[0], ""]
+            return ["NoPower", ""]
+
+        # Kein Powerplay-Status
+        return ["NoPower", ""]
+
     
     def getFromOldDict(self, name:str, data:dict={}):
         self.StarSystem: str = name
