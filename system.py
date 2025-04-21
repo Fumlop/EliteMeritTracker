@@ -6,6 +6,7 @@ class StarSystem:
         
         self.StarSystem: str = eventEntry.get("StarSystem", "Nomansland")
         self.Merits: int = 0
+        self.Active: bool = False
         self.PowerplayState: str = eventEntry.get("PowerplayState", "stateless")
         self.ControllingPower: str = eventEntry.get("ControllingPower", "Mr.Nobody")
         self.Powers: list[str] = eventEntry.get("Powers", [])
@@ -49,6 +50,7 @@ class StarSystem:
         return {
             "StarSystem": self.StarSystem,
             "Merits": self.Merits,
+            "Active": self.Active,
             "PowerplayState": self.PowerplayState,
             "ControllingPower": self.ControllingPower,
             "Powers": self.Powers,
@@ -63,6 +65,7 @@ class StarSystem:
     def from_dict(self, data:dict={}):
         self.StarSystem: str = data.get("StarSystem", None)
         self.Merits: int = data.get("Merits", None)
+        self.Active: bool = data.get("Active", False)
         self.PowerplayState: str = data.get("PowerplayState", "stateless")
         self.ControllingPower: str = data.get("ControllingPower", "Mr.Nobody")
         self.Powers: list[str] = data.get("Powers", [])
@@ -70,7 +73,7 @@ class StarSystem:
         self.PowerplayConflictProgress: list[PowerConflictEntry] = sorted(
             PowerConflict(data).entries,
             key=lambda p: p.progress,
-            reverse=True  # absteigend sortiert
+            reverse=True  
         )
         self.PowerplayStateControlProgress: float = data.get("PowerplayStateControlProgress", 0.0)
         self.PowerplayStateReinforcement: int = data.get("PowerplayStateReinforcement", 0)
@@ -148,11 +151,15 @@ class PowerConflictEntry:
 
 class PowerConflict:
     def __init__(self, data):
-        raw_conflicts = data.get("PowerplayConflictProgress") or data.get("powerConflict",[])
-        self.entries: list[PowerConflictEntry] = [
-            PowerConflictEntry(item["Power"], item["ConflictProgress"])
-            for item in raw_conflicts
-        ]
+        self.entries: list[PowerConflictEntry] = []
+
+        if not isinstance(data, list):
+            return  
+
+        for item in data:
+            if isinstance(item, dict) and "Power" in item and "ConflictProgress" in item:
+                self.entries.append(PowerConflictEntry(item["Power"], item["ConflictProgress"]))
+        
         
 class SystemEncoder(json.JSONEncoder):
     def default(self, o):
