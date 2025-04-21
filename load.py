@@ -104,6 +104,9 @@ def plugin_app(parent):
 
     return this.frame
 
+def parse_version(version_str):
+    return tuple(int(part) for part in re.findall(r'\d+', version_str))
+
 def checkVersion():
     try:
         req = requests.get(url='https://api.github.com/repos/Fumlop/EliteMeritTracker/releases/latest')
@@ -118,9 +121,11 @@ def checkVersion():
 
     try:
         data = req.json()
-        if data['tag_name'] == this.version:
+        latest_version = parse_version(data['tag_name'])
+        current_version = parse_version(this.version)
+
+        if current_version >= latest_version:
             return 0  # Newest
-        return 1  # Newer version available
     except Exception as e:
         # JSON-Parsing-Fehler loggen
         logger.exception('Error while parsing the JSON response')
