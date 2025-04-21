@@ -154,7 +154,7 @@ class PowerConflict:
             for item in raw_conflicts
         ]
         
-class JsonEncoder(json.JSONEncoder):
+class SystemEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, StarSystem):
             return o.__dict__

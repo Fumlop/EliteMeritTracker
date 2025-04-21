@@ -11,7 +11,7 @@ this.pledgedPower = PledgedPower()
 this.currentSystemFlying = StarSystem()
 this.station_ecos = []
 this.trackedMerits = 0
-this.version = 'v0.4.56.1.200'
+this.version = 'v0.4.57.1.200'
 
 this.assetpath = ""
 
@@ -130,7 +130,6 @@ def plugin_start3(plugin_dir):
     directory_name = os.path.basename(os.path.dirname(__file__))
     plugin_path = os.path.join(config.plugin_dir, directory_name)
     file_path = os.path.join(plugin_path, "power.json")
-    system_merits_path = os.path.join(plugin_path, "system_merits.json")
     systems_path = os.path.join(plugin_path, "systems.json")
   
     this.assetspath = f"{plugin_path}/assets"
@@ -157,27 +156,7 @@ def plugin_start3(plugin_dir):
                     this.pledgedPower = default_pledgedPower
         except json.JSONDecodeError:
             this.pledgedPower = default_pledgedPower
-    
-    if os.path.exists(system_merits_path):
-        powerInfo = {}
-        if "Systems" not in powerInfo:
-            powerInfo["Systems"] = {}
-        
-        try:
-            with open(system_merits_path, "r") as json_file:
-                powerInfo["Systems"] = json.load(json_file)
-            logger.info("Loaded system merits from system_merits.json")
-        except json.JSONDecodeError:
-            logger.error("Failed to load system_merits.json, using empty Systems data.")
-            powerInfo["Systems"] = {}
-            
-        for system_name, system_data in powerInfo["Systems"].items():
-            tmpSys = StarSystem()
-            tmpSys.getFromOldDict(system_name, system_data)
-            this.systems[system_name] = tmpSys
-            logdump("loading olddata", tmpSys.to_dict())
-        os.remove(system_merits_path) 
-           
+              
     # Laden der gespeicherten Systeme
     if os.path.exists(systems_path):
         try:
@@ -190,7 +169,7 @@ def plugin_start3(plugin_dir):
                     n.from_dict(system_data)
                     this.systems[name] = n
         except json.JSONDecodeError:
-            logger.error("Failed to load system_merits.json, using empty Systems data.")
+            logger.error("Failed to load systems.json, using empty Systems data.")
             this.systems = {}
         
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
@@ -208,7 +187,7 @@ def plugin_stop():
     update_json_file()
     plugin_dir = os.path.dirname(os.path.abspath(__file__))
     systems_path = os.path.join(plugin_dir, "systems.json")
-    test_system_merits_path = os.path.join(plugin_dir, "system_merits_test.json")
+    test_system_merits_path = os.path.join(plugin_dir, "systems_test.json")
     
     filtered_systems = {
         name: data.to_dict()
@@ -218,7 +197,6 @@ def plugin_stop():
     try:
         with open(systems_path, "w") as json_file:
             json.dump(filtered_systems, json_file, indent=4)
-            logger.info(f"Saved {len(filtered_systems)} system(s) to system_merits.json")
     except Exception as e:
         logger.error(f"Failed to save system merits: {e}")
             
