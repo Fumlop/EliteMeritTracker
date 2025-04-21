@@ -16,4 +16,4 @@ Tracking Session Merits for EDMC
 
 Credits
 
-This plugin was developed on GitHub with contributions from Fumlop,nictheman123.
+This plugin was developed on GitHub with contributions from Fumlop, nictheman123, vScourge
