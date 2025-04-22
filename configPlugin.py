@@ -13,6 +13,7 @@ class ConfigPlugin:
         self.power_info_height: int = int(config.get_str("power_info_height") or "800")
         self.cacheTime: int = int(config.get_str("cacheTime") or self.getCacheTime())
         self.copyText: str = config.get_str("copyText") or self.getTextCopy()
+        self.reportOnFSDJump: bool = config.get_bool("reportOnFSDJump") or False
         self.discordHook: str = config.get_str("discordHook") or ""
         self.reportSave: bool = config.get_bool("reportSave") or True
         self.never: bool = config.get_bool("never") or False
@@ -31,6 +32,7 @@ class ConfigPlugin:
         config.set("power_info_height", str(self.power_info_height))
         config.set("cacheTime", str(self.cacheTime))
         config.set("copyText", self.copyText)
+        config.set("reportOnFSDJump", self.reportOnFSDJump)
         config.set("discordHook", self.discordHook)
         config.set("reportSave", self.reportSave)
         config.set("never", self.never)

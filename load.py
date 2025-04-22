@@ -1,6 +1,7 @@
 from imports import *
 from system import *
 from power import *
+from report import Report
 from power_info_window import show_power_info
 
 this = sys.modules[__name__]  # For holding module globals
@@ -14,7 +15,9 @@ this.crow = -1
 this.mainframerow = -1
 this.copyText = tk.StringVar(value=configPlugin.copyText if isinstance(configPlugin.copyText, str) else configPlugin.copyText.get())
 this.discordHook = tk.StringVar(value=configPlugin.discordHook if isinstance(configPlugin.discordHook, str) else configPlugin.discordHook.get())
+this.reportOnFSDJump = tk.BooleanVar(value=configPlugin.reportOnFSDJump if isinstance(configPlugin.reportOnFSDJump, bool) else False)
 this.assetpath = ""
+this.report = Report()
 
 def auto_update():
     try:
@@ -96,6 +99,18 @@ def restart_edmc():
 
 def parse_version(version_str):
     return tuple(int(part) for part in re.findall(r'\d+', version_str))
+
+def report_on_FSD(sourceSystem):
+    if not configPlugin.discordHook or configPlugin.reportOnFSDJump == False:
+        return
+    dcText = f"{this.copyText.replace('@MeritsValue', sourceSystem.Merits).replace('@System', sourceSystem.StarSystem)}"
+    if '@CPOpposition' in dcText:
+        dcText = dcText.replace('@CPOpposition', str(sourceSystem.PowerplayStateUndermining))
+
+    if '@CPPledged' in dcText:
+        dcText = dcText.replace('@CPPledged', str(sourceSystem.PowerplayStateReinforcement))
+    this.systems[sourceSystem.StarSystem].Merits = 0
+    this.report.send_to_discord(dcText)
 
 def checkVersion():
     try:
@@ -243,7 +258,12 @@ def plugin_app(parent):
     this.systemPowerStatusLabel = tk.Label(this.frame_row5, text="Net progress", anchor="w", justify="left")
     this.station_eco_label = tk.Label(this.frame_row7, text="", anchor="w", justify="left")
 
-    imagedelete = load_and_scale_image(f"{this.assetspath}/delete.png")
+    parent.root = tk.Tk()
+    parent.root.withdraw()  # Hide the main window
+
+    scale = get_scale_factor(parent.root.winfo_screenwidth(), parent.root.winfo_screenheight())
+
+    imagedelete = load_and_scale_image(f"{this.assetspath}/delete.png", scale)
     this.frame.icondelete = ImageTk.PhotoImage(imagedelete)
 
     this.systemPowerLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
@@ -298,16 +318,15 @@ def plugin_prefs(parent, cmdr, is_beta):
     # Label für die Beschreibung
     nb.Label(config_frame, text="Copy paste text value - Text must contain @MeritsValue and @System for replacement").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
     # Textfeld für die Eingabe
-    text_entry = nb.Entry(config_frame, textvariable=this.copyText, width=50)
     nb.Label(config_frame, text="@MeritsValue,@System,@CPOppositon,@CPPledged").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
-    nb.Label(config_frame, text="@System      - systemname").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
-    nb.Label(config_frame, text="@CPOppositon - CP in system for opposition").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
-    nb.Label(config_frame, text="@CPPledged   - CP in system for pledged power").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
-    nb.Label(config_frame, text="").grid(row=next_config_row(), column=0,sticky="w", padx=5, pady=5)
+    text_entry = nb.Entry(config_frame, textvariable=this.copyText, width=50)
     text_entry.grid(row=next_config_row(), column=0, padx=5, pady=5, sticky="we")
-    nb.Label(config_frame, text="Discordhook URL").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
+    nb.Label(config_frame, text="").grid(row=next_config_row(), column=0,sticky="w", padx=5, pady=5)
+    nb.Label(config_frame, text="Discordwebhook URL").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
     text_entry = nb.Entry(config_frame, textvariable=this.discordHook, width=50)
     text_entry.grid(row=next_config_row(), column=0, padx=5, pady=5, sticky="we")
+    nb.Checkbutton(config_frame, text="Report merits from source system to discord on FSDJump", variable=this.reportOnFSDJump).grid(
+            row=next_config_row(), columnspan=2, sticky=tk.W)
     nb.Label(config_frame, text="").grid(row=next_config_row(), column=0,sticky="w", padx=5, pady=5)
     nb.Label(config_frame, text=f"Version {this.version}").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
     return config_frame
@@ -338,6 +357,7 @@ def update_system_merits(merits_value, total):
 def prefs_changed(cmdr, is_beta):
     configPlugin.copyText = this.copyText.get()
     configPlugin.discordHook = this.discordHook.get()
+    configPlugin.reportOnFSDJump = this.reportOnFSDJump
     configPlugin.dumpConfig()
     update_display()
            
@@ -364,6 +384,8 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             this.systems[new_system.StarSystem] = new_system
             logger.debug(new_system.to_dict())
             logger.debug(f"Existing systems - {len(this.systems)}")
+        if entry['event'] == 'FSDJump' and configPlugin.reportOnFSDJump == True and this.currentSystemFlying.Merits > 0:
+            report_on_FSD(this.currentSystemFlying)
         updateSystemTracker(this.currentSystemFlying,this.systems[nameSystem])
         
         update_display()
@@ -414,9 +436,14 @@ def update_display():
         logger.debug(f"KeyError for current system '{this.currentSystemFlying}': {e}")
     this.currentSystemLabel.grid()
 
-def load_and_scale_image(path: str) -> Image:
+def get_scale_factor(current_width: int, current_height: int, base_width: int = 2560, base_height: int = 1440) -> float:
+    scale_x = current_width / base_width
+    scale_y = current_height / base_height
+    return min(scale_x, scale_y)  # Use the smaller factor to maintain the aspect ratio.
+
+def load_and_scale_image(path: str, scale: float) -> Image:
     image = Image.open(path)
-    new_size = (int(image.width), int(image.height))
+    new_size = (int(image.width * scale), int(image.height * scale))
     try:
         # Pillow 10.0.0 and later
         resample_filter = Image.Resampling.LANCZOS

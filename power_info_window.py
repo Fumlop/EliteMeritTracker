@@ -17,8 +17,7 @@ def copy_to_clipboard_or_report(text, name, table_frame, update_scrollregion):
     global report, systems
     if configPlugin.discordHook:
         report.send_to_discord(text)
-        systems[name].Merits = 0
-        populate_table(table_frame, update_scrollregion)
+        delete_entry(name, table_frame, update_scrollregion)
     else:
         root = tk.Tk()
         root.withdraw()
@@ -176,10 +175,12 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
 
     if configPlugin.discordHook:
         textCopyReport = "report"
-        textCopyReportHeader = "to discord"
+        textCopyReportHeader = "Discord"
+        tlColumn = ""
     else:
         textCopyReport = "copy"
-        textCopyReportHeader = "to clipboard"
+        textCopyReportHeader = "Clipboard"
+        tlColumn = "Reset merits"
 
     if detailed_view:
         headers = ["System", "Status", "Controlling Power", "Powerplay Cycle", "Reinforcement", "Undermining","Opposition" ]
@@ -188,7 +189,7 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
         filter_row = 7
         data_start_row = 8
     else:
-        headers = ["System name", "Session merits", textCopyReportHeader, "Text", ""]
+        headers = ["System name", "Session merits", textCopyReportHeader, "Text", tlColumn]
         col_widths = [30, 15, 15, 10, 10, 60]
         header_row = 0
         data_start_row = 7
@@ -249,9 +250,16 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
                 tk.Label(data_frame_default, text=system_name, width=15, anchor="w"),
                 tk.Label(data_frame_default, text=f"{merits}", width=15, anchor="w"),
                 tk.Button(data_frame_default, text=textCopyReport, command=lambda text=dcText, name=system_name: copy_to_clipboard_or_report(text, name, table_frame, update_scrollregion)),
-                tk.Label(data_frame_default, text=dcText, width=45, anchor="w", justify="left", wraplength=300),
-                tk.Button(data_frame_default, text="Delete", command=lambda name=system_name: delete_entry(name, table_frame, update_scrollregion)),
             ]
+            
+            if tlColumn != "":
+                widgets.append(
+                    tk.Button(data_frame_default, text="Reset", command=lambda name=system_name: delete_entry(name, table_frame, update_scrollregion))
+                )
+
+            widgets.append(
+                tk.Label(data_frame_default, text=dcText, width=45, anchor="w", justify="left", wraplength=300)
+            )
 
             for col, widget in enumerate(widgets):
                 widget.grid(row=row_index, column=col, padx=5, pady=2, sticky="w")
