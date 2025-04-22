@@ -9,10 +9,11 @@ this.dump_test = False
 this.systems = {}
 this.pledgedPower = PledgedPower()
 this.currentSystemFlying = StarSystem()
-this.station_ecos = []
-this.trackedMerits = 0
-this.version = 'v0.4.59.1.200'
-
+this.version = 'v0.4.60.1.200'
+this.crow = -1
+this.mainframerow = -1
+this.copyText = tk.StringVar(value=configPlugin.copyText if isinstance(configPlugin.copyText, str) else configPlugin.copyText.get())
+this.discordHook = tk.StringVar(value=configPlugin.discordHook if isinstance(configPlugin.discordHook, str) else configPlugin.discordHook.get())
 this.assetpath = ""
 
 def auto_update():
@@ -139,9 +140,16 @@ def plugin_start3(plugin_dir):
   
     this.assetspath = f"{plugin_path}/assets"
 
-    # Initialize discordText
-    this.discordText = tk.StringVar(value=config.get_str("dText") or "@Leader Earned @MeritsValue merits in @System")
-    this.saveSession = tk.BooleanVar(value=(config.get_str("saveSession") =="True" if config.get_str("saveSession") else True))
+    if configPlugin.never == True:
+        logger.debug("new config mode")
+        logger.debug(json.dumps(configPlugin, ensure_ascii=False, indent=4, cls=ConfigEncoder))
+    else:
+        this.discordText = tk.StringVar(value=config.get_str("dText") or "@Leader Earned @MeritsValue merits in @System")
+        this.saveSession = tk.BooleanVar(value=(config.get_str("saveSession") =="True" if config.get_str("saveSession") else True))
+        configPlugin.never = True
+        configPlugin.reportSave = this.saveSession
+        configPlugin.copyText = this.discordText
+    
     default_system:StarSystem = StarSystem(eventEntry={},reported=False)
     default_pledgedPower:PledgedPower = PledgedPower(eventEntry={})
     
@@ -200,7 +208,7 @@ def plugin_stop():
     filtered_systems = {
         name: data.to_dict()
         for name, data in this.systems.items()
-        if not data.reported and data.Merits > 0
+        if (not data.reported and data.Merits > 0) or data.Active == True
     }
     try:
         with open(systems_path, "w") as json_file:
@@ -245,13 +253,8 @@ def plugin_app(parent):
     this.systemPowerLabel = tk.Label(this.frame_row4, text="Powerplay Status", anchor="w", justify="left")
     this.systemPowerStatusLabel = tk.Label(this.frame_row5, text="Net progress", anchor="w", justify="left")
     this.station_eco_label = tk.Label(this.frame_row7, text="", anchor="w", justify="left")
-    
-    parent.root = tk.Tk()
-    parent.root.withdraw()  # Hide the main window
 
-    scale = get_scale_factor(parent.root.winfo_screenwidth(), parent.root.winfo_screenheight())
-
-    imagedelete = load_and_scale_image(f"{this.assetspath}/delete.png", scale)
+    imagedelete = load_and_scale_image(f"{this.assetspath}/delete.png")
     this.frame.icondelete = ImageTk.PhotoImage(imagedelete)
 
     this.systemPowerLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
@@ -282,14 +285,13 @@ def plugin_app(parent):
     this.showButton = tk.Button(
         this.frame_row6,
         text="Overview",
-        command=lambda: show_power_info(parent, this.pledgedPower, this.systems, this.discordText.get()),
+        command=lambda: show_power_info(parent, this.pledgedPower, this.systems),
         state=stateButton,
         compound="center"
     )
     this.showButton.pack(side="left", expand=True, fill="both", padx=0, pady=2) 
-     
-    #if this.debug:
-    #   update_display()
+    
+
     return this.frame
 
 def reset():
@@ -303,21 +305,31 @@ def reset():
 
 def plugin_prefs(parent, cmdr, is_beta):
     config_frame = nb.Frame(parent)
-
+    config_frame.columnconfigure(1, weight=1)
+    config_frame.grid(sticky=tk.EW)
     # Label für die Beschreibung
-    tk.Label(config_frame, text="Copy paste text value - Text must contain @MeritsValue and @System for replacement").grid(row=0, column=0, sticky="w", padx=5, pady=5)
-
+    nb.Label(config_frame, text="Copy paste text value - Text must contain @MeritsValue and @System for replacement").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
     # Textfeld für die Eingabe
-    text_entry = tk.Entry(config_frame, textvariable=this.discordText, width=50)
-    text_entry.grid(row=1, column=0, padx=5, pady=5, sticky="we")
-    tk.Label(config_frame, text="Save non-reported system merits on exiting edmc").grid(row=3, column=0, sticky="w", padx=5, pady=5)
-    bool_entry = tk.Checkbutton(config_frame, variable=this.saveSession)
-    bool_entry.grid(row=3, column=3, sticky="w", padx=5, pady=5)
-    
-    tk.Label(config_frame, text="Optional place holder @CPOppositon, @CPPledged").grid(row=5, column=0, sticky="w", padx=5, pady=5)
-    
-    tk.Label(config_frame, text=f"Version {this.version}").grid(row=10, column=0, sticky="w", padx=5, pady=5)
+    text_entry = nb.Entry(config_frame, textvariable=this.copyText, width=50)
+    nb.Label(config_frame, text="@MeritsValue - gained merits in system").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
+    nb.Label(config_frame, text="@System      - systemname").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
+    nb.Label(config_frame, text="@CPOppositon - CP in system for opposition").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
+    nb.Label(config_frame, text="@CPPledged   - CP in system for pledged power").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
+    nb.Label(config_frame, text="").grid(row=next_config_row(), column=0,sticky="w", padx=5, pady=5)
+    text_entry.grid(row=next_config_row(), column=0, padx=5, pady=5, sticky="we")
+    nb.Label(config_frame, text="Discordhook URL").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
+    text_entry = nb.Entry(config_frame, textvariable=this.discordHook, width=50)
+    text_entry.grid(row=next_config_row(), column=0, padx=5, pady=5, sticky="we")
+    nb.Label(config_frame, text="").grid(row=next_config_row(), column=0,sticky="w", padx=5, pady=5)
+    nb.Label(config_frame, text=f"Version {this.version}").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
     return config_frame
+
+def current_config_row():
+    return this.crow
+
+def next_config_row():
+    this.crow += 1
+    return this.crow
 
 def update_system_merits(merits_value, total):
     try:
@@ -336,10 +348,9 @@ def update_system_merits(merits_value, total):
         logger.debug("Invalid merits value. Please enter a number.")
 
 def prefs_changed(cmdr, is_beta):
-    # Speichere den aktuellen Wert der StringVar in die Konfiguration
-    config.set("dText", this.discordText.get())
-    config.set("saveSession", str(this.saveSession.get()))
-    logger.info(str(this.saveSession.get()))
+    configPlugin.copyText = this.copyText.get()
+    configPlugin.discordHook = this.discordHook.get()
+    configPlugin.dumpConfig()
     update_display()
            
 def update_json_file():
@@ -415,8 +426,6 @@ def update_display():
         this.systemPowerStatusLabel["text"] = systemPowerStatusText.strip()
     except KeyError as e:
         logger.debug(f"KeyError for current system '{this.currentSystemFlying}': {e}")
-    if len(this.station_ecos) > 0:
-        this.station_eco_label["text"] = "\n".join(this.station_ecos)
     this.currentSystemLabel.grid()
 
 def get_scale_factor(current_width: int, current_height: int, base_width: int = 2560, base_height: int = 1440) -> float:
@@ -424,9 +433,9 @@ def get_scale_factor(current_width: int, current_height: int, base_width: int = 
     scale_y = current_height / base_height
     return min(scale_x, scale_y)  # Use the smaller factor to maintain the aspect ratio.
 
-def load_and_scale_image(path: str, scale: float) -> Image:
+def load_and_scale_image(path: str) -> Image:
     image = Image.open(path)
-    new_size = (int(image.width * scale), int(image.height * scale))
+    new_size = (int(image.width), int(image.height))
     try:
         # Pillow 10.0.0 and later
         resample_filter = Image.Resampling.LANCZOS

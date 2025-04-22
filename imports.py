@@ -1,5 +1,6 @@
 import os
 import tkinter as tk
+from tkinter import ttk
 import json
 import math
 import requests
@@ -10,6 +11,7 @@ import sys
 import tkinter as tk
 import csv
 import os
+from configPlugin import *
 from tkinter import filedialog
 from datetime import datetime, timedelta
 import myNotebook as nb
@@ -24,6 +26,9 @@ import logging
 plugin_name = os.path.basename(os.path.dirname(__file__))
 
 logger = logging.getLogger(f'{appname}.{plugin_name}')
+
+configPlugin = ConfigPlugin()
+
 if not logger.hasHandlers():
     level = logging.INFO  # So logger.info(...) is equivalent to print()
 
@@ -34,4 +39,3 @@ if not logger.hasHandlers():
     logger_formatter.default_msec_format = '%s.%03d'
     logger_channel.setFormatter(logger_formatter)
     logger.addHandler(logger_channel)
-

@@ -1,5 +1,5 @@
 from imports import *
-
+from report import Report
 filter_power_var = None
 filter_system_var = None
 filter_state_var = None
@@ -7,17 +7,26 @@ filter_frame = None
 data_frame_default = None
 data_frame_detailed = None
 header_frame_default = None
+update_scrollregion = None
 
-def copy_to_clipboard(text):
-    root = tk.Tk()
-    root.withdraw()
-    root.clipboard_clear()
-    root.clipboard_append(text)
-    root.update()
-    root.destroy()
+report = Report()
+pledgedPower = None
+systems = None
 
-def delete_entry(system_name, systems, table_frame, update_scrollregion,initial_text):
-    global data_frame_default, data_frame_detailed, detailed_view
+def copy_to_clipboard_or_report(text):
+    global report
+    if configPlugin.discordHook:
+        report.send_to_discord(text)
+    else:
+        root = tk.Tk()
+        root.withdraw()
+        root.clipboard_clear()
+        root.clipboard_append(text)
+        root.update()
+        root.destroy()
+
+def delete_entry(system_name, table_frame, update_scrollregion):
+    global data_frame_default, data_frame_detailed, detailed_view,systems, pledgedPower
 
     if system_name in systems:
         systems[system_name].Merits = 0
@@ -29,10 +38,10 @@ def delete_entry(system_name, systems, table_frame, update_scrollregion,initial_
             for widget in data_frame_default.winfo_children():
                 widget.destroy()
 
-        populate_table(table_frame, systems, update_scrollregion, initial_text)
+        populate_table(table_frame, update_scrollregion)
 
-def toggle_view(pledgedpower, systemsflown, initial_text):
-    global detailed_view, csv_button, systems
+def toggle_view():
+    global detailed_view, csv_button, systems, pledgedPower
 
     detailed_view = not detailed_view  # Switch between views
 
@@ -51,10 +60,10 @@ def toggle_view(pledgedpower, systemsflown, initial_text):
 
     # Show headers only in default view
     if not detailed_view:
-        add_power_info_headers(pledgedpower)
+        add_power_info_headers()
 
     # Repopulate the table
-    table_frame.after(100, lambda: populate_table(table_frame, systems, update_scrollregion, initial_text))
+    table_frame.after(100, lambda: populate_table(table_frame, update_scrollregion))
 
 def save_window_size(info_window):
     w = info_window.winfo_width()
@@ -80,32 +89,32 @@ def export_to_csv():
     with open(file_path, mode="w", newline="") as file:
         writer = csv.writer(file,delimiter=";")
         writer.writerow(headers)  # Write headers
-        
         for system_name, system_data in systems.items():
-            state = system_data.get("state", "")
-            progress = system_data.get("progress", 0) * 100
-            controlling_power = system_data.get("power", "")
-            if system_data.get("powerCompetition"):
-                opposition = next(p for p in system_data.get("powerCompetition", []) if p != controlling_power)
-            else:
-                opposition = ""
-            reinforcement = system_data.get("statereinforcement", 0)
-            undermining = system_data.get("stateundermining", 0)
-            power_status = get_system_power_status_text(reinforcement, undermining)
+            state = system_data.PowerplayState
+            progress = system_data.getSystemProgressNumber()
+            controlling_power = system_data.ControllingPower
+            opposition = system_data.Opposition
+            reinforcement = system_data.PowerplayStateReinforcement
+            undermining = system_data.PowerplayStateUndermining
+            power_status =system_data.getPowerPlayCycleNetStatusText()
 
             writer.writerow([system_name, f"{state} ({progress:.2f}%)", controlling_power, power_status, reinforcement, undermining, opposition ])
 
     print(f"CSV export successful: {file_path}")  # Debug log (replace with a messagebox if needed)
 
-def show_power_info(parent, pledgedpower, systemflown, initial_text):
-    global table_frame, systems, update_scrollregion, toggle_button, csv_button, detailed_view, filter_frame, data_frame
+def show_power_info(parent, pp, sy):
+    global table_frame, toggle_button, csv_button, detailed_view, filter_frame, data_frame, systems, pledgedPower, update_scrollregion
+    update_scrollregion = lambda event=None: canvas.configure(scrollregion=canvas.bbox("all"))
+    
+    pledgedPower = pp
+    systems = sy
 
     detailed_view = False  
 
     info_window = tk.Toplevel(parent)
     info_window.title("Power Info")
-    saved_width = config.get_str("power_info_width") or "1280"
-    saved_height = config.get_str("power_info_height") or "800"
+    saved_width = str(configPlugin.power_info_width) or "1280"
+    saved_height = str(configPlugin.power_info_height) or "800"
     info_window.geometry(f"{saved_width}x{saved_height}")
 
     main_frame = tk.Frame(info_window)
@@ -133,55 +142,52 @@ def show_power_info(parent, pledgedpower, systemflown, initial_text):
     
     # Zeige Powerplay-Details in Default View
     if not detailed_view:
-        add_power_info_headers(pledgedpower)
+        add_power_info_headers()
 
 
     button_frame = tk.Frame(info_window)
     button_frame.pack(side="top", pady=5, anchor="center")  # Buttons mittig ausrichten
 
-    toggle_button = tk.Button(button_frame, text="Show Detailed View", command=lambda: toggle_view(pledgedpower, systemflown, initial_text))
+    toggle_button = tk.Button(button_frame, text="Show Detailed View", command=lambda: toggle_view())
     toggle_button.grid(row=0, column=0, padx=5)
 
     csv_button = tk.Button(button_frame, text="Export CSV", command=export_to_csv)
     csv_button.grid(row=0, column=1, padx=5)
     csv_button.grid_forget()  # Erst in detailed_view anzeigen
-
-    systems = {
-        name: data for name, data in systemflown.items()
-        if ((data.ControllingPower != "NoPower" or len(data.Powers)>0) and data.PowerplayState != "None")
-    }
-
-    populate_table(table_frame, systems, update_scrollregion, initial_text)
-
-
+    populate_table(table_frame, update_scrollregion)
     
-def add_power_info_headers(power_info):
-    """
-    Ensures Power Info (Name, Rank, Merits, etc.) is only shown in Default View.
-    """
+def add_power_info_headers():
+    global systems, pledgedPower
     if detailed_view:
         return  # Do not show headers in Detailed View
 
     tk.Label(table_frame, text="Powerplay Details", font=("Arial", 14, "bold")).grid(row=0, column=0, columnspan=6, pady=10, sticky="w")
 
-    tk.Label(table_frame, text=f"Power name: {power_info.Power}", anchor="w").grid(row=1, column=0, columnspan=6, sticky="w", padx=10)
-    tk.Label(table_frame, text=f"Rank: {power_info.Rank}", anchor="w").grid(row=2, column=0, columnspan=6, sticky="w", padx=10)
-    tk.Label(table_frame, text=f"Current merits: {power_info.Merits}", anchor="w").grid(row=3, column=0, columnspan=6, sticky="w", padx=10)
-    tk.Label(table_frame, text=f"Time pledged: {power_info.TimePledgedStr}", anchor="w").grid(row=4, column=0, columnspan=6, sticky="w", padx=10)
+    tk.Label(table_frame, text=f"Power name: {pledgedPower.Power}", anchor="w").grid(row=1, column=0, columnspan=6, sticky="w", padx=10)
+    tk.Label(table_frame, text=f"Rank: {pledgedPower.Rank}", anchor="w").grid(row=2, column=0, columnspan=6, sticky="w", padx=10)
+    tk.Label(table_frame, text=f"Current merits: {pledgedPower.Merits}", anchor="w").grid(row=3, column=0, columnspan=6, sticky="w", padx=10)
+    tk.Label(table_frame, text=f"Time pledged: {pledgedPower.TimePledgedStr}", anchor="w").grid(row=4, column=0, columnspan=6, sticky="w", padx=10)
 
 
-def populate_table(table_frame, systems, update_scrollregion, initial_text, show_filters_only=False):
-    global detailed_view, data_frame_default
+def populate_table(table_frame, update_scrollregion, show_filters_only=False):
+    global detailed_view, data_frame_default,systems, pledgedPower
+
+    if configPlugin.discordHook:
+        textCopyReport = "report"
+        textCopyReportHeader = "Report to discord"
+    else:
+        textCopyReport = "copy"
+        textCopyReportHeader = "Copy to clipboard"
 
     if detailed_view:
         headers = ["System", "Status", "Controlling Power", "Powerplay Cycle", "Reinforcement", "Undermining","Opposition" ]
-        col_widths = [25, 20, 25, 15, 15, 15, 25]
+        col_widths = [30, 20, 25, 15, 15, 15, 25]
         header_row = 6
         filter_row = 7
         data_start_row = 8
     else:
-        headers = ["System name", "Session merits", "Reported", "", "Text", ""]
-        col_widths = [15, 15, 15, 10, 10, 60]
+        headers = ["System name", "Session merits", textCopyReportHeader, "", "Text", ""]
+        col_widths = [30, 15, 15, 10, 10, 60]
         header_row = 0
         data_start_row = 7
 
@@ -195,7 +201,7 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
     # ----- DETAILED VIEW -----
     if detailed_view:
         # Filterzeile (unter Header)
-        add_detailed_view_filter_buttons(table_frame, systems)
+        add_detailed_view_filter_buttons(table_frame)
 
         # alte Datenzeilen entfernen (ab Zeile data_start_row)
         for widget in table_frame.grid_slaves():
@@ -222,7 +228,7 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
     row_index = 1
     created_widgets = []
     for col, (header, width) in enumerate(zip(headers, col_widths)):
-        label = tk.Label(data_frame_default, text=header, width=width, anchor="w", font=("Arial", 10, "bold"))
+        label = tk.Label(data_frame_default, text=header, width=width, anchor="w", font=("Arial", 12, "bold"))
         label.grid(row=header_row, column=col, padx=5, pady=2, sticky="w")
         label.grid_remove()
         created_widgets.append(label)
@@ -230,25 +236,19 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
         merits = str(system_data.Merits)
 
         if int(merits) > 0:
-            reported = system_data.reported
-            dcText = f"{initial_text.replace('@MeritsValue', merits).replace('@System', system_name)}"
+            dcText = f"{configPlugin.copyText.replace('@MeritsValue', merits).replace('@System', system_name)}"
             if '@CPOpposition' in dcText:
                 dcText = dcText.replace('@CPOpposition', str(system_data.PowerplayStateUndermining))
 
             if '@CPPledged' in dcText:
                 dcText = dcText.replace('@CPPledged', str(system_data.PowerplayStateReinforcement))
-            reported_var = tk.BooleanVar(value=reported)
-
-            def toggle_reported(system=system_name, var=reported_var):
-                systems[system].reported = var.get()
 
             widgets = [
                 tk.Label(data_frame_default, text=system_name, width=15, anchor="w"),
                 tk.Label(data_frame_default, text=f"{merits}", width=15, anchor="w"),
-                tk.Checkbutton(data_frame_default, variable=reported_var, command=lambda s=system_name, v=reported_var: toggle_reported(s, v)),
-                tk.Button(data_frame_default, text="Copy", command=lambda text=dcText: copy_to_clipboard(text)),
+                tk.Button(data_frame_default, text=textCopyReport, command=lambda text=dcText: copy_to_clipboard_or_report(text)),
                 tk.Label(data_frame_default, text=dcText, width=45, anchor="w", justify="left", wraplength=300),
-                tk.Button(data_frame_default, text="Delete", command=lambda name=system_name: delete_entry(name, systems, table_frame, update_scrollregion, initial_text)),
+                tk.Button(data_frame_default, text="Delete", command=lambda name=system_name: delete_entry(name, table_frame, update_scrollregion)),
             ]
 
             for col, widget in enumerate(widgets):
@@ -261,9 +261,9 @@ def populate_table(table_frame, systems, update_scrollregion, initial_text, show
     # Alles am Ende sichtbar machen
     for widget in created_widgets:
         widget.grid()
-    
-def add_detailed_view_filter_buttons(parent_frame, systems):
-    global filter_power_var, filter_system_var, filter_state_var, filter_frame
+        
+def add_detailed_view_filter_buttons(parent_frame):
+    global filter_power_var, filter_system_var, filter_state_var, filter_frame,systems, pledgedPower
 
     if filter_frame:
         filter_frame.destroy()
@@ -300,7 +300,7 @@ def add_detailed_view_filter_buttons(parent_frame, systems):
         var.trace_add("write", lambda *args: refresh_filtered_table())
 
 def refresh_filtered_table():
-    global table_frame
+    global table_frame,systems, pledgedPower
 
     selected_system = filter_system_var.get()
     selected_state = filter_state_var.get()
@@ -323,14 +323,15 @@ def refresh_filtered_table():
 
     populate_table_data_rows(table_frame, filtered, start_row=8)
 
-def populate_table_data_rows(parent, systems, start_row=8):
+def populate_table_data_rows(parent, filtered, start_row=8):
+    global systems, pledgedPower
     for i in range(6):
         parent.columnconfigure(i, weight=1)
 
     row_index = start_row
     created_widgets = []  # Sammle Widgets für spätere Anzeige
 
-    for system_name, system_data in systems.items():
+    for system_name, system_data in filtered.items():
         
         controlling_power = system_data.ControllingPower
         opposition = ", ".join(system_data.Opposition)
