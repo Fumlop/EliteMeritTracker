@@ -19,7 +19,7 @@ class ConfigPlugin:
         self.never: bool = config.get_bool("never") or False
 
     def getTextCopy(self):
-        return "@Leadership earned @MeritsValue merits in @System, >Power< @CPPledged, Others @CPOpposition"
+        return "@Leadership earned @MeritsValue merits in @System, @CPControlling, @CPOpposition"
     
     def getCacheTime(self):
         return "43200"
@@ -31,11 +31,11 @@ class ConfigPlugin:
         config.set("power_info_width", str(self.power_info_width))
         config.set("power_info_height", str(self.power_info_height))
         config.set("cacheTime", str(self.cacheTime))
-        config.set("copyText", self.copyText)
-        config.set("reportOnFSDJump", self.reportOnFSDJump)
-        config.set("discordHook", self.discordHook)
-        config.set("reportSave", self.reportSave)
-        config.set("never", self.never)
+        config.set("copyText", str(self.copyText))
+        config.set("reportOnFSDJump", bool(self.reportOnFSDJump))
+        config.set("discordHook", str(self.discordHook))
+        config.set("reportSave", bool(self.reportSave))
+        config.set("never", bool(self.never))
 
 class ConfigEncoder(json.JSONEncoder):
     def default(self, o):

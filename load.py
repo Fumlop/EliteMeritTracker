@@ -10,7 +10,7 @@ this.dump_test = False
 this.systems = {}
 this.pledgedPower = PledgedPower()
 this.currentSystemFlying = StarSystem()
-this.version = 'v0.4.60.1.200'
+this.version = 'v0.4.61.1.200'
 this.crow = -1
 this.mainframerow = -1
 this.copyText = tk.StringVar(value=configPlugin.copyText if isinstance(configPlugin.copyText, str) else configPlugin.copyText.get())
@@ -318,7 +318,7 @@ def plugin_prefs(parent, cmdr, is_beta):
     # Label für die Beschreibung
     nb.Label(config_frame, text="Copy paste text value - Text must contain @MeritsValue and @System for replacement").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
     # Textfeld für die Eingabe
-    nb.Label(config_frame, text="@MeritsValue,@System,@CPOppositon,@CPPledged").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
+    nb.Label(config_frame, text="@MeritsValue,@System,@CPOppositon,@CPControlling").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
     text_entry = nb.Entry(config_frame, textvariable=this.copyText, width=50)
     text_entry.grid(row=next_config_row(), column=0, padx=5, pady=5, sticky="we")
     nb.Label(config_frame, text="").grid(row=next_config_row(), column=0,sticky="w", padx=5, pady=5)
@@ -357,8 +357,9 @@ def update_system_merits(merits_value, total):
 def prefs_changed(cmdr, is_beta):
     configPlugin.copyText = this.copyText.get()
     configPlugin.discordHook = this.discordHook.get()
-    configPlugin.reportOnFSDJump = this.reportOnFSDJump
+    configPlugin.reportOnFSDJump = this.reportOnFSDJump.get()
     configPlugin.dumpConfig()
+    logger.debug(json.dumps(configPlugin, ensure_ascii=False, indent=4, cls=ConfigEncoder))
     update_display()
            
 def update_json_file():

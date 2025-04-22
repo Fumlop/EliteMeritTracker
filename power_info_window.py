@@ -189,7 +189,7 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
         filter_row = 7
         data_start_row = 8
     else:
-        headers = ["System name", "Session merits", textCopyReportHeader, "Text", tlColumn]
+        headers = ["System", "Session merits", textCopyReportHeader, tlColumn, "Text"]
         col_widths = [30, 15, 15, 10, 10, 60]
         header_row = 0
         data_start_row = 7
@@ -241,10 +241,9 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
         if int(merits) > 0:
             dcText = f"{configPlugin.copyText.replace('@MeritsValue', merits).replace('@System', system_name)}"
             if '@CPOpposition' in dcText:
-                dcText = dcText.replace('@CPOpposition', str(system_data.PowerplayStateUndermining))
-
-            if '@CPPledged' in dcText:
-                dcText = dcText.replace('@CPPledged', str(system_data.PowerplayStateReinforcement))
+                dcText = dcText.replace('@CPOpposition', f"Opposition {str(system_data.PowerplayStateUndermining)}")
+            if '@CPControlling' in dcText:
+                dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {str(system_data.PowerplayStateReinforcement)}")
 
             widgets = [
                 tk.Label(data_frame_default, text=system_name, width=15, anchor="w"),
