@@ -94,17 +94,6 @@ def restart_edmc():
     this.frame.quit()
     os._exit(0)  # Beendet das aktuelle Python-Programm
 
-def plugin_app(parent):
-    this.frame = tk.Frame(parent)
-
-    if this.newest == 1:
-        this.updateButton = tk.Button(
-            this.frame, text="Update Available", command=auto_update, fg="red"
-        )
-        this.updateButton.grid(row=5, column=0, padx=5, pady=5, sticky="w")
-
-    return this.frame
-
 def parse_version(version_str):
     return tuple(int(part) for part in re.findall(r'\d+', version_str))
 
@@ -290,7 +279,6 @@ def plugin_app(parent):
         compound="center"
     )
     this.showButton.pack(side="left", expand=True, fill="both", padx=0, pady=2) 
-    
 
     return this.frame
 
@@ -311,7 +299,7 @@ def plugin_prefs(parent, cmdr, is_beta):
     nb.Label(config_frame, text="Copy paste text value - Text must contain @MeritsValue and @System for replacement").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
     # Textfeld für die Eingabe
     text_entry = nb.Entry(config_frame, textvariable=this.copyText, width=50)
-    nb.Label(config_frame, text="@MeritsValue - gained merits in system").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
+    nb.Label(config_frame, text="@MeritsValue,@System,@CPOppositon,@CPPledged").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
     nb.Label(config_frame, text="@System      - systemname").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
     nb.Label(config_frame, text="@CPOppositon - CP in system for opposition").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
     nb.Label(config_frame, text="@CPPledged   - CP in system for pledged power").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
@@ -354,12 +342,11 @@ def prefs_changed(cmdr, is_beta):
     update_display()
            
 def update_json_file():
-    if (this.debug == False):
-        directory_name = os.path.basename(os.path.dirname(__file__))
-        plugin_path = os.path.join(config.plugin_dir, directory_name)
-        file_path = os.path.join(plugin_path, "power.json")
-        with open(file_path, "w") as json_file:
-            json.dump(this.pledgedPower.to_dict(), json_file, indent=4)
+    directory_name = os.path.basename(os.path.dirname(__file__))
+    plugin_path = os.path.join(config.plugin_dir, directory_name)
+    file_path = os.path.join(plugin_path, "power.json")
+    with open(file_path, "w") as json_file:
+        json.dump(this.pledgedPower.to_dict(), json_file, indent=4)
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] in ['Powerplay']:
@@ -370,14 +357,13 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         total = entry.get('TotalMerits')
         update_system_merits(merits,total)
     if entry['event'] in ['FSDJump', 'Location','SupercruiseEntry','SupercruiseExit']:
-        
         nameSystem = entry.get('StarSystem',"Nomansland")
         if (not this.systems or len(this.systems)==0 or nameSystem not in this.systems):
             new_system = StarSystem(eventEntry=entry)
             logger.debug(f"Created new system- {nameSystem}")
-            logger.debug(f"Existing systems- {len(this.systems)}")
             this.systems[new_system.StarSystem] = new_system
             logger.debug(new_system.to_dict())
+            logger.debug(f"Existing systems - {len(this.systems)}")
         updateSystemTracker(this.currentSystemFlying,this.systems[nameSystem])
         
         update_display()
@@ -427,11 +413,6 @@ def update_display():
     except KeyError as e:
         logger.debug(f"KeyError for current system '{this.currentSystemFlying}': {e}")
     this.currentSystemLabel.grid()
-
-def get_scale_factor(current_width: int, current_height: int, base_width: int = 2560, base_height: int = 1440) -> float:
-    scale_x = current_width / base_width
-    scale_y = current_height / base_height
-    return min(scale_x, scale_y)  # Use the smaller factor to maintain the aspect ratio.
 
 def load_and_scale_image(path: str) -> Image:
     image = Image.open(path)
