@@ -1,5 +1,4 @@
 from imports import *
-from load import this
 
 class Report:
     def __init__(self):
