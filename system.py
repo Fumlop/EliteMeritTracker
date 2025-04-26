@@ -12,7 +12,7 @@ class StarSystem:
         self.Powers: list[str] = eventEntry.get("Powers", [])
         self.Opposition: list[str] = [p for p in self.Powers if p != self.ControllingPower]
         self.PowerplayConflictProgress: list[PowerConflictEntry] = sorted(
-            PowerConflict(eventEntry).entries,
+            PowerConflict(eventEntry.get("PowerplayConflictProgress", [])).entries,
             key=lambda p: p.progress,
             reverse=True  # absteigend sortiert
         )
@@ -32,6 +32,21 @@ class StarSystem:
                 return [0, 0]
             return [self.PowerplayConflictProgress[0].progress, 0, 0]
         
+    def updateSystem(self, eventEntry:dict = {}):
+        self.Active: bool = True
+        self.PowerplayState: str = eventEntry.get("PowerplayState", "stateless")
+        self.ControllingPower: str = eventEntry.get("ControllingPower", "Mr.Nobody")
+        self.Powers: list[str] = eventEntry.get("Powers", [])
+        self.Opposition: list[str] = [p for p in self.Powers if p != self.ControllingPower]
+        self.PowerplayConflictProgress: list[PowerConflictEntry] = sorted(
+            PowerConflict(eventEntry.get("PowerplayConflictProgress", [])).entries,
+            key=lambda p: p.progress,
+            reverse=True  # absteigend sortiert
+        )
+        self.PowerplayStateControlProgress: float = eventEntry.get("PowerplayStateControlProgress", 0.0)
+        self.PowerplayStateReinforcement: int = eventEntry.get("PowerplayStateReinforcement", 0)
+        self.PowerplayStateUndermining: int = eventEntry.get("PowerplayStateUndermining", 0)
+    
     def addMerits(self, gained=0):
         self.Merits += gained
         
@@ -71,7 +86,7 @@ class StarSystem:
         self.Powers: list[str] = data.get("Powers", [])
         self.Opposition: list[str] = data.get("Opposition", [])
         self.PowerplayConflictProgress: list[PowerConflictEntry] = sorted(
-            PowerConflict(data).entries,
+            PowerConflict(data.get("PowerplayConflictProgress",[])).entries,
             key=lambda p: p.progress,
             reverse=True  
         )
@@ -101,14 +116,15 @@ class StarSystem:
             return self.PowerplayState
 
         if self.PowerplayState == 'Unoccupied':
+            logger.debug(self.PowerplayConflictProgress)
             if not self.PowerplayConflictProgress:
                 return 'Unoccupied'  # Kein Konflikt erkennbar
 
             progress = self.PowerplayConflictProgress[0].progress * 100
             if progress < 30:
-                return 'Unoccupied'
+                return f"Unoccupied {progress} {self.PowerplayConflictProgress[0].power}"
             if progress < 100:
-                return 'Contested'
+                return f"Contested {progress} {self.PowerplayConflictProgress[0].power}"
             return 'Controlled'
 
         return self.PowerplayState  # Fallback
@@ -144,11 +160,7 @@ class StarSystem:
         self.PowerplayState: str = data.get("state", "stateless")
         self.ControllingPower: str = data.get("power", "Mr.Nobody")
         self.Powers: list[str] = data.get("powerCompetition", [])
-        self.PowerplayConflictProgress: list[PowerConflictEntry] = sorted(
-            PowerConflict(data).entries,
-            key=lambda p: p.progress,
-            reverse=True
-        )
+        self.PowerplayConflictProgress = []
         self.PowerplayStateControlProgress: float = data.get("progress", 0.0)
         self.PowerplayStateReinforcement: int = data.get("statereinforcement", 0)
         self.PowerplayStateUndermining: int = data.get("stateundermining", 0)
@@ -167,14 +179,14 @@ class PowerConflictEntry:
 class PowerConflict:
     def __init__(self, data):
         self.entries: list[PowerConflictEntry] = []
-
-        if not isinstance(data, list):
-            return  
+        logger.debug(data)
+        
+        if len(data) == 0:
+            return
 
         for item in data:
             if isinstance(item, dict) and "Power" in item and "ConflictProgress" in item:
                 self.entries.append(PowerConflictEntry(item["Power"], item["ConflictProgress"]))
-        
         
 class SystemEncoder(json.JSONEncoder):
     def default(self, o):

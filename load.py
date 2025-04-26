@@ -2,6 +2,7 @@ from imports import *
 from system import *
 from power import *
 from report import Report
+from history import PowerPlayHistory
 from power_info_window import show_power_info
 
 this = sys.modules[__name__]  # For holding module globals
@@ -10,7 +11,7 @@ this.dump_test = False
 this.systems = {}
 this.pledgedPower = PledgedPower()
 this.currentSystemFlying = StarSystem()
-this.version = 'v0.4.62.1.200'
+this.version = 'v0.4.63.1.200'
 this.crow = -1
 this.mainframerow = -1
 this.copyText = tk.StringVar(value=configPlugin.copyText if isinstance(configPlugin.copyText, str) else configPlugin.copyText.get())
@@ -18,6 +19,7 @@ this.discordHook = tk.StringVar(value=configPlugin.discordHook if isinstance(con
 this.reportOnFSDJump = tk.BooleanVar(value=configPlugin.reportOnFSDJump if isinstance(configPlugin.reportOnFSDJump, bool) else False)
 this.assetpath = ""
 this.report = Report()
+this.history = PowerPlayHistory()
 
 def auto_update():
     try:
@@ -381,10 +383,9 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         nameSystem = entry.get('StarSystem',"Nomansland")
         if (not this.systems or len(this.systems)==0 or nameSystem not in this.systems):
             new_system = StarSystem(eventEntry=entry)
-            logger.debug(f"Created new system- {nameSystem}")
             this.systems[new_system.StarSystem] = new_system
-            logger.debug(new_system.to_dict())
-            logger.debug(f"Existing systems - {len(this.systems)}")
+        else:
+            this.systems[nameSystem].updateSystem(eventEntry=entry)
         if entry['event'] == 'FSDJump' and configPlugin.reportOnFSDJump == True and this.currentSystemFlying.Merits > 0:
             report_on_FSD(this.currentSystemFlying)
         updateSystemTracker(this.currentSystemFlying,this.systems[nameSystem])
