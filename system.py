@@ -1,9 +1,11 @@
 from imports import *
 
 class StarSystem:
-    def __init__(self, eventEntry:dict = {}, reported: bool = False):
+    def __init__(self, eventEntry=None, reported: bool = False):
         self.debug = False
-        
+        logger.debug(eventEntry)
+        if eventEntry == None:
+            return
         self.StarSystem: str = eventEntry.get("StarSystem", "Nomansland")
         self.Merits: int = 0
         self.Active: bool = False
@@ -20,6 +22,7 @@ class StarSystem:
         self.PowerplayStateReinforcement: int = eventEntry.get("PowerplayStateReinforcement", 0)
         self.PowerplayStateUndermining: int = eventEntry.get("PowerplayStateUndermining", 0)
         self.reported: bool = reported
+        logger.debug(self.to_dict())
 
     def getPowerplayCycleNetValue(self):
         if self.PowerplayState in ['Stronghold', 'Fortified', 'Exploited']:
@@ -181,7 +184,7 @@ class PowerConflict:
         self.entries: list[PowerConflictEntry] = []
         logger.debug(data)
         
-        if len(data) == 0:
+        if data == None or len(data) == 0:
             return
 
         for item in data:

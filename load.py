@@ -10,8 +10,8 @@ this.debug = False
 this.dump_test = False
 this.systems = {}
 this.pledgedPower = PledgedPower()
-this.currentSystemFlying = StarSystem()
-this.version = 'v0.4.63.1.200'
+this.currentSystemFlying = None
+this.version = 'v0.4.64.1.200'
 this.crow = -1
 this.mainframerow = -1
 this.copyText = tk.StringVar(value=configPlugin.copyText if isinstance(configPlugin.copyText, str) else configPlugin.copyText.get())
@@ -381,15 +381,14 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         update_system_merits(merits,total)
     if entry['event'] in ['FSDJump', 'Location','SupercruiseEntry','SupercruiseExit']:
         nameSystem = entry.get('StarSystem',"Nomansland")
+        logger.debug(nameSystem)
         if (not this.systems or len(this.systems)==0 or nameSystem not in this.systems):
-            new_system = StarSystem(eventEntry=entry)
+            new_system = StarSystem(eventEntry=entry, reported=False)
             this.systems[new_system.StarSystem] = new_system
         else:
             this.systems[nameSystem].updateSystem(eventEntry=entry)
-        if entry['event'] == 'FSDJump' and configPlugin.reportOnFSDJump == True and this.currentSystemFlying.Merits > 0:
-            report_on_FSD(this.currentSystemFlying)
+        logger.debug(entry)
         updateSystemTracker(this.currentSystemFlying,this.systems[nameSystem])
-        
         update_display()
 
 def updateSystemTracker(oldSystem, newSystem):
