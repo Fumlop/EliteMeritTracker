@@ -3,7 +3,7 @@ EDMC-Plugin to track Powerplay Merits
 
 Installing:
 
-Download the latest release https://github.com/Fumlop/EliteMeritTracker/releases
+Download the latest release https://github.com/Fumlop/EliteMeritTracker/releases<br>
 Unzip the zipfile into the %LOCALAPPDATA%\EDMarketConnector\plugins\
 
 After installing plugin will provide a update feature on new releases.
