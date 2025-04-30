@@ -11,7 +11,7 @@ this.dump_test = False
 this.systems = {}
 this.pledgedPower = PledgedPower()
 this.currentSystemFlying = None
-this.version = 'v0.4.64.1.200'
+this.version = 'v0.4.65.1.200'
 this.crow = -1
 this.mainframerow = -1
 this.copyText = tk.StringVar(value=configPlugin.copyText if isinstance(configPlugin.copyText, str) else configPlugin.copyText.get())
@@ -379,7 +379,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         merits = entry.get('MeritsGained')
         total = entry.get('TotalMerits')
         update_system_merits(merits,total)
-    if entry['event'] in ['FSDJump', 'Location','SupercruiseEntry','SupercruiseExit']:
+    if entry['event'] in ['FSDJump', 'Location']:
         nameSystem = entry.get('StarSystem',"Nomansland")
         logger.debug(nameSystem)
         if (not this.systems or len(this.systems)==0 or nameSystem not in this.systems):
