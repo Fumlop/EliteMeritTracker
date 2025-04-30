@@ -1,11 +1,15 @@
 # EliteMeritTracker
 EDMC-Plugin to track Powerplay Merits
 
+Installing:
+
+Download the latest release https://github.com/Fumlop/EliteMeritTracker/releases
+Unzip the zipfile into the %LOCALAPPDATA%\EDMarketConnector\plugins\
+
+After installing plugin will provide a update feature on new releases.
+
 Currently automatic tracking of merits when in a system. Features for reediting will be added. 
 No data will be exported, all held locally as long as EDMC is running.
-
-Safe option for non-reported systems.
-
 
 Tracking Session Merits for EDMC
 
