@@ -10,7 +10,7 @@ this.debug = False
 this.dump_test = False
 this.systems = {}
 this.pledgedPower = PledgedPower()
-this.currentSystemFlying = StarSystem()
+this.currentSystemFlying = None
 this.version = 'v0.4.66.1.200'
 this.crow = -1
 this.mainframerow = -1
@@ -193,9 +193,13 @@ def plugin_start3(plugin_dir):
         except json.JSONDecodeError:
             logger.error("Failed to load systems.json, using empty Systems data.")
             this.systems = {}
+            this.currentSystemFlying = StarSystem()
+            this.currentSystemFlying.meInit()
+            this.systems[this.currentSystemFlying.StarSystem] = this.currentSystemFlying
         
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
-    update_display()
+    if (this.currentSystemFlying):
+        update_display()
 
 def position_button():
     entry_y = this.currentSystemEntry.winfo_y()
@@ -400,7 +404,7 @@ def updateSystemTracker(oldSystem, newSystem):
 def update_display():
     this.power["text"] = f"Pledged: {this.pledgedPower.Power} - Rank : {this.pledgedPower.Rank}"
     this.powerMerits["text"] = f"Merits session: {this.pledgedPower.MeritsSession:,} - total: {this.pledgedPower.Merits:,}".strip()
-    if this.currentSystemFlying != None && this.currentSystemFlying.StarSystem != "":
+    if this.currentSystemFlying != None and this.currentSystemFlying.StarSystem != "":
             this.showButton.config(state=tk.NORMAL)
             this.resetButton.config(state=tk.NORMAL)
     else:
