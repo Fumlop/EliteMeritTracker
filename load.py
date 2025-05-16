@@ -396,7 +396,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         update_display()
 
 def updateSystemTracker(oldSystem, newSystem):
-    if (oldSystem):
+    if (oldSystem != None) :
         this.systems[oldSystem.StarSystem].Active = False
 
     this.systems[newSystem.StarSystem].Active = True
