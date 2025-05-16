@@ -24,6 +24,20 @@ class StarSystem:
         self.reported: bool = reported
         logger.debug(self.to_dict())
 
+    def meInit(self):
+        self.StarSystem: str = "Nomansland"
+        self.Merits: int = 0
+        self.Active: bool = False
+        self.PowerplayState: str = "stateless"
+        self.ControllingPower: str = "Mr.Nobody"
+        self.Powers: list[str] =  []
+        self.Opposition: list[str] = []
+        self.PowerplayConflictProgress: list[PowerConflictEntry] = []
+        self.PowerplayStateControlProgress: float = 0.0
+        self.PowerplayStateReinforcement: int = 0
+        self.PowerplayStateUndermining: int = 0
+        self.reported: bool = False
+
     def getPowerplayCycleNetValue(self):
         if self.PowerplayState in ['Stronghold', 'Fortified', 'Exploited']:
             if len(self.Powers) > 1:
