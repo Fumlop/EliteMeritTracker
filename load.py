@@ -400,7 +400,7 @@ def updateSystemTracker(oldSystem, newSystem):
 def update_display():
     this.power["text"] = f"Pledged: {this.pledgedPower.Power} - Rank : {this.pledgedPower.Rank}"
     this.powerMerits["text"] = f"Merits session: {this.pledgedPower.MeritsSession:,} - total: {this.pledgedPower.Merits:,}".strip()
-    if this.currentSystemFlying.StarSystem != "":
+    if this.currentSystemFlying != None && this.currentSystemFlying.StarSystem != "":
             this.showButton.config(state=tk.NORMAL)
             this.resetButton.config(state=tk.NORMAL)
     else:
