@@ -11,7 +11,7 @@ this.dump_test = False
 this.systems = {}
 this.pledgedPower = PledgedPower()
 this.currentSystemFlying = None
-this.version = 'v0.4.67.1.200'
+this.version = 'v0.4.66.1.200'
 this.crow = -1
 this.mainframerow = -1
 this.copyText = tk.StringVar(value=configPlugin.copyText if isinstance(configPlugin.copyText, str) else configPlugin.copyText.get())
@@ -156,7 +156,6 @@ def plugin_start3(plugin_dir):
         configPlugin.reportSave = this.saveSession
         configPlugin.copyText = this.discordText
     
-    default_system:StarSystem = StarSystem(eventEntry={},reported=False)
     default_pledgedPower:PledgedPower = PledgedPower(eventEntry={})
     
     this.newest = checkVersion()
