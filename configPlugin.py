@@ -17,7 +17,7 @@ class ConfigPlugin:
         self.discordHook: str = config.get_str("discordHook") or ""
         self.reportSave: bool = config.get_bool("reportSave") or True
         self.never: bool = config.get_bool("never") or False
-        self.keepHistory =  min(int(config.get_str("keepHistory") or 90), 90)
+        #self.keepHistory =  min(int(config.get_str("keepHistory") or 90), 90)
 
     def getTextCopy(self):
         return "@Leadership earned @MeritsValue merits in @System, @CPControlling, @CPOpposition"
@@ -37,7 +37,7 @@ class ConfigPlugin:
         config.set("discordHook", str(self.discordHook))
         config.set("reportSave", bool(self.reportSave))
         config.set("never", bool(self.never))
-        config.set("keepHistory", str(self.keepHistory, 90))
+        #config.set("keepHistory", str(self.keepHistory, 90))
 
 class ConfigEncoder(json.JSONEncoder):
     def default(self, o):
