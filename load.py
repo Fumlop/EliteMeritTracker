@@ -11,7 +11,7 @@ this.dump_test = False
 this.systems = {}
 this.pledgedPower = PledgedPower()
 this.currentSystemFlying = None
-this.version = 'v0.4.68.1.200'
+this.version = 'v0.4.69.1.200'
 this.crow = -1
 this.mainframerow = -1
 this.copyText = tk.StringVar(value=configPlugin.copyText if isinstance(configPlugin.copyText, str) else configPlugin.copyText.get())
@@ -125,14 +125,20 @@ def checkVersion():
     if req.status_code != requests.codes.ok:
         logger.error('Request failed with status code: %s', req.status_code)
         return -1  # Error
+    else:
+        logger.info('Request sucess with status code: %s', req.status_code)
 
     try:
         data = req.json()
         latest_version = parse_version(data['tag_name'])
+        logger.info('latest_version: %s', latest_version)
         current_version = parse_version(this.version)
+        logger.info('current_version: %s', current_version)
 
         if current_version >= latest_version:
             return 0  # Newest
+        else:
+            return 1
     except Exception as e:
         # JSON-Parsing-Fehler loggen
         logger.exception('Error while parsing the JSON response')
