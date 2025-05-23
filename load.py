@@ -403,6 +403,8 @@ def updateSystemTracker(oldSystem, newSystem):
     
 
 def update_display():
+    if (not this.currentSystemFlying):
+        return
     this.power["text"] = f"Pledged: {this.pledgedPower.Power} - Rank : {this.pledgedPower.Rank}"
     this.powerMerits["text"] = f"Merits session: {this.pledgedPower.MeritsSession:,} - total: {this.pledgedPower.Merits:,}".strip()
     if this.currentSystemFlying != None and this.currentSystemFlying.StarSystem != "":
