@@ -19,3 +19,5 @@ class Report:
             return False
         except Exception as e:
             return False
+
+report = Report()

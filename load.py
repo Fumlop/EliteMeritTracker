@@ -11,11 +11,11 @@ import re
 from PIL import Image, ImageTk
 from typing import Dict, Any
 
-from imports import report, systems, pledgedPower
+from report import report
+from system import systems, StarSystem
+from power import pledgedPower, PowerEncoder
 from configPlugin import configPlugin, ConfigEncoder
 from log import logger, plugin_name
-from system import StarSystem
-from power import PowerEncoder
 from power_info_window import show_power_info
 from config import config, appname
 
@@ -220,31 +220,7 @@ def position_button():
 
 def plugin_stop():
     # Sicherstellen, dass "Systems" existiert
-    logger.info("Shutting down plugin.")
-    update_json_file()
-    plugin_dir = os.path.dirname(os.path.abspath(__file__))
-    systems_path = os.path.join(plugin_dir, "systems.json")
-    test_system_merits_path = os.path.join(plugin_dir, "systems_test.json")
-    
-    filtered_systems = {
-        name: data.to_dict()
-        for name, data in systems.items()
-        if (not data.reported and data.Merits > 0) or data.Active == True
-    }
-    try:
-        with open(systems_path, "w") as json_file:
-            json.dump(filtered_systems, json_file, indent=4)
-    except Exception as e:
-        logger.error(f"Failed to save system merits: {e}")
-            
-    if this.dump_test:
-        try:
-            with open(test_system_merits_path, "w") as json_file_test:
-                with open(test_system_merits_path, "w") as json_file_test:
-                    json.dump(filtered_systems, json_file_test, indent=4)  # Leere JSON-Datei schreiben
-        except Exception as e:
-            logger.error(f"Failed to save system merits: {e}")
-            
+    update_json_file()            
     this.frame.quit()
     logger.info("Shutting down plugin.")
     
@@ -376,15 +352,11 @@ def prefs_changed(cmdr, is_beta):
     configPlugin.discordHook = this.discordHook.get()
     configPlugin.reportOnFSDJump = this.reportOnFSDJump.get()
     configPlugin.dumpConfig()
-    logger.debug(json.dumps(configPlugin, ensure_ascii=False, indent=4, cls=ConfigEncoder))
     update_display()
            
 def update_json_file():
-    directory_name = os.path.basename(os.path.dirname(__file__))
-    plugin_path = os.path.join(config.plugin_dir, directory_name)
-    file_path = os.path.join(plugin_path, "power.json")
-    with open(file_path, "w") as json_file:
-        json.dump(pledgedPower, json_file, indent=4, cls=PowerEncoder)
+    pledgedPower.dumpJson()  
+    this.currentSystemFlying.dumpJson()
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] in ['Powerplay']:

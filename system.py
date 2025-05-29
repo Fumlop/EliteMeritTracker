@@ -1,5 +1,7 @@
 import json
+import os
 from log import logger, plugin_name
+
 
 class StarSystem:
     def __init__(self, eventEntry=None, reported: bool = False):
@@ -173,6 +175,21 @@ class StarSystem:
         self.PowerplayStateUndermining = int(data.get("stateundermining", 0))
         self.reported = bool(data.get("reported", False))
 
+    def dumpSystems(self):
+        plugin_dir = os.path.dirname(os.path.abspath(__file__))
+        systems_path = os.path.join(plugin_dir, "systems.json")
+        
+        filtered_systems = {
+            name: data.to_dict()
+            for name, data in systems.items()
+            if (not data.reported and data.Merits > 0) or data.Active == True
+        }
+        try:
+            with open(systems_path, "w") as json_file:
+                json.dump(filtered_systems, json_file, cls=SystemEncoder, indent=4)
+        except Exception as e:
+            logger.error(f"Failed to save systems: {e}")
+
 class PowerConflictEntry:
     def __init__(self, power, progress):
         self.power = str(power)
@@ -199,3 +216,6 @@ class SystemEncoder(json.JSONEncoder):
         if isinstance(o, PowerConflictEntry):
             return o.__dict__
         return super().default(o)
+
+
+systems = {} 

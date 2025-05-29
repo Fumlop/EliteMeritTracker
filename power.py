@@ -1,4 +1,6 @@
 import json
+import os
+from config import config
 from log import logger, plugin_name
 
 class PledgedPower:
@@ -11,7 +13,6 @@ class PledgedPower:
         days, remainder = divmod(self.TimePledged, 86400)
         hours, remainder = divmod(remainder, 3600)
         minutes, _ = divmod(remainder, 60)
-        self.TimePledgedStr = f"{days}d {hours}h {minutes}m"
 
     def from_dict(self, data: dict = {}):
         self.Power = str(data.get("Power") or data.get("PowerName", ""))
@@ -26,6 +27,13 @@ class PledgedPower:
 
         self.TimePledgedStr = f"{years}y {days}d {hours}h"
 
+    def dumpJson(self):
+        directory_name = os.path.basename(os.path.dirname(__file__))
+        plugin_path = os.path.join(config.plugin_dir, directory_name)
+        file_path = os.path.join(plugin_path, "power.json")
+        with open(file_path, "w") as json_file:
+            json.dump(self, json_file, indent=4, cls=PowerEncoder)
+
 class PowerEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, PledgedPower):
@@ -39,3 +47,5 @@ class PowerEncoder(json.JSONEncoder):
                 "TimePledgedStr": o.TimePledgedStr,
             }
         return super().default(o)
+
+pledgedPower = PledgedPower()

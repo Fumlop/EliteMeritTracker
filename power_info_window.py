@@ -4,8 +4,10 @@ import csv
 
 from config import config, appname
 from report import Report
-from imports import  pledgedPower, systems, report
-from configPlugin import configPlugin, ConfigEncoder
+from report import report
+from system import systems
+from power import pledgedPower
+from configPlugin import configPlugin
 from log import logger, plugin_name
 # Wenn du Typen verwendest:
 from typing import Dict, Any, List, Optional
