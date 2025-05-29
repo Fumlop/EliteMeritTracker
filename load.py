@@ -18,6 +18,7 @@ from configPlugin import configPlugin, ConfigEncoder
 from log import logger, plugin_name
 from power_info_window import show_power_info
 from config import config, appname
+from configUI import create_config_frame
 
 this = sys.modules[__name__]  # For holding module globals
 this.debug = False
@@ -305,47 +306,28 @@ def reset():
 
 
 def plugin_prefs(parent, cmdr, is_beta):
-    config_frame = nb.Frame(parent)
-    config_frame.columnconfigure(1, weight=1)
-    config_frame.grid(sticky=tk.EW)
-    # Label für die Beschreibung
-    nb.Label(config_frame, text="Copy paste text value - Text must contain @MeritsValue and @System for replacement").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
-    # Textfeld für die Eingabe
-    nb.Label(config_frame, text="@MeritsValue,@System,@CPOppositon,@CPControlling").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
-    text_entry = nb.Entry(config_frame, textvariable=this.copyText, width=50)
-    text_entry.grid(row=next_config_row(), column=0, padx=5, pady=5, sticky="we")
-    nb.Label(config_frame, text="").grid(row=next_config_row(), column=0,sticky="w", padx=5, pady=5)
-    nb.Label(config_frame, text="Discordwebhook URL").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
-    text_entry = nb.Entry(config_frame, textvariable=this.discordHook, width=50)
-    text_entry.grid(row=next_config_row(), column=0, padx=5, pady=5, sticky="we")
-    nb.Checkbutton(config_frame, text="Report merits from source system to discord on FSDJump", variable=this.reportOnFSDJump).grid(
-            row=next_config_row(), columnspan=2, sticky=tk.W)
-    nb.Label(config_frame, text="").grid(row=next_config_row(), column=0,sticky="w", padx=5, pady=5)
-    nb.Label(config_frame, text=f"Version {this.version}").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
-    return config_frame
+    return create_config_frame(parent, this, nb)
 
-def current_config_row():
-    return this.crow
-
-def next_config_row():
-    this.crow += 1
-    return this.crow
 
 def update_system_merits(merits_value, total):
     try:
         merits = int(merits_value)
-        pledgedPower.MeritsSession += merits
-        # Aktualisiere Merits im aktuellen System
-        if this.currentSystemFlying.StarSystem in systems:
-            systems[this.currentSystemFlying.StarSystem].Merits += merits
-        else:
-            systems[this.currentSystemFlying.StarSystem]= this.currentSystemFlying
-            systems[this.currentSystemFlying.StarSystem].Merits = merits
-        # Direkte Aktualisierung der Anzeige
-        pledgedPower.Merits = int(total)
-        update_display()
-    except ValueError:
-        logger.debug("Invalid merits value. Please enter a number.")
+        total_merits = int(total)
+    except (ValueError, TypeError):
+        logger.debug("Invalid merits value or total.")
+        return
+
+    pledgedPower.MeritsSession += merits
+
+    sys_name = getattr(this.currentSystemFlying, "StarSystem", None)
+    if sys_name:
+        current = systems.get(sys_name, this.currentSystemFlying)
+        current.Merits += merits
+        systems[sys_name] = current
+
+    pledgedPower.Merits = total_merits
+    update_display()
+
 
 def prefs_changed(cmdr, is_beta):
     configPlugin.copyText = this.copyText.get()
@@ -356,7 +338,7 @@ def prefs_changed(cmdr, is_beta):
            
 def update_json_file():
     pledgedPower.dumpJson()  
-    this.currentSystemFlying.dumpJson()
+    this.currentSystemFlying.dumpSystems()
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] in ['Powerplay']:
