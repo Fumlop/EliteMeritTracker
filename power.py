@@ -34,6 +34,21 @@ class PledgedPower:
         with open(file_path, "w") as json_file:
             json.dump(self, json_file, indent=4, cls=PowerEncoder)
 
+    def loadPower(self):
+        directory_name = os.path.basename(os.path.dirname(__file__))
+        plugin_path = os.path.join(config.plugin_dir, directory_name)
+        file_path = os.path.join(plugin_path, "power.json")
+        if not os.path.exists(file_path):
+            with open(file_path, "w") as json_file:
+                json.dump(pledgedPower, json_file, indent=4, cls=PowerEncoder)
+            pledgedPower.from_dict({}) 
+        else:
+            try:
+                with open(file_path, "r") as json_file:
+                    pledgedPower.from_dict(json.load(json_file)) 
+            except json.JSONDecodeError:
+                pledgedPower.from_dict({}) 
+
 class PowerEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, PledgedPower):

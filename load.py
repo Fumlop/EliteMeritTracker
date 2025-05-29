@@ -14,7 +14,7 @@ from typing import Dict, Any
 from report import report
 from system import systems, StarSystem
 from power import pledgedPower, PowerEncoder
-from trackerUI import create_tracker_frame
+from trackerUI import TrackerFrame
 from configPlugin import configPlugin, ConfigEncoder
 from log import logger, plugin_name
 from power_info_window import show_power_info
@@ -24,8 +24,9 @@ from configUI import create_config_frame
 this = sys.modules[__name__]  # For holding module globals
 this.debug = False
 this.dump_test = False
+trackerFrame = None
 
-this.currentSystemFlying = None
+this.currentSystemFlying = StarSystem(eventEntry={}, reported=False)
 this.version = 'v0.4.70.1.200'
 this.crow = -1
 this.mainframerow = -1
@@ -157,13 +158,6 @@ def checkVersion():
         return -1
 
 def plugin_start3(plugin_dir):
-    directory_name = os.path.basename(os.path.dirname(__file__))
-    plugin_path = os.path.join(config.plugin_dir, directory_name)
-    file_path = os.path.join(plugin_path, "power.json")
-    systems_path = os.path.join(plugin_path, "systems.json")
-  
-    this.assetspath = f"{plugin_path}/assets"
-
     if configPlugin.never == True:
         logger.debug("new config mode")
         logger.debug(json.dumps(configPlugin, ensure_ascii=False, indent=4, cls=ConfigEncoder))
@@ -175,44 +169,12 @@ def plugin_start3(plugin_dir):
         configPlugin.copyText = this.discordText
     
     this.newest = checkVersion()
-
-    if not os.path.exists(file_path):
-        os.makedirs(plugin_path, exist_ok=True)
-        with open(file_path, "w") as json_file:
-            json.dump(pledgedPower, json_file, indent=4, cls=PowerEncoder)
-        pledgedPower.from_dict({})  # NEU: auf die existierende Instanz schreiben
-    else:
-        try:
-            with open(file_path, "r") as json_file:
-                pledgedPower.from_dict(json.load(json_file))  # KORREKT
-        except json.JSONDecodeError:
-            pledgedPower.from_dict({})  # NEU: leeren Dict in Singleton laden
-
-              
-    # Laden der gespeicherten Systeme
-    if os.path.exists(systems_path):
-        try:
-            with open(systems_path, "r") as json_file:
-                tmp = json.load(json_file)
-                for name, system_data in tmp.items():
-                    if not isinstance(system_data, dict):
-                        continue
-                    n = StarSystem()
-                    n.from_dict(system_data)
-                    systems[name] = n
-                    if n.Active == True:
-                        this.currentSystemFlying = systems[name]
-                    
-        except json.JSONDecodeError:
-            logger.error("Failed to load systems.json, using empty Systems data.")
-            systems.__init__()  # NEU: leeres Dict in Singleton laden
-            this.currentSystemFlying = StarSystem()
-            this.currentSystemFlying.meInit()
-            systems[this.currentSystemFlying.StarSystem] = this.currentSystemFlying
+    this.currentSystemFlying.loadSystems()  # Lädt die Systeme aus der JSON-Datei
+    pledgedPower.loadPower()  # Lädt die Power-Daten aus der JSON-Datei
         
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     if (this.currentSystemFlying):
-        update_display()
+        trackerFrame.update_display(this.currentSystemFlying)
 
 def position_button():
     entry_y = this.currentSystemEntry.winfo_y()
@@ -229,24 +191,18 @@ def plugin_stop():
 
 def plugin_app(parent):
     # Adds to the main page UI
-    return create_tracker_frame(
-        parent,
-        this,
-        get_scale_factor,
-        load_and_scale_image,
+    trackerFrame = TrackerFrame(parent=parent, newest=this.newest)
+    return trackerFrame.create_tracker_frame(
         reset,
         auto_update
     )
 
-    return this.frame
-
 def reset():
     # Initialisiere ein neues Dictionary für Systeme
     if this.currentSystemFlying:
-       lastState = this.currentSystemFlying
        systems.__init__()  # Leeres Dict in Singleton laden
        systems[this.currentSystemFlying.StarSystem] = this.currentSystemFlying
-    update_display()
+    trackerFrame.update_display(this.currentSystemFlying)
 
 
 def plugin_prefs(parent, cmdr, is_beta):
@@ -270,7 +226,7 @@ def update_system_merits(merits_value, total):
         systems[sys_name] = current
 
     pledgedPower.Merits = total_merits
-    update_display()
+    trackerFrame.update_display(this.currentSystemFlying)
 
 
 def prefs_changed(cmdr, is_beta):
@@ -278,7 +234,6 @@ def prefs_changed(cmdr, is_beta):
     configPlugin.discordHook = this.discordHook.get()
     configPlugin.reportOnFSDJump = this.reportOnFSDJump.get()
     configPlugin.dumpConfig()
-    update_display()
            
 def update_json_file():
     pledgedPower.dumpJson()  
@@ -287,7 +242,7 @@ def update_json_file():
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] in ['Powerplay']:
         pledgedPower.__init__(eventEntry=entry)  # NEU: re-initialisiere das Singleton-Objekt
-        update_display()
+        trackerFrame.update_display(this.currentSystemFlying)
     if entry['event'] in ['PowerplayMerits']:
         update_system_merits(entry.get('MeritsGained'),entry.get('TotalMerits'))
     if entry['event'] in ['FSDJump', 'Location']:
@@ -298,74 +253,13 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         else:
             systems[nameSystem].updateSystem(eventEntry=entry)
         updateSystemTracker(this.currentSystemFlying,systems[nameSystem])
-        update_display()
+        trackerFrame.update_display(this.currentSystemFlying)
 
 def updateSystemTracker(oldSystem, newSystem):
     if (oldSystem != None) :
         systems[oldSystem.StarSystem].Active = False
-
     systems[newSystem.StarSystem].Active = True
     this.currentSystemFlying = newSystem
-    
-
-def update_display():
-    if (not this.currentSystemFlying):
-        return
-    this.power["text"] = f"Pledged: {pledgedPower.Power} - Rank : {pledgedPower.Rank}"
-    this.powerMerits["text"] = f"Merits session: {pledgedPower.MeritsSession:,} - total: {pledgedPower.Merits:,}".strip()
-    if this.currentSystemFlying != None and this.currentSystemFlying.StarSystem != "":
-            this.showButton.config(state=tk.NORMAL)
-            this.resetButton.config(state=tk.NORMAL)
-    else:
-        logger.info("No Current System")
-
-    try:
-        #logger.debug(system_data)
-        power = this.currentSystemFlying.getSystemStatePowerPlay(pledged=pledgedPower.Power)[0]
-        #logger.debug("ZEFIX")
-        powerprogress = this.currentSystemFlying.getSystemProgressNumber()
-
-        if powerprogress is None:
-            powerprogress_percent = "--%"
-        else:
-            powerprogress_percent = f"{powerprogress:.2f}%".rstrip('0').rstrip('.')
-
-        this.currentSystemLabel["text"] = f"'{this.currentSystemFlying.StarSystem}' : {this.currentSystemFlying.Merits} merits gained".strip()
-        this.systemPowerLabel["text"] = f"{this.currentSystemFlying.getSystemStateText()} ({powerprogress_percent}) by {power}  ".strip()
-        powercycle = this.currentSystemFlying.getPowerplayCycleNetValue()
-        
-        if powercycle is None:
-            systemPowerStatusText = ""
-        else:
-            reinforcement = powercycle[0]
-            undermining = powercycle[1]
-
-            if not this.currentSystemFlying.PowerplayConflictProgress:
-                systemPowerStatusText = f"Powerplaycycle {this.currentSystemFlying.getPowerPlayCycleNetStatusText()}"
-            else:
-                systemPowerStatusText = ""
-
-        this.systemPowerStatusLabel["text"] = systemPowerStatusText.strip()
-    except KeyError as e:
-        logger.debug(f"KeyError for current system '{this.currentSystemFlying}': {e}")
-    this.currentSystemLabel.grid()
-
-def get_scale_factor(current_width: int, current_height: int, base_width: int = 2560, base_height: int = 1440) -> float:
-    scale_x = current_width / base_width
-    scale_y = current_height / base_height
-    return min(scale_x, scale_y)  # Use the smaller factor to maintain the aspect ratio.
-
-def load_and_scale_image(path: str, scale: float) -> Image:
-    image = Image.open(path)
-    new_size = (int(image.width * scale), int(image.height * scale))
-    try:
-        # Pillow 10.0.0 and later
-        resample_filter = Image.Resampling.LANCZOS
-    except AttributeError:
-        # Older Pillow versions
-        resample_filter = Image.LANCZOS
-
-    return image.resize(new_size, resample_filter)
 
 def logdump(here:str, data:dict):
     if this.debug:

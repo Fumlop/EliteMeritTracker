@@ -2,7 +2,6 @@ import json
 import os
 from log import logger, plugin_name
 
-
 class StarSystem:
     def __init__(self, eventEntry=None, reported: bool = False):
         self.debug = False
@@ -189,6 +188,25 @@ class StarSystem:
                 json.dump(filtered_systems, json_file, cls=SystemEncoder, indent=4)
         except Exception as e:
             logger.error(f"Failed to save systems: {e}")
+
+    def loadSystems(self):
+        plugin_dir = os.path.dirname(os.path.abspath(__file__))
+        systems_path = os.path.join(plugin_dir, "systems.json")
+        
+        # Laden der gespeicherten Systeme
+        if os.path.exists(systems_path):
+            try:
+                with open(systems_path, "r") as json_file:
+                    tmp = json.load(json_file)
+                    for name, system_data in tmp.items():
+                        if not isinstance(system_data, dict):
+                            continue
+                        n = StarSystem()
+                        n.from_dict(system_data)
+                        systems[name] = n
+            except json.JSONDecodeError:
+                logger.error("Failed to load systems.json, using empty Systems data.")
+                systems.__init__()  # NEU: leeres Dict in Singleton laden
 
 class PowerConflictEntry:
     def __init__(self, power, progress):
