@@ -11,16 +11,13 @@ import re
 from PIL import Image, ImageTk
 from typing import Dict, Any
 
-from imports import report, history, systems, pledgedPower
+from imports import report, systems, pledgedPower
 from configPlugin import configPlugin, ConfigEncoder
 from log import logger, plugin_name
 from system import StarSystem
-from power import PledgedPower,PowerEncoder
-from report import Report
-from history import PowerPlayHistory
+from power import PowerEncoder
 from power_info_window import show_power_info
 from config import config, appname
-
 
 this = sys.modules[__name__]  # For holding module globals
 this.debug = False

@@ -1,4 +1,3 @@
-import json
 import requests
 from log import logger, plugin_name
 from configPlugin import configPlugin, ConfigEncoder
