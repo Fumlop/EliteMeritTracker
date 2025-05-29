@@ -8,11 +8,11 @@ class StarSystem:
             self._init_defaults()
             return
 
-        self.StarSystem = str(eventEntry.get("StarSystem", "Nomansland"))
+        self.StarSystem = str(eventEntry.get("StarSystem", "unknown system"))
         self.Merits = int(eventEntry.get("Merits", 0))
         self.Active = False
         self.PowerplayState = str(eventEntry.get("PowerplayState", "stateless"))
-        self.ControllingPower = str(eventEntry.get("ControllingPower", "Mr.Nobody"))
+        self.ControllingPower = str(eventEntry.get("ControllingPower", "no controlling power"))
         self.Powers = self._safe_list(eventEntry.get("Powers", []))
         self.Opposition = [p for p in self.Powers if p != self.ControllingPower]
         conflict_data = eventEntry.get("PowerplayConflictProgress", [])
@@ -27,11 +27,11 @@ class StarSystem:
         self.reported = bool(reported)
 
     def _init_defaults(self):
-        self.StarSystem = "Nomansland"
+        self.StarSystem = "unknown system"
         self.Merits = 0
         self.Active = False
         self.PowerplayState = "stateless"
-        self.ControllingPower = "Mr.Nobody"
+        self.ControllingPower = "no controlling power"
         self.Powers = []
         self.Opposition = []
         self.PowerplayConflictProgress = []
@@ -57,7 +57,7 @@ class StarSystem:
     def updateSystem(self, eventEntry: dict = {}):
         self.Active = True
         self.PowerplayState = str(eventEntry.get("PowerplayState", "stateless"))
-        self.ControllingPower = str(eventEntry.get("ControllingPower", "Mr.Nobody"))
+        self.ControllingPower = str(eventEntry.get("ControllingPower", "no controlling power"))
         self.Powers = self._safe_list(eventEntry.get("Powers", []))
         self.Opposition = [p for p in self.Powers if p != self.ControllingPower]
         conflict_data = eventEntry.get("PowerplayConflictProgress", [])
@@ -100,11 +100,11 @@ class StarSystem:
         }
 
     def from_dict(self, data: dict = {}):
-        self.StarSystem = str(data.get("StarSystem", "Nomansland"))
+        self.StarSystem = str(data.get("StarSystem", "unknown system"))
         self.Merits = int(data.get("Merits", 0))
         self.Active = bool(data.get("Active", False))
         self.PowerplayState = str(data.get("PowerplayState", "stateless"))
-        self.ControllingPower = str(data.get("ControllingPower", "Mr.Nobody"))
+        self.ControllingPower = str(data.get("ControllingPower", "no controlling power"))
         self.Powers = self._safe_list(data.get("Powers", []))
         self.Opposition = self._safe_list(data.get("Opposition", []))
         conflict_data = data.get("PowerplayConflictProgress", [])
@@ -193,5 +193,9 @@ class PowerConflict:
 class SystemEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, StarSystem):
+            return o.__dict__
+        if isinstance(o, PowerConflictEntry):
+            return o.__dict__
+        if isinstance(o, PowerConflictEntry):
             return o.__dict__
         return super().default(o)
