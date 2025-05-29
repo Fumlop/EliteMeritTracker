@@ -52,7 +52,7 @@ class StarSystem:
             return [self.PowerplayStateReinforcement, 0]
         if not self.PowerplayConflictProgress:
             return [0, 0]
-        return [self.PowerplayConflictProgress[0].progress, 0, 0]
+        return [self.PowerplayConflictProgress[0].progress, 0]
 
     def updateSystem(self, eventEntry: dict = {}):
         self.Active = True
