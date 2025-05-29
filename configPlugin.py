@@ -1,11 +1,8 @@
 import logging
 from config import config, appname
+from log import logger, plugin_name
 import json
 import os
-
-plugin_name = os.path.basename(os.path.dirname(__file__))
-
-logger = logging.getLogger(f'{appname}.{plugin_name}')
 
 class ConfigPlugin:
     def __init__(self):
@@ -44,3 +41,6 @@ class ConfigEncoder(json.JSONEncoder):
         if isinstance(o, ConfigPlugin):
             return o.__dict__
         return super().default(o)
+
+
+configPlugin = ConfigPlugin()

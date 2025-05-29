@@ -1,6 +1,6 @@
 import json
-from imports import logger
-from power import PowerConflict, PowerConflictEntry
+from log import logger, plugin_name
+
 class StarSystem:
     def __init__(self, eventEntry=None, reported: bool = False):
         self.debug = False

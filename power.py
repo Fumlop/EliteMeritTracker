@@ -1,6 +1,5 @@
 import json
-from imports import logger
-
+from log import logger, plugin_name
 
 class PledgedPower:
     def __init__(self, eventEntry: dict = {}, reported: bool = False):
