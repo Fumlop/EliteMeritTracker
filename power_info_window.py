@@ -1,17 +1,25 @@
-from imports import *
+import tkinter as tk
+from tkinter import filedialog
+import csv
+
+from config import config, appname
 from report import Report
-filter_power_var = None
-filter_system_var = None
-filter_state_var = None
-filter_frame = None
+from imports import logger, configPlugin, pledgedPower, systems, report
+# Wenn du Typen verwendest:
+from typing import Dict, Any, List, Optional
+
+# Initialisierung der globalen GUI-Variablen
+
 data_frame_default = None
 data_frame_detailed = None
-header_frame_default = None
-update_scrollregion = None
-
-report = Report()
-pledgedPower = None
-systems = None
+detailed_view = False
+toggle_button = None
+csv_button = None
+table_frame = None
+filter_frame = None
+filter_system_var = None
+filter_state_var = None
+filter_power_var = None
 
 def copy_to_clipboard_or_report(text, name, table_frame, update_scrollregion):
     global report, systems

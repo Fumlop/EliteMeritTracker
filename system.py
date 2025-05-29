@@ -1,82 +1,87 @@
-from imports import *
-
+import json
+from imports import logger
+from power import PowerConflict, PowerConflictEntry
 class StarSystem:
     def __init__(self, eventEntry=None, reported: bool = False):
         self.debug = False
-        logger.debug(eventEntry)
-        if eventEntry == None:
+        if eventEntry is None:
+            self._init_defaults()
             return
-        self.StarSystem: str = eventEntry.get("StarSystem", "Nomansland")
-        self.Merits: int = 0
-        self.Active: bool = False
-        self.PowerplayState: str = eventEntry.get("PowerplayState", "stateless")
-        self.ControllingPower: str = eventEntry.get("ControllingPower", "Mr.Nobody")
-        self.Powers: list[str] = eventEntry.get("Powers", [])
-        self.Opposition: list[str] = [p for p in self.Powers if p != self.ControllingPower]
-        self.PowerplayConflictProgress: list[PowerConflictEntry] = sorted(
-            PowerConflict(eventEntry.get("PowerplayConflictProgress", [])).entries,
-            key=lambda p: p.progress,
-            reverse=True  # absteigend sortiert
-        )
-        self.PowerplayStateControlProgress: float = eventEntry.get("PowerplayStateControlProgress", 0.0)
-        self.PowerplayStateReinforcement: int = eventEntry.get("PowerplayStateReinforcement", 0)
-        self.PowerplayStateUndermining: int = eventEntry.get("PowerplayStateUndermining", 0)
-        self.reported: bool = reported
-        logger.debug(self.to_dict())
 
-    def meInit(self):
-        self.StarSystem: str = "Nomansland"
-        self.Merits: int = 0
-        self.Active: bool = False
-        self.PowerplayState: str = "stateless"
-        self.ControllingPower: str = "Mr.Nobody"
-        self.Powers: list[str] =  []
-        self.Opposition: list[str] = []
-        self.PowerplayConflictProgress: list[PowerConflictEntry] = []
-        self.PowerplayStateControlProgress: float = 0.0
-        self.PowerplayStateReinforcement: int = 0
-        self.PowerplayStateUndermining: int = 0
-        self.reported: bool = False
+        self.StarSystem = str(eventEntry.get("StarSystem", "Nomansland"))
+        self.Merits = int(eventEntry.get("Merits", 0))
+        self.Active = False
+        self.PowerplayState = str(eventEntry.get("PowerplayState", "stateless"))
+        self.ControllingPower = str(eventEntry.get("ControllingPower", "Mr.Nobody"))
+        self.Powers = self._safe_list(eventEntry.get("Powers", []))
+        self.Opposition = [p for p in self.Powers if p != self.ControllingPower]
+        conflict_data = eventEntry.get("PowerplayConflictProgress", [])
+        self.PowerplayConflictProgress = sorted(
+            PowerConflict(conflict_data).entries, 
+            key=lambda p: getattr(p, "progress", 0), 
+            reverse=True
+        )
+        self.PowerplayStateControlProgress = float(eventEntry.get("PowerplayStateControlProgress", 0.0))
+        self.PowerplayStateReinforcement = int(eventEntry.get("PowerplayStateReinforcement", 0))
+        self.PowerplayStateUndermining = int(eventEntry.get("PowerplayStateUndermining", 0))
+        self.reported = bool(reported)
+
+    def _init_defaults(self):
+        self.StarSystem = "Nomansland"
+        self.Merits = 0
+        self.Active = False
+        self.PowerplayState = "stateless"
+        self.ControllingPower = "Mr.Nobody"
+        self.Powers = []
+        self.Opposition = []
+        self.PowerplayConflictProgress = []
+        self.PowerplayStateControlProgress = 0.0
+        self.PowerplayStateReinforcement = 0
+        self.PowerplayStateUndermining = 0
+        self.reported = False
+
+    def _safe_list(self, val):
+        if isinstance(val, list):
+            return val
+        return []
 
     def getPowerplayCycleNetValue(self):
         if self.PowerplayState in ['Stronghold', 'Fortified', 'Exploited']:
             if len(self.Powers) > 1:
                 return [self.PowerplayStateReinforcement, self.PowerplayStateUndermining]
-            else:
-                return [self.PowerplayStateReinforcement, 0]
-        else:
-            if not self.PowerplayConflictProgress:
-                return [0, 0]
-            return [self.PowerplayConflictProgress[0].progress, 0, 0]
-        
-    def updateSystem(self, eventEntry:dict = {}):
-        self.Active: bool = True
-        self.PowerplayState: str = eventEntry.get("PowerplayState", "stateless")
-        self.ControllingPower: str = eventEntry.get("ControllingPower", "Mr.Nobody")
-        self.Powers: list[str] = eventEntry.get("Powers", [])
-        self.Opposition: list[str] = [p for p in self.Powers if p != self.ControllingPower]
-        self.PowerplayConflictProgress: list[PowerConflictEntry] = sorted(
-            PowerConflict(eventEntry.get("PowerplayConflictProgress", [])).entries,
-            key=lambda p: p.progress,
-            reverse=True  # absteigend sortiert
+            return [self.PowerplayStateReinforcement, 0]
+        if not self.PowerplayConflictProgress:
+            return [0, 0]
+        return [self.PowerplayConflictProgress[0].progress, 0, 0]
+
+    def updateSystem(self, eventEntry: dict = {}):
+        self.Active = True
+        self.PowerplayState = str(eventEntry.get("PowerplayState", "stateless"))
+        self.ControllingPower = str(eventEntry.get("ControllingPower", "Mr.Nobody"))
+        self.Powers = self._safe_list(eventEntry.get("Powers", []))
+        self.Opposition = [p for p in self.Powers if p != self.ControllingPower]
+        conflict_data = eventEntry.get("PowerplayConflictProgress", [])
+        self.PowerplayConflictProgress = sorted(
+            PowerConflict(conflict_data).entries, 
+            key=lambda p: getattr(p, "progress", 0), 
+            reverse=True
         )
-        self.PowerplayStateControlProgress: float = eventEntry.get("PowerplayStateControlProgress", 0.0)
-        self.PowerplayStateReinforcement: int = eventEntry.get("PowerplayStateReinforcement", 0)
-        self.PowerplayStateUndermining: int = eventEntry.get("PowerplayStateUndermining", 0)
-    
+        self.PowerplayStateControlProgress = float(eventEntry.get("PowerplayStateControlProgress", 0.0))
+        self.PowerplayStateReinforcement = int(eventEntry.get("PowerplayStateReinforcement", 0))
+        self.PowerplayStateUndermining = int(eventEntry.get("PowerplayStateUndermining", 0))
+
     def addMerits(self, gained=0):
-        self.Merits += gained
-        
+        self.Merits += int(gained)
+
     def setReported(self, value=False):
-        self.reported = value
-        
+        self.reported = bool(value)
+
     def getSystemProgressNumber(self):
-        #logger.debug(f"get_system_state_power.{system_state}")
         if self.PowerplayState in ['Stronghold', 'Fortified', 'Exploited']:
-            return  self.PowerplayStateControlProgress * 100
-        if self.PowerplayConflictProgress is None or not self.PowerplayConflictProgress:
+            return self.PowerplayStateControlProgress * 100
+        if not self.PowerplayConflictProgress:
             return 0
-        return self.PowerplayConflictProgress[0].progress*100
+        return self.PowerplayConflictProgress[0].progress * 100
 
     def to_dict(self):
         return {
@@ -87,127 +92,106 @@ class StarSystem:
             "ControllingPower": self.ControllingPower,
             "Powers": self.Powers,
             "Opposition": self.Opposition,
-            "PowerplayConflictProgress":  [vars(p) for p in self.PowerplayConflictProgress],
+            "PowerplayConflictProgress": [vars(p) for p in self.PowerplayConflictProgress],
             "PowerplayStateControlProgress": self.PowerplayStateControlProgress,
             "PowerplayStateReinforcement": self.PowerplayStateReinforcement,
             "PowerplayStateUndermining": self.PowerplayStateUndermining,
             "reported": self.reported
         }
-    
-    def from_dict(self, data:dict={}):
-        self.StarSystem: str = data.get("StarSystem", None)
-        self.Merits: int = data.get("Merits", None)
-        self.Active: bool = data.get("Active", False)
-        self.PowerplayState: str = data.get("PowerplayState", "stateless")
-        self.ControllingPower: str = data.get("ControllingPower", "Mr.Nobody")
-        self.Powers: list[str] = data.get("Powers", [])
-        self.Opposition: list[str] = data.get("Opposition", [])
-        self.PowerplayConflictProgress: list[PowerConflictEntry] = sorted(
-            PowerConflict(data.get("PowerplayConflictProgress",[])).entries,
-            key=lambda p: p.progress,
-            reverse=True  
+
+    def from_dict(self, data: dict = {}):
+        self.StarSystem = str(data.get("StarSystem", "Nomansland"))
+        self.Merits = int(data.get("Merits", 0))
+        self.Active = bool(data.get("Active", False))
+        self.PowerplayState = str(data.get("PowerplayState", "stateless"))
+        self.ControllingPower = str(data.get("ControllingPower", "Mr.Nobody"))
+        self.Powers = self._safe_list(data.get("Powers", []))
+        self.Opposition = self._safe_list(data.get("Opposition", []))
+        conflict_data = data.get("PowerplayConflictProgress", [])
+        self.PowerplayConflictProgress = sorted(
+            PowerConflict(conflict_data).entries, 
+            key=lambda p: getattr(p, "progress", 0), 
+            reverse=True
         )
-        self.PowerplayStateControlProgress: float = data.get("PowerplayStateControlProgress", 0.0)
-        self.PowerplayStateReinforcement: int = data.get("PowerplayStateReinforcement", 0)
-        self.PowerplayStateUndermining: int = data.get("PowerplayStateUndermining", 0)
-        self.reported: bool = data.get("reported",False)
-        
+        self.PowerplayStateControlProgress = float(data.get("PowerplayStateControlProgress", 0.0))
+        self.PowerplayStateReinforcement = int(data.get("PowerplayStateReinforcement", 0))
+        self.PowerplayStateUndermining = int(data.get("PowerplayStateUndermining", 0))
+        self.reported = bool(data.get("reported", False))
+
     def getPowerPlayCycleNetStatusText(self):
         if self.PowerplayStateReinforcement == 0 and self.PowerplayStateUndermining == 0:
-            return "Neutral"  # If both are 0, show neutral
-        total = self.PowerplayStateReinforcement + self.PowerplayStateUndermining  # Total value
-        # Calculate actual percentage share
-        reinforcement_percentage = (self.PowerplayStateReinforcement / total) * 100
-        undermining_percentage = (self.PowerplayStateUndermining / total) * 100
-
+            return "Neutral"
+        total = self.PowerplayStateReinforcement + self.PowerplayStateUndermining
+        if total == 0:
+            return "Neutral"
         if self.PowerplayStateReinforcement > self.PowerplayStateUndermining:
-            return f"NET +{reinforcement_percentage:.2f}%"
-        else:
-            return f"NET -{undermining_percentage:.2f}%"
+            return f"NET +{(self.PowerplayStateReinforcement / total) * 100:.2f}%"
+        return f"NET -{(self.PowerplayStateUndermining / total) * 100:.2f}%"
 
     def getSystemStateText(self):
         if not self.PowerplayState:
             return "NoState"
-
         if self.PowerplayState in ['Stronghold', 'Fortified', 'Exploited']:
             return self.PowerplayState
-
         if self.PowerplayState == 'Unoccupied':
-            logger.debug(self.PowerplayConflictProgress)
             if not self.PowerplayConflictProgress:
-                return 'Unoccupied'  # Kein Konflikt erkennbar
-
+                return 'Unoccupied'
             progress = self.PowerplayConflictProgress[0].progress * 100
             if progress < 30:
                 return f"Unoccupied {progress} {self.PowerplayConflictProgress[0].power}"
             if progress < 100:
                 return f"Contested {progress} {self.PowerplayConflictProgress[0].power}"
             return 'Controlled'
+        return self.PowerplayState
 
-        return self.PowerplayState  # Fallback
-    
     def getSystemStatePowerPlay(self, pledged):
-        # Fälle mit klarer Kontrolle
         if self.PowerplayState in ['Stronghold', 'Fortified', 'Exploited']:
             if len(self.Powers) > 1:
-                # Zwei Mächte im System – Opposition ermitteln
                 return [self.ControllingPower, next((p for p in self.Powers if p != pledged), "")]
-            else:
-                return [self.ControllingPower, ""]
-
-        # Konfliktzone – unbesetzt
+            return [self.ControllingPower, ""]
         if self.PowerplayState == 'Unoccupied':
             if len(self.PowerplayConflictProgress) == 1:
                 return [self.PowerplayConflictProgress[0].power, ""]
-            elif len(self.PowerplayConflictProgress) > 1:
-                arr = [item.power for item in self.PowerplayConflictProgress if item.power]
+            if len(self.PowerplayConflictProgress) > 1:
+                arr = [item.power for item in self.PowerplayConflictProgress if hasattr(item, 'power')]
                 if len(arr) >= 2:
                     return [arr[0], arr[1]]
-                elif len(arr) == 1:
+                if len(arr) == 1:
                     return [arr[0], ""]
             return ["NoPower", ""]
-
-        # Kein Powerplay-Status
         return ["NoPower", ""]
 
-    
-    def getFromOldDict(self, name:str, data:dict={}):
-        self.StarSystem: str = name
-        self.Merits = data.get("sessionMerits",0)
-        self.PowerplayState: str = data.get("state", "stateless")
-        self.ControllingPower: str = data.get("power", "Mr.Nobody")
-        self.Powers: list[str] = data.get("powerCompetition", [])
+    def getFromOldDict(self, name: str, data: dict = {}):
+        self.StarSystem = str(name)
+        self.Merits = int(data.get("sessionMerits", 0))
+        self.PowerplayState = str(data.get("state", "stateless"))
+        self.ControllingPower = str(data.get("power", "Mr.Nobody"))
+        self.Powers = self._safe_list(data.get("powerCompetition", []))
         self.PowerplayConflictProgress = []
-        self.PowerplayStateControlProgress: float = data.get("progress", 0.0)
-        self.PowerplayStateReinforcement: int = data.get("statereinforcement", 0)
-        self.PowerplayStateUndermining: int = data.get("stateundermining", 0)
-        self.reported: bool = data.get("reported",False)
-        
-    def debug(self, what):
-        if self.debug == True:
-            logger.debug(what)
-            
-        
+        self.PowerplayStateControlProgress = float(data.get("progress", 0.0))
+        self.PowerplayStateReinforcement = int(data.get("statereinforcement", 0))
+        self.PowerplayStateUndermining = int(data.get("stateundermining", 0))
+        self.reported = bool(data.get("reported", False))
+
 class PowerConflictEntry:
-    def __init__(self, power: str, progress: float):
-        self.power = power
-        self.progress = progress
+    def __init__(self, power, progress):
+        self.power = str(power)
+        self.progress = float(progress)
 
 class PowerConflict:
     def __init__(self, data):
-        self.entries: list[PowerConflictEntry] = []
-        logger.debug(data)
-        
-        if data == None or len(data) == 0:
+        self.entries = []
+        if not data or not isinstance(data, list):
             return
-
         for item in data:
-            if isinstance(item, dict) and "Power" in item and "ConflictProgress" in item:
-                self.entries.append(PowerConflictEntry(item["Power"], item["ConflictProgress"]))
-        
+            if isinstance(item, dict):
+                power = item.get("Power") or item.get("power")
+                progress = item.get("ConflictProgress") or item.get("progress")
+                if power is not None and progress is not None:
+                    self.entries.append(PowerConflictEntry(power, progress))
+
 class SystemEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, StarSystem):
             return o.__dict__
         return super().default(o)
-    

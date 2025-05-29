@@ -1,26 +1,38 @@
-from imports import *
-from system import *
-from power import *
+import os
+import sys
+import json
+import tkinter as tk
+import requests
+import shutil
+import zipfile
+import myNotebook as nb
+import io
+import re
+from PIL import Image, ImageTk
+from typing import Dict, Any
+
+from imports import pledgedPower, plugin_name, configPlugin, logger
+from system import StarSystem
+from power import PledgedPower,PowerEncoder
 from report import Report
 from history import PowerPlayHistory
 from power_info_window import show_power_info
+from config import config, appname
+from configPlugin import ConfigEncoder
+from imports import logger, configPlugin,report, history, systems
 
 this = sys.modules[__name__]  # For holding module globals
 this.debug = False
 this.dump_test = False
-this.systems = {}
-this.pledgedPower = PledgedPower()
+
 this.currentSystemFlying = None
-this.version = 'v0.4.69.1.200'
+this.version = 'v0.4.70.1.200'
 this.crow = -1
 this.mainframerow = -1
 this.copyText = tk.StringVar(value=configPlugin.copyText if isinstance(configPlugin.copyText, str) else configPlugin.copyText.get())
 this.discordHook = tk.StringVar(value=configPlugin.discordHook if isinstance(configPlugin.discordHook, str) else configPlugin.discordHook.get())
 this.reportOnFSDJump = tk.BooleanVar(value=configPlugin.reportOnFSDJump if isinstance(configPlugin.reportOnFSDJump, bool) else False)
 this.assetpath = ""
-this.report = Report()
-this.history = PowerPlayHistory()
-
 def auto_update():
     try:
         url = 'https://api.github.com/repos/Fumlop/EliteMeritTracker/releases/latest'
@@ -111,8 +123,8 @@ def report_on_FSD(sourceSystem):
 
     if '@CPPledged' in dcText:
         dcText = dcText.replace('@CPPledged', str(sourceSystem.PowerplayStateReinforcement))
-    this.systems[sourceSystem.StarSystem].Merits = 0
-    this.report.send_to_discord(dcText)
+    systems[sourceSystem.StarSystem].Merits = 0
+    report.send_to_discord(dcText)
 
 def checkVersion():
     try:
@@ -162,24 +174,20 @@ def plugin_start3(plugin_dir):
         configPlugin.reportSave = this.saveSession
         configPlugin.copyText = this.discordText
     
-    default_pledgedPower:PledgedPower = PledgedPower(eventEntry={})
-    
     this.newest = checkVersion()
 
-    # JSON prüfen oder initialisieren
     if not os.path.exists(file_path):
         os.makedirs(plugin_path, exist_ok=True)
         with open(file_path, "w") as json_file:
-            json.dump(default_pledgedPower.to_dict(), json_file, indent=4)
-        this.pledgedPower = default_pledgedPower
+            json.dump(pledgedPower, json_file, indent=4, cls=PowerEncoder)
+        pledgedPower.from_dict({})  # NEU: auf die existierende Instanz schreiben
     else:
         try:
             with open(file_path, "r") as json_file:
-                this.pledgedPower.from_dict(json.load(json_file))
-                if not this.pledgedPower:
-                    this.pledgedPower = default_pledgedPower
+                pledgedPower.from_dict(json.load(json_file))  # KORREKT
         except json.JSONDecodeError:
-            this.pledgedPower = default_pledgedPower
+            pledgedPower.from_dict({})  # NEU: leeren Dict in Singleton laden
+
               
     # Laden der gespeicherten Systeme
     if os.path.exists(systems_path):
@@ -191,16 +199,16 @@ def plugin_start3(plugin_dir):
                         continue
                     n = StarSystem()
                     n.from_dict(system_data)
-                    this.systems[name] = n
+                    systems[name] = n
                     if n.Active == True:
-                        this.currentSystemFlying = this.systems[name]
+                        this.currentSystemFlying = systems[name]
                     
         except json.JSONDecodeError:
             logger.error("Failed to load systems.json, using empty Systems data.")
-            this.systems = {}
+            systems.__init__()  # NEU: leeres Dict in Singleton laden
             this.currentSystemFlying = StarSystem()
             this.currentSystemFlying.meInit()
-            this.systems[this.currentSystemFlying.StarSystem] = this.currentSystemFlying
+            systems[this.currentSystemFlying.StarSystem] = this.currentSystemFlying
         
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     if (this.currentSystemFlying):
@@ -222,7 +230,7 @@ def plugin_stop():
     
     filtered_systems = {
         name: data.to_dict()
-        for name, data in this.systems.items()
+        for name, data in systems.items()
         if (not data.reported and data.Merits > 0) or data.Active == True
     }
     try:
@@ -245,7 +253,7 @@ def plugin_stop():
 
 def plugin_app(parent):
     # Adds to the main page UI
-    stateButton = tk.NORMAL if this.debug or len(this.systems)>0 else tk.DISABLED
+    stateButton = tk.NORMAL if this.debug or len(systems)>0 else tk.DISABLED
     this.frame = tk.Frame(parent)
     this.frame_row1 = tk.Frame(this.frame)
     this.frame_row1.grid(row=0, column=0, columnspan=3, sticky="w")
@@ -262,8 +270,8 @@ def plugin_app(parent):
     this.frame_row7= tk.Frame(this.frame)
     this.frame_row7.grid(row=6, column=0, columnspan=3, sticky="w")
 
-    this.power = tk.Label(this.frame_row1, text=f"Pledged: {this.pledgedPower.Power} - Rank : {this.pledgedPower.Rank}".strip(), anchor="w", justify="left")
-    this.powerMerits = tk.Label(this.frame_row2 ,text=f"Merits session: {this.pledgedPower.MeritsSession:,} - Total: {this.pledgedPower.Merits:,}".strip(), anchor="w", justify="left")
+    this.power = tk.Label(this.frame_row1, text=f"Pledged: {pledgedPower.Power} - Rank : {pledgedPower.Rank}".strip(), anchor="w", justify="left")
+    this.powerMerits = tk.Label(this.frame_row2 ,text=f"Merits session: {pledgedPower.MeritsSession:,} - Total: {pledgedPower.Merits:,}".strip(), anchor="w", justify="left")
     this.currentSystemLabel = tk.Label(this.frame_row3, text="Waiting for Events".strip(), anchor="w", justify="left")
     this.systemPowerLabel = tk.Label(this.frame_row4, text="Powerplay Status", anchor="w", justify="left")
     this.systemPowerStatusLabel = tk.Label(this.frame_row5, text="Net progress", anchor="w", justify="left")
@@ -305,7 +313,7 @@ def plugin_app(parent):
     this.showButton = tk.Button(
         this.frame_row6,
         text="Overview",
-        command=lambda: show_power_info(parent, this.pledgedPower, this.systems),
+        command=lambda: show_power_info(parent, pledgedPower, systems),
         state=stateButton,
         compound="center"
     )
@@ -317,8 +325,8 @@ def reset():
     # Initialisiere ein neues Dictionary für Systeme
     if this.currentSystemFlying:
        lastState = this.currentSystemFlying
-       this.systems = {}
-       this.systems[this.currentSystemFlying.StarSystem] = this.currentSystemFlying
+       systems.__init__()  # Leeres Dict in Singleton laden
+       systems[this.currentSystemFlying.StarSystem] = this.currentSystemFlying
     update_display()
 
 
@@ -352,15 +360,15 @@ def next_config_row():
 def update_system_merits(merits_value, total):
     try:
         merits = int(merits_value)
-        this.pledgedPower.MeritsSession += merits
+        pledgedPower.MeritsSession += merits
         # Aktualisiere Merits im aktuellen System
-        if this.currentSystemFlying.StarSystem in this.systems:
-            this.systems[this.currentSystemFlying.StarSystem].Merits += merits
+        if this.currentSystemFlying.StarSystem in systems:
+            systems[this.currentSystemFlying.StarSystem].Merits += merits
         else:
-            this.systems[this.currentSystemFlying.StarSystem]= this.currentSystemFlying
-            this.systems[this.currentSystemFlying.StarSystem].Merits = merits
+            systems[this.currentSystemFlying.StarSystem]= this.currentSystemFlying
+            systems[this.currentSystemFlying.StarSystem].Merits = merits
         # Direkte Aktualisierung der Anzeige
-        this.pledgedPower.Merits = int(total)
+        pledgedPower.Merits = int(total)
         update_display()
     except ValueError:
         logger.debug("Invalid merits value. Please enter a number.")
@@ -378,41 +386,37 @@ def update_json_file():
     plugin_path = os.path.join(config.plugin_dir, directory_name)
     file_path = os.path.join(plugin_path, "power.json")
     with open(file_path, "w") as json_file:
-        json.dump(this.pledgedPower.to_dict(), json_file, indent=4)
+        json.dump(pledgedPower, json_file, indent=4, cls=PowerEncoder)
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] in ['Powerplay']:
-        this.pledgedPower = PledgedPower(eventEntry=entry)
+        pledgedPower.__init__(eventEntry=entry)  # NEU: re-initialisiere das Singleton-Objekt
         update_display()
     if entry['event'] in ['PowerplayMerits']:
-        merits = entry.get('MeritsGained')
-        total = entry.get('TotalMerits')
-        update_system_merits(merits,total)
+        update_system_merits(entry.get('MeritsGained'),entry.get('TotalMerits'))
     if entry['event'] in ['FSDJump', 'Location']:
         nameSystem = entry.get('StarSystem',"Nomansland")
-        logger.debug(nameSystem)
-        if (not this.systems or len(this.systems)==0 or nameSystem not in this.systems):
+        if (not systems or len(systems)==0 or nameSystem not in systems):
             new_system = StarSystem(eventEntry=entry, reported=False)
-            this.systems[new_system.StarSystem] = new_system
+            systems[new_system.StarSystem] = new_system
         else:
-            this.systems[nameSystem].updateSystem(eventEntry=entry)
-        logger.debug(entry)
-        updateSystemTracker(this.currentSystemFlying,this.systems[nameSystem])
+            systems[nameSystem].updateSystem(eventEntry=entry)
+        updateSystemTracker(this.currentSystemFlying,systems[nameSystem])
         update_display()
 
 def updateSystemTracker(oldSystem, newSystem):
     if (oldSystem != None) :
-        this.systems[oldSystem.StarSystem].Active = False
+        systems[oldSystem.StarSystem].Active = False
 
-    this.systems[newSystem.StarSystem].Active = True
+    systems[newSystem.StarSystem].Active = True
     this.currentSystemFlying = newSystem
     
 
 def update_display():
     if (not this.currentSystemFlying):
         return
-    this.power["text"] = f"Pledged: {this.pledgedPower.Power} - Rank : {this.pledgedPower.Rank}"
-    this.powerMerits["text"] = f"Merits session: {this.pledgedPower.MeritsSession:,} - total: {this.pledgedPower.Merits:,}".strip()
+    this.power["text"] = f"Pledged: {pledgedPower.Power} - Rank : {pledgedPower.Rank}"
+    this.powerMerits["text"] = f"Merits session: {pledgedPower.MeritsSession:,} - total: {pledgedPower.Merits:,}".strip()
     if this.currentSystemFlying != None and this.currentSystemFlying.StarSystem != "":
             this.showButton.config(state=tk.NORMAL)
             this.resetButton.config(state=tk.NORMAL)
@@ -421,7 +425,7 @@ def update_display():
 
     try:
         #logger.debug(system_data)
-        power = this.currentSystemFlying.getSystemStatePowerPlay(pledged=this.pledgedPower.Power)[0]
+        power = this.currentSystemFlying.getSystemStatePowerPlay(pledged=pledgedPower.Power)[0]
         #logger.debug("ZEFIX")
         powerprogress = this.currentSystemFlying.getSystemProgressNumber()
 
