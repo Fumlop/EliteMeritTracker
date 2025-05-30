@@ -162,52 +162,6 @@ class StarSystem:
             return ["NoPower", ""]
         return ["NoPower", ""]
 
-    def getFromOldDict(self, name: str, data: dict = {}):
-        self.StarSystem = str(name)
-        self.Merits = int(data.get("sessionMerits", 0))
-        self.PowerplayState = str(data.get("state", "stateless"))
-        self.ControllingPower = str(data.get("power", "Mr.Nobody"))
-        self.Powers = self._safe_list(data.get("powerCompetition", []))
-        self.PowerplayConflictProgress = []
-        self.PowerplayStateControlProgress = float(data.get("progress", 0.0))
-        self.PowerplayStateReinforcement = int(data.get("statereinforcement", 0))
-        self.PowerplayStateUndermining = int(data.get("stateundermining", 0))
-        self.reported = bool(data.get("reported", False))
-
-    def dumpSystems(self):
-        plugin_dir = os.path.dirname(os.path.abspath(__file__))
-        systems_path = os.path.join(plugin_dir, "systems.json")
-        
-        filtered_systems = {
-            name: data.to_dict()
-            for name, data in systems.items()
-            if (not data.reported and data.Merits > 0) or data.Active == True
-        }
-        try:
-            with open(systems_path, "w") as json_file:
-                json.dump(filtered_systems, json_file, cls=SystemEncoder, indent=4)
-        except Exception as e:
-            logger.error(f"Failed to save systems: {e}")
-
-    def loadSystems(self):
-        plugin_dir = os.path.dirname(os.path.abspath(__file__))
-        systems_path = os.path.join(plugin_dir, "systems.json")
-        
-        # Laden der gespeicherten Systeme
-        if os.path.exists(systems_path):
-            try:
-                with open(systems_path, "r") as json_file:
-                    tmp = json.load(json_file)
-                    for name, system_data in tmp.items():
-                        if not isinstance(system_data, dict):
-                            continue
-                        n = StarSystem()
-                        n.from_dict(system_data)
-                        systems[name] = n
-            except json.JSONDecodeError:
-                logger.error("Failed to load systems.json, using empty Systems data.")
-                systems.__init__()  # NEU: leeres Dict in Singleton laden
-
 class PowerConflictEntry:
     def __init__(self, power, progress):
         self.power = str(power)
@@ -235,5 +189,38 @@ class SystemEncoder(json.JSONEncoder):
             return o.__dict__
         return super().default(o)
 
+def dumpSystems():
+    plugin_dir = os.path.dirname(os.path.abspath(__file__))
+    systems_path = os.path.join(plugin_dir, "systems.json")
+    
+    filtered_systems = {
+        name: data.to_dict()
+        for name, data in systems.items()
+        if (not data.reported and data.Merits > 0) or data.Active == True
+    }
+    try:
+        with open(systems_path, "w") as json_file:
+            json.dump(filtered_systems, json_file, cls=SystemEncoder, indent=4)
+    except Exception as e:
+        logger.error(f"Failed to save systems: {e}")
+
+def loadSystems():
+    plugin_dir = os.path.dirname(os.path.abspath(__file__))
+    systems_path = os.path.join(plugin_dir, "systems.json")
+    
+    # Laden der gespeicherten Systeme
+    if os.path.exists(systems_path):
+        try:
+            with open(systems_path, "r") as json_file:
+                tmp = json.load(json_file)
+                for name, system_data in tmp.items():
+                    if not isinstance(system_data, dict):
+                        continue
+                    n = StarSystem()
+                    n.from_dict(system_data)
+                    systems[name] = n
+        except json.JSONDecodeError:
+            logger.error("Failed to load systems.json, using empty Systems data.")
+            systems.__init__()  # NEU: leeres Dict in Singleton laden
 
 systems = {} 

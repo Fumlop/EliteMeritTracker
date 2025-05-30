@@ -13,7 +13,7 @@ from PIL import Image, ImageTk
 from typing import Dict, Any
 
 from report import report
-from system import systems, StarSystem
+from system import systems, StarSystem, loadSystems, dumpSystems
 from power import pledgedPower, PowerEncoder
 from pluginUI import TrackerFrame
 from pluginConfig import configPlugin, ConfigEncoder
@@ -157,7 +157,7 @@ def plugin_start3(plugin_dir):
     configPlugin.loadConfig()
     logger.debug(json.dumps(configPlugin, ensure_ascii=False, indent=4, cls=ConfigEncoder))    
     this.newest = checkVersion()
-    this.currentSystemFlying.loadSystems()  # Lädt die Systeme aus der JSON-Datei
+    loadSystems()  # Lädt die Systeme aus der JSON-Datei
     pledgedPower.loadPower()  # Lädt die Power-Daten aus der JSON-Datei
         
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
@@ -245,7 +245,7 @@ def prefs_changed(cmdr, is_beta):
            
 def update_json_file():
     pledgedPower.dumpJson()  
-    this.currentSystemFlying.dumpSystems()
+    dumpSystems()
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     global trackerFrame

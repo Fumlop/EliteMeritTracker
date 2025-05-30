@@ -14,18 +14,9 @@ from pluginDetailsUI import show_power_info
 class TrackerFrame:
     def __init__(self, parent=None,newest=False):
         self.parent = parent
+        self.root =  tk.Tk()
         self.newest = newest
-        self.frame = None
-        self.power = None
-        self.powerMerits = None
-        self.currentSystemLabel = None
-        self.systemPowerLabel = None
-        self.systemPowerStatusLabel = None
         self.icondelete = None
-        self.station_eco_label = None
-        self.resetButton = None
-        self.updateButton = None
-        self.showButton = None
         self.plugin_dir = os.path.dirname(os.path.abspath(__file__))
         self.assetspath = f"{self.plugin_dir}/assets"
         self.this = sys.modules[__name__]
@@ -138,10 +129,9 @@ class TrackerFrame:
         self.systemPowerLabel = tk.Label(self.frame_row4, text="Powerplay Status", anchor="w", justify="left",name="eliteMeritTrackerComponentsystemPowerLabel")
         self.systemPowerStatusLabel = tk.Label(self.frame_row5, text="Net progress", anchor="w", justify="left",name="eliteMeritTrackerComponentsystemPowerStatusLabel")
 
-        self.parent.root = tk.Tk()
-        self.parent.root.withdraw()  # Hide the main window
+        self.root.withdraw()  # Hide the main window
 
-        scale = self.get_scale_factor(self.parent.root.winfo_screenwidth(), self.parent.root.winfo_screenheight())
+        scale = self.get_scale_factor(self.root.winfo_screenwidth(), self.root.winfo_screenheight())
         imagedelete = self.load_and_scale_image(f"{self.assetspath}/delete.png", scale)
         self.icondelete = ImageTk.PhotoImage(imagedelete)
 
@@ -180,14 +170,36 @@ class TrackerFrame:
         self.showButton.pack(side="left", expand=True, fill="both", padx=0, pady=2)
     
     def destroy_tracker_frame(self):
+        for widget in [self.power, self.powerMerits, self.currentSystemLabel, self.systemPowerLabel, self.systemPowerStatusLabel]:
+            if widget is not None:
+                widget.destroy()
         if self.resetButton is not None:
             self.resetButton.config(command=None)
+            self.resetButton.pack_forget()
+            self.resetButton.destroy()
+            logger.debug("Reset Button destroyed")
         if self.updateButton is not None:
             self.updateButton.config(command=None)
+            self.updateButton.pack_forget()
+            self.updateButton.destroy()
+            logger.debug("Update Button destroyed")
         if self.showButton is not None:
             self.showButton.config(command=None)
-
+            self.showButton.pack_forget()
+            self.showButton.destroy()
+            logger.debug("Show Button destroyed")
+        if self.icondelete is not None:
+            del self.icondelete
+            self.icondelete = None
+            logger.debug("Icon delete destroyed")
         if self.frame is not None:
-            for child in list(self.frame.children.values()):
-                child.destroy()
             self.frame.destroy()
+            logger.debug("Frame destroyed")
+        if self.parent is not None:
+            self.parent.destroy()
+            self.parent = None
+            logger.debug("Parent destroyed")
+        self.frame = None
+        self.root.deiconify()   
+        self.root.destroy()
+ 
