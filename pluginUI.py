@@ -130,7 +130,6 @@ class TrackerFrame:
 
         self.this.systemPowerLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
         self.this.systemPowerStatusLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
-        self.this.station_eco_label.grid(row=0, column=0, sticky='w', padx=0, pady=0)
         self.this.currentSystemLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
         self.this.power.grid(row=0, column=0, columnspan=3, sticky='w', padx=0, pady=0)
         self.this.powerMerits.grid(row=0, column=0, columnspan=3, sticky='w', padx=0, pady=0)
@@ -187,7 +186,6 @@ class TrackerFrame:
             self.this.currentSystemLabel = None
             self.this.systemPowerLabel = None
             self.this.systemPowerStatusLabel = None
-            self.this.station_eco_label = None
             self.this.resetButton = None
             self.this.updateButton = None
             self.this.showButton = None
