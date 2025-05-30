@@ -26,7 +26,7 @@ class PledgedPower:
         hours, _ = divmod(seconds, 3600)
 
         self.TimePledgedStr = f"{years}y {days}d {hours}h"
-
+    
     def dumpJson(self):
         directory_name = os.path.basename(os.path.dirname(__file__))
         plugin_path = os.path.join(config.plugin_dir, directory_name)

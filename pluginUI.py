@@ -12,7 +12,9 @@ from pluginDetailsUI import show_power_info
 
 
 class TrackerFrame:
-    def __init__(self, parent=None,newest=False):
+    def __init__(self, parent=None, newest=False, base_width: int = 2560, base_height: int = 1440):
+        self.base_width = base_width
+        self.base_height = base_height
         self.parent = parent
         self.root =  tk.Tk()
         self.newest = newest
@@ -38,13 +40,17 @@ class TrackerFrame:
         self.updateButton = None
         self.showButton = None
     
-    def get_scale_factor(self,current_width: int, current_height: int, base_width: int = 2560, base_height: int = 1440) -> float:
-        scale_x = current_width / base_width
-        scale_y = current_height / base_height
-        return min(scale_x, scale_y)  
+    def get_scale_factor(self, current_width: int, current_height: int) -> float:
+        scale_x = current_width / self.base_width
+        scale_y = current_height / self.base_height
 
-    def load_and_scale_image(self,path: str, scale: float) -> Image:
-        image = Image.open(path)
+    def load_and_scale_image(self, path: str, scale: float) -> Image:
+        try:
+            image = Image.open(path)
+        except (FileNotFoundError, IOError) as e:
+            logger.error(f"Failed to open image at {path}: {e}")
+            return None
+
         new_size = (int(image.width * scale), int(image.height * scale))
         try:
             # Pillow 10.0.0 and later
@@ -54,6 +60,7 @@ class TrackerFrame:
             resample_filter = Image.LANCZOS
 
         return image.resize(new_size, resample_filter)
+    
 
     def update_display(self, currentSystemFlying):
         if (not currentSystemFlying):
@@ -129,7 +136,7 @@ class TrackerFrame:
         self.systemPowerLabel = tk.Label(self.frame_row4, text="Powerplay Status", anchor="w", justify="left",name="eliteMeritTrackerComponentsystemPowerLabel")
         self.systemPowerStatusLabel = tk.Label(self.frame_row5, text="Net progress", anchor="w", justify="left",name="eliteMeritTrackerComponentsystemPowerStatusLabel")
 
-        self.root.withdraw()  # Hide the main window
+        self.withdraw()  # Hide the main window
 
         scale = self.get_scale_factor(self.root.winfo_screenwidth(), self.root.winfo_screenheight())
         imagedelete = self.load_and_scale_image(f"{self.assetspath}/delete.png", scale)
@@ -149,7 +156,7 @@ class TrackerFrame:
         )
         self.resetButton.pack(side="right", padx=0, pady=2)
         self.updateButton = None
-        if self.newest == 1:
+        if self.newest:
             self.updateButton = tk.Button(
                 self.frame_row6, text="Update Available",
                 command=lambda: auto_update(),
