@@ -180,35 +180,37 @@ def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
         trackerFrame.update_display(this.currentSystemFlying)
 
 def plugin_stop():
-    global trackerFrame
+    global this, trackerFrame, configPlugin, pledgedPower, report, history, systems
     update_json_file()    
     if trackerFrame:
         logger.warning("Destroying tracker frame.")
         trackerFrame.destroy_tracker_frame()
         trackerFrame = None
-    destroy_all_emt_widgets()
+    
+    this = None
+    trackerFrame = None
+    configPlugin = None
+    pledgedPower = None
+    report = None
+    history = None
+    systems = None
     logger.info("Shutting down EliteMeritTracker plugin.")
 
     #debug_plugin_widgets()  
     debug_alive_widgets()
 
-def destroy_all_emt_widgets():
-    root = tk._default_root
-    for widget in root.winfo_children():
-        if str(widget).find('eliteMeritTrackerComponent') >= 0:
-            widget.destroy()
-        for child in widget.winfo_children():
-            if str(child).find('eliteMeritTrackerComponent') >= 0:
-                child.destroy()
-
 def plugin_app(parent):
     # Adds to the main page UI
     global trackerFrame
-    trackerFrame = TrackerFrame(parent=parent, newest=this.newest)
-    return trackerFrame.create_tracker_frame(
-        reset,
-        auto_update
-    )
+    if not trackerFrame:
+        trackerFrame = TrackerFrame(parent=parent, newest=this.newest)
+    if not trackerFrame.frame:
+        return trackerFrame.create_tracker_frame(
+            reset,
+            auto_update
+        )
+    else: 
+        return trackerFrame.frame
 
 def reset():
     global trackerFrame

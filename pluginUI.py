@@ -107,6 +107,9 @@ class TrackerFrame:
         self.currentSystemLabel.grid()
 
     def create_tracker_frame(self, reset, auto_update):
+        if self.frame is not None:
+            for child in list(self.frame.children.values()):
+                child.destroy()
         stateButton = tk.NORMAL if len(systems) > 0 else tk.DISABLED
         self.frame = tk.Frame(self.parent,name="eliteMeritTrackerComponentframe")
         self.frame_row1 = tk.Frame(self.frame,name="eliteMeritTrackerComponentframe_row1")
@@ -188,22 +191,8 @@ class TrackerFrame:
             self.updateButton.config(command=None)
         if self.showButton is not None:
             self.showButton.config(command=None)
+
         if self.frame is not None:
-            logger.debug("self.frame is not None") 
+            for child in list(self.frame.children.values()):
+                child.destroy()
             self.frame.destroy()
-            self.frame = None
-            self.frame_row1 = None
-            self.frame_row2 = None 
-            self.frame_row3 = None
-            self.frame_row4 = None 
-            self.frame_row5 = None
-            self.frame_row6 = None 
-            self.frame_row7 = None
-            self.power = None
-            self.powerMerits = None
-            self.currentSystemLabel = None
-            self.systemPowerLabel = None
-            self.systemPowerStatusLabel = None
-            self.resetButton = None
-            self.updateButton = None
-            self.showButton = None
