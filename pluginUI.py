@@ -21,6 +21,7 @@ class TrackerFrame:
         self.currentSystemLabel = None
         self.systemPowerLabel = None
         self.systemPowerStatusLabel = None
+        self.icondelete = None
         self.station_eco_label = None
         self.resetButton = None
         self.updateButton = None
@@ -28,7 +29,23 @@ class TrackerFrame:
         self.plugin_dir = os.path.dirname(os.path.abspath(__file__))
         self.assetspath = f"{self.plugin_dir}/assets"
         self.this = sys.modules[__name__]
-
+        self.frame = None
+        self.frame_row1 = None
+        self.frame_row2 = None     
+        self.frame_row3 = None
+        self.frame_row4 = None
+        self.frame_row5 = None
+        self.frame_row6 = None
+        self.frame_row7 = None
+        self.power = None
+        self.powerMerits = None   
+        self.currentSystemLabel = None
+        self.systemPowerLabel = None
+        self.systemPowerStatusLabel = None
+        self.station_eco_label = None
+        self.resetButton = None
+        self.updateButton = None
+        self.showButton = None
     
     def get_scale_factor(self,current_width: int, current_height: int, base_width: int = 2560, base_height: int = 1440) -> float:
         scale_x = current_width / base_width
@@ -50,28 +67,28 @@ class TrackerFrame:
     def update_display(self, currentSystemFlying):
         if (not currentSystemFlying):
             return
-        self.this.power["text"] = f"Pledged: {pledgedPower.Power} - Rank : {pledgedPower.Rank}"
-        self.this.powerMerits["text"] = f"Merits session: {pledgedPower.MeritsSession:,} - total: {pledgedPower.Merits:,}".strip()
-        if self.this.currentSystemFlying != None and self.this.currentSystemFlying.StarSystem != "":
-                self.this.showButton.config(state=tk.NORMAL)
-                self.this.resetButton.config(state=tk.NORMAL)
+        self.power["text"] = f"Pledged: {pledgedPower.Power} - Rank : {pledgedPower.Rank}"
+        self.powerMerits["text"] = f"Merits session: {pledgedPower.MeritsSession:,} - total: {pledgedPower.Merits:,}".strip()
+        if self.currentSystemFlying != None and self.currentSystemFlying.StarSystem != "":
+                self.showButton.config(state=tk.NORMAL)
+                self.resetButton.config(state=tk.NORMAL)
         else:
             logger.info("No Current System")
 
         try:
             #logger.debug(system_data)
-            power = self.this.currentSystemFlying.getSystemStatePowerPlay(pledged=pledgedPower.Power)[0]
+            power = self.currentSystemFlying.getSystemStatePowerPlay(pledged=pledgedPower.Power)[0]
             #logger.debug("ZEFIX")
-            powerprogress = self.this.currentSystemFlying.getSystemProgressNumber()
+            powerprogress = self.currentSystemFlying.getSystemProgressNumber()
 
             if powerprogress is None:
                 powerprogress_percent = "--%"
             else:
                 powerprogress_percent = f"{powerprogress:.2f}%".rstrip('0').rstrip('.')
 
-            self.this.currentSystemLabel["text"] = f"'{self.this.currentSystemFlying.StarSystem}' : {self.this.currentSystemFlying.Merits} merits gained".strip()
-            self.this.systemPowerLabel["text"] = f"{self.this.currentSystemFlying.getSystemStateText()} ({powerprogress_percent}) by {power}  ".strip()
-            powercycle = self.this.currentSystemFlying.getPowerplayCycleNetValue()
+            self.currentSystemLabel["text"] = f"'{self.currentSystemFlying.StarSystem}' : {self.currentSystemFlying.Merits} merits gained".strip()
+            self.systemPowerLabel["text"] = f"{self.currentSystemFlying.getSystemStateText()} ({powerprogress_percent}) by {power}  ".strip()
+            powercycle = self.currentSystemFlying.getPowerplayCycleNetValue()
             
             if powercycle is None:
                 systemPowerStatusText = ""
@@ -79,113 +96,114 @@ class TrackerFrame:
                 reinforcement = powercycle[0]
                 undermining = powercycle[1]
 
-                if not self.this.currentSystemFlying.PowerplayConflictProgress:
-                    systemPowerStatusText = f"Powerplaycycle {self.this.currentSystemFlying.getPowerPlayCycleNetStatusText()}"
+                if not self.currentSystemFlying.PowerplayConflictProgress:
+                    systemPowerStatusText = f"Powerplaycycle {self.currentSystemFlying.getPowerPlayCycleNetStatusText()}"
                 else:
                     systemPowerStatusText = ""
 
-            self.this.systemPowerStatusLabel["text"] = systemPowerStatusText.strip()
+            self.systemPowerStatusLabel["text"] = systemPowerStatusText.strip()
         except KeyError as e:
-            logger.debug(f"KeyError for current system '{self.this.currentSystemFlying}': {e}")
-        self.this.currentSystemLabel.grid()
+            logger.debug(f"KeyError for current system '{self.currentSystemFlying}': {e}")
+        self.currentSystemLabel.grid()
 
     def create_tracker_frame(self, reset, auto_update):
         stateButton = tk.NORMAL if len(systems) > 0 else tk.DISABLED
-        self.this.frame = tk.Frame(self.parent,name="eliteMeritTrackerComponentframe")
-        self.this.frame_row1 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponentframe_row1")
-        self.this.frame_row1.grid(row=0, column=0, columnspan=3, sticky="w")
-        self.this.frame_row2 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponentframe_row2")
-        self.this.frame_row2.grid(row=1, column=0, columnspan=3, sticky="w")
-        self.this.frame_row3 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponentframe_row3")
-        self.this.frame_row3.grid(row=2, column=0, columnspan=3, sticky="w")
-        self.this.frame_row4 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponentframe_row4")
-        self.this.frame_row4.grid(row=3, column=0, columnspan=3, sticky="w")
-        self.this.frame_row5 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponentframe_row5")
-        self.this.frame_row5.grid(row=4, column=0, columnspan=3, sticky="w")
-        self.this.frame_row6 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponentframe_row6")
-        self.this.frame_row6.grid(row=5, column=0, columnspan=3, sticky="we", padx=0, pady=2)
-        self.this.frame_row7 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponentframe_row7")
-        self.this.frame_row7.grid(row=6, column=0, columnspan=3, sticky="w")
+        self.frame = tk.Frame(self.parent,name="eliteMeritTrackerComponentframe")
+        self.frame_row1 = tk.Frame(self.frame,name="eliteMeritTrackerComponentframe_row1")
+        self.frame_row1.grid(row=0, column=0, columnspan=3, sticky="w")
+        self.frame_row2 = tk.Frame(self.frame,name="eliteMeritTrackerComponentframe_row2")
+        self.frame_row2.grid(row=1, column=0, columnspan=3, sticky="w")
+        self.frame_row3 = tk.Frame(self.frame,name="eliteMeritTrackerComponentframe_row3")
+        self.frame_row3.grid(row=2, column=0, columnspan=3, sticky="w")
+        self.frame_row4 = tk.Frame(self.frame,name="eliteMeritTrackerComponentframe_row4")
+        self.frame_row4.grid(row=3, column=0, columnspan=3, sticky="w")
+        self.frame_row5 = tk.Frame(self.frame,name="eliteMeritTrackerComponentframe_row5")
+        self.frame_row5.grid(row=4, column=0, columnspan=3, sticky="w")
+        self.frame_row6 = tk.Frame(self.frame,name="eliteMeritTrackerComponentframe_row6")
+        self.frame_row6.grid(row=5, column=0, columnspan=3, sticky="we", padx=0, pady=2)
+        self.frame_row7 = tk.Frame(self.frame,name="eliteMeritTrackerComponentframe_row7")
+        self.frame_row7.grid(row=6, column=0, columnspan=3, sticky="w")
 
-        self.this.power = tk.Label(
-            self.this.frame_row1,
+        self.power = tk.Label(
+            self.frame_row1,
             text=f"Pledged: {pledgedPower.Power} - Rank : {pledgedPower.Rank}".strip(),
             anchor="w", justify="left",name="eliteMeritTrackerComponentpower"
         )
-        self.this.powerMerits = tk.Label(
-            self.this.frame_row2,
+        self.powerMerits = tk.Label(
+            self.frame_row2,
             text=f"Merits session: {pledgedPower.MeritsSession:,} - Total: {pledgedPower.Merits:,}".strip(),
             anchor="w", justify="left",name="eliteMeritTrackerComponentpowerMerits"
         )
-        self.this.currentSystemLabel = tk.Label(self.this.frame_row3, text="Waiting for Events".strip(), anchor="w", justify="left",name="eliteMeritTrackerComponentcurrentSystemLabel")
-        self.this.systemPowerLabel = tk.Label(self.this.frame_row4, text="Powerplay Status", anchor="w", justify="left",name="eliteMeritTrackerComponentsystemPowerLabel")
-        self.this.systemPowerStatusLabel = tk.Label(self.this.frame_row5, text="Net progress", anchor="w", justify="left",name="eliteMeritTrackerComponentsystemPowerStatusLabel")
+        self.currentSystemLabel = tk.Label(self.frame_row3, text="Waiting for Events".strip(), anchor="w", justify="left",name="eliteMeritTrackerComponentcurrentSystemLabel")
+        self.systemPowerLabel = tk.Label(self.frame_row4, text="Powerplay Status", anchor="w", justify="left",name="eliteMeritTrackerComponentsystemPowerLabel")
+        self.systemPowerStatusLabel = tk.Label(self.frame_row5, text="Net progress", anchor="w", justify="left",name="eliteMeritTrackerComponentsystemPowerStatusLabel")
 
         self.parent.root = tk.Tk()
         self.parent.root.withdraw()  # Hide the main window
 
         scale = self.get_scale_factor(self.parent.root.winfo_screenwidth(), self.parent.root.winfo_screenheight())
         imagedelete = self.load_and_scale_image(f"{self.assetspath}/delete.png", scale)
-        self.this.frame.icondelete = ImageTk.PhotoImage(imagedelete)
+        self.icondelete = ImageTk.PhotoImage(imagedelete)
 
-        self.this.systemPowerLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
-        self.this.systemPowerStatusLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
-        self.this.currentSystemLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
-        self.this.power.grid(row=0, column=0, columnspan=3, sticky='w', padx=0, pady=0)
-        self.this.powerMerits.grid(row=0, column=0, columnspan=3, sticky='w', padx=0, pady=0)
+        self.systemPowerLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
+        self.systemPowerStatusLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
+        self.currentSystemLabel.grid(row=0, column=0, sticky='w', padx=0, pady=0)
+        self.power.grid(row=0, column=0, columnspan=3, sticky='w', padx=0, pady=0)
+        self.powerMerits.grid(row=0, column=0, columnspan=3, sticky='w', padx=0, pady=0)
 
-        self.this.resetButton = tk.Button(
-            self.this.frame_row6,
-            image=self.this.frame.icondelete,
+        self.resetButton = tk.Button(
+            self.frame_row6,
+            image=self.icondelete,
             command=reset,
             state=stateButton,name="eliteMeritTrackerComponentresetButton"
         )
-        self.this.resetButton.pack(side="right", padx=0, pady=2)
-        self.this.updateButton = None
+        self.resetButton.pack(side="right", padx=0, pady=2)
+        self.updateButton = None
         if self.newest == 1:
-            self.this.updateButton = tk.Button(
-                self.this.frame_row6, text="Update Available",
+            self.updateButton = tk.Button(
+                self.frame_row6, text="Update Available",
                 command=lambda: auto_update(),
                 fg="red",
                 font=("Arial", 10, "bold"),
                 state=tk.NORMAL,
                 compound="right",name="eliteMeritTrackerComponentupdateButton"
             )
-            self.this.updateButton.pack(side="left", padx=0, pady=2)
+            self.updateButton.pack(side="left", padx=0, pady=2)
 
-        self.this.showButton = tk.Button(
-            self.this.frame_row6,
+        self.showButton = tk.Button(
+            self.frame_row6,
             text="Overview",
             command=lambda: show_power_info(self.parent, pledgedPower, systems),
             state=stateButton,
             compound="center",name="eliteMeritTrackerComponentshowButton"
         )
-        self.this.showButton.pack(side="left", expand=True, fill="both", padx=0, pady=2)
+        self.showButton.pack(side="left", expand=True, fill="both", padx=0, pady=2)
 
-        return self.this.frame
+        return self.frame
     
     def destroy_tracker_frame(self):
-        if self.this.resetButton is not None:
-            self.this.resetButton.config(command=None)
-        if self.this.updateButton is not None:
-            self.this.updateButton.config(command=None)
-        if self.this.showButton is not None:
-            self.this.showButton.config(command=None)
-        if self.this.frame is not None:
-            self.this.frame.destroy()
-            self.this.frame = None
-            self.this.frame_row1 = None
-            self.this.frame_row2 = None 
-            self.this.frame_row3 = None
-            self.this.frame_row4 = None 
-            self.this.frame_row5 = None
-            self.this.frame_row6 = None 
-            self.this.frame_row7 = None
-            self.this.power = None
-            self.this.powerMerits = None
-            self.this.currentSystemLabel = None
-            self.this.systemPowerLabel = None
-            self.this.systemPowerStatusLabel = None
-            self.this.resetButton = None
-            self.this.updateButton = None
-            self.this.showButton = None
+        if self.resetButton is not None:
+            self.resetButton.config(command=None)
+        if self.updateButton is not None:
+            self.updateButton.config(command=None)
+        if self.showButton is not None:
+            self.showButton.config(command=None)
+        if self.frame is not None:
+            logger.debug("self.frame is not None") 
+            self.frame.destroy()
+            self.frame = None
+            self.frame_row1 = None
+            self.frame_row2 = None 
+            self.frame_row3 = None
+            self.frame_row4 = None 
+            self.frame_row5 = None
+            self.frame_row6 = None 
+            self.frame_row7 = None
+            self.power = None
+            self.powerMerits = None
+            self.currentSystemLabel = None
+            self.systemPowerLabel = None
+            self.systemPowerStatusLabel = None
+            self.resetButton = None
+            self.updateButton = None
+            self.showButton = None

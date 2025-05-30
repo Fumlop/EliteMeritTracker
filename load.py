@@ -186,9 +186,20 @@ def plugin_stop():
         logger.warning("Destroying tracker frame.")
         trackerFrame.destroy_tracker_frame()
         trackerFrame = None
+    destroy_all_emt_widgets()
     logger.info("Shutting down EliteMeritTracker plugin.")
-    debug_plugin_widgets()  
+
+    #debug_plugin_widgets()  
     debug_alive_widgets()
+
+def destroy_all_emt_widgets():
+    root = tk._default_root
+    for widget in root.winfo_children():
+        if str(widget).find('eliteMeritTrackerComponent') >= 0:
+            widget.destroy()
+        for child in widget.winfo_children():
+            if str(child).find('eliteMeritTrackerComponent') >= 0:
+                child.destroy()
 
 def plugin_app(parent):
     # Adds to the main page UI
