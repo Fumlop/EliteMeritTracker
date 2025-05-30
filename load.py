@@ -176,7 +176,11 @@ def plugin_stop():
 
     systems = None
     pledgedPower = None
-    configPlugin = None
+    if configPlugin:
+        configPlugin.reportOnFSDJump = None
+        configPlugin.discordHook = None
+        configPlugin.copyText = None
+        configPlugin = None
     trackerFrame = None
     this.currentSystemFlying = None
     logger.info("Shutting down EliteMeritTracker plugin.")
