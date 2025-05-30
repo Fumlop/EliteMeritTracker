@@ -184,21 +184,13 @@ def plugin_stop():
     trackerFrame = None
     this.currentSystemFlying = None
     logger.info("Shutting down EliteMeritTracker plugin.")
-    #debug_plugin_widgets()  
-    #debug_alive_widgets()
 
 def plugin_app(parent):
     # Adds to the main page UI
     global trackerFrame
-    if not trackerFrame:
-        trackerFrame = TrackerFrame(parent=parent, newest=this.newest)
-    if not trackerFrame.frame:
-        return trackerFrame.create_tracker_frame(
-            reset,
-            auto_update
-        )
-    else: 
-        return trackerFrame.frame
+    trackerFrame = TrackerFrame(parent=parent, newest=this.newest)
+    trackerFrame.create_tracker_frame(reset, auto_update)
+    return trackerFrame.frame
 
 def reset():
     global trackerFrame
