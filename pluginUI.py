@@ -197,4 +197,3 @@ class TrackerFrame:
             self.parent.destroy()
             self.parent = None
             logger.debug("Parent destroyed")
-        self.root = None
