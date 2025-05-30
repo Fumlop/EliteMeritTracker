@@ -8,7 +8,7 @@ import os
 import sys
 from config import config
 from log import logger
-from power_info_window import show_power_info
+from pluginDetailsUI import show_power_info
 
 
 class TrackerFrame:
@@ -165,3 +165,24 @@ class TrackerFrame:
         self.this.showButton.pack(side="left", expand=True, fill="both", padx=0, pady=2)
 
         return self.this.frame
+    
+    def destroy_tracker_frame(self):
+        if self.this.frame is not None:
+            self.this.frame.destroy()
+            self.this.frame = None
+            self.this.frame_row1 = None
+            self.this.frame_row2 = None 
+            self.this.frame_row3 = None
+            self.this.frame_row4 = None 
+            self.this.frame_row5 = None
+            self.this.frame_row6 = None 
+            self.this.frame_row7 = None
+            self.this.power = None
+            self.this.powerMerits = None
+            self.this.currentSystemLabel = None
+            self.this.systemPowerLabel = None
+            self.this.systemPowerStatusLabel = None
+            self.this.station_eco_label = None
+            self.this.resetButton = None
+            self.this.updateButton = None
+            self.this.showButton = None

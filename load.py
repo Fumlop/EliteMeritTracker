@@ -14,22 +14,22 @@ from typing import Dict, Any
 from report import report
 from system import systems, StarSystem
 from power import pledgedPower, PowerEncoder
-from trackerUI import TrackerFrame
-from configPlugin import configPlugin, ConfigEncoder
+from pluginUI import TrackerFrame
+from pluginConfig import configPlugin, ConfigEncoder
 from log import logger, plugin_name
-from power_info_window import show_power_info
+from pluginDetailsUI import show_power_info
 from config import config, appname
-from configUI import create_config_frame
+from pluginConfigUI import create_config_frame
 
 this = sys.modules[__name__]  # For holding module globals
 this.debug = False
 this.dump_test = False
-trackerFrame = None
-
+this.trackerFrame = None
 this.currentSystemFlying = StarSystem(eventEntry={}, reported=False)
 this.version = 'v0.4.70.1.200'
 this.crow = -1
 this.mainframerow = -1
+this.parent = None
 this.copyText = tk.StringVar(value=configPlugin.copyText if isinstance(configPlugin.copyText, str) else configPlugin.copyText.get())
 this.discordHook = tk.StringVar(value=configPlugin.discordHook if isinstance(configPlugin.discordHook, str) else configPlugin.discordHook.get())
 this.reportOnFSDJump = tk.BooleanVar(value=configPlugin.reportOnFSDJump if isinstance(configPlugin.reportOnFSDJump, bool) else False)
@@ -109,7 +109,7 @@ def auto_update():
 
 def restart_edmc():
     logger.info("Restarting EDMC...")
-    this.frame.quit()
+    this.trackerFrame.destroy_tracker_frame()
     os._exit(0)  # Beendet das aktuelle Python-Programm
 
 def parse_version(version_str):
@@ -174,35 +174,35 @@ def plugin_start3(plugin_dir):
         
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     if (this.currentSystemFlying):
-        trackerFrame.update_display(this.currentSystemFlying)
-
-def position_button():
-    entry_y = this.currentSystemEntry.winfo_y()
-    entry_height = this.currentSystemEntry.winfo_height()
-    button_y = entry_y + (entry_height // 2) - (this.currentSystemButton.winfo_height() // 2)
-    this.currentSystemButton.place(x=this.currentSystemEntry.winfo_x() + this.currentSystemEntry.winfo_width() + 10, y=button_y)
+        this.trackerFrame.update_display(this.currentSystemFlying)
 
 def plugin_stop():
     # Sicherstellen, dass "Systems" existiert
     update_json_file()            
-    this.frame.quit()
+    if this.trackerFrame:
+        this.trackerFrame.destroy_tracker_frame()
+        this.trackerFrame = None
+    configPlugin
     logger.info("Shutting down plugin.")
+    
     
 
 def plugin_app(parent):
     # Adds to the main page UI
-    trackerFrame = TrackerFrame(parent=parent, newest=this.newest)
-    return trackerFrame.create_tracker_frame(
+    this.parent = parent
+    this.trackerFrame = TrackerFrame(parent=parent, newest=this.newest)
+    holdFrame = this.trackerFrame.create_tracker_frame(
         reset,
         auto_update
     )
+    return holdFrame
 
 def reset():
     # Initialisiere ein neues Dictionary für Systeme
     if this.currentSystemFlying:
        systems.__init__()  # Leeres Dict in Singleton laden
        systems[this.currentSystemFlying.StarSystem] = this.currentSystemFlying
-    trackerFrame.update_display(this.currentSystemFlying)
+    this.trackerFrame.update_display(this.currentSystemFlying)
 
 
 def plugin_prefs(parent, cmdr, is_beta):
@@ -226,8 +226,7 @@ def update_system_merits(merits_value, total):
         systems[sys_name] = current
 
     pledgedPower.Merits = total_merits
-    trackerFrame.update_display(this.currentSystemFlying)
-
+    this.trackerFrame.update_display(this.currentSystemFlying)
 
 def prefs_changed(cmdr, is_beta):
     configPlugin.copyText = this.copyText.get()
@@ -242,7 +241,7 @@ def update_json_file():
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] in ['Powerplay']:
         pledgedPower.__init__(eventEntry=entry)  # NEU: re-initialisiere das Singleton-Objekt
-        trackerFrame.update_display(this.currentSystemFlying)
+        this.trackerFrame.update_display(this.currentSystemFlying)
     if entry['event'] in ['PowerplayMerits']:
         update_system_merits(entry.get('MeritsGained'),entry.get('TotalMerits'))
     if entry['event'] in ['FSDJump', 'Location']:
@@ -253,7 +252,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         else:
             systems[nameSystem].updateSystem(eventEntry=entry)
         updateSystemTracker(this.currentSystemFlying,systems[nameSystem])
-        trackerFrame.update_display(this.currentSystemFlying)
+        this.trackerFrame.update_display(this.currentSystemFlying)
 
 def updateSystemTracker(oldSystem, newSystem):
     if (oldSystem != None) :

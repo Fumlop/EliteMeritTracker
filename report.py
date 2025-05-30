@@ -1,6 +1,6 @@
 import requests
 from log import logger, plugin_name
-from configPlugin import configPlugin, ConfigEncoder
+from pluginConfig import configPlugin, ConfigEncoder
 
 class Report:
     def send_to_discord(self, message: str) -> bool:
