@@ -24,7 +24,7 @@ from pluginConfigUI import create_config_frame
 
 this = sys.modules[__name__]  # For holding module globals
 trackerFrame = None
-this.currentSystemFlying = StarSystem(eventEntry={}, reported=False)
+this.currentSystemFlying = None
 this.crow = -1
 this.mainframerow = -1
 this.parent = None
@@ -158,6 +158,9 @@ def plugin_start3(plugin_dir):
     logger.debug(json.dumps(configPlugin, ensure_ascii=False, indent=4, cls=ConfigEncoder))    
     this.newest = checkVersion()
     loadSystems()  # Lädt die Systeme aus der JSON-Datei
+    for system in systems.values():
+        if (system.Active):
+            this.currentSystemFlying = system
     pledgedPower.loadPower()  # Lädt die Power-Daten aus der JSON-Datei
         
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
@@ -199,26 +202,8 @@ def reset():
        systems[this.currentSystemFlying.StarSystem] = this.currentSystemFlying
     trackerFrame.update_display(this.currentSystemFlying)
 
-
 def plugin_prefs(parent, cmdr, is_beta):
     return create_config_frame(parent, nb)
-
-def debug_plugin_widgets():
-    root = tk._default_root
-    logger.warning("---- Aktuelle Widgets im Tkinter-Root ----")
-    for widget in root.winfo_children():
-        logger.warning(f"{widget} | Klasse: {widget.winfo_class()}")
-        for sub in widget.winfo_children():
-            logger.warning(f"  -> {sub} | Klasse: {sub.winfo_class()}")
-    logger.warning("---- ENDE ----")
-
-def debug_alive_widgets():
-    for obj in gc.get_objects():
-        try:
-            if isinstance(obj, tk.Widget):
-                logger.warning(obj)
-        except:
-            pass
 
 def update_system_merits(merits_value, total):
     global trackerFrame

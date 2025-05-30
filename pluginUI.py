@@ -14,7 +14,6 @@ from pluginDetailsUI import show_power_info
 class TrackerFrame:
     def __init__(self, parent=None,newest=False):
         self.parent = parent
-        self.root =  tk.Tk()
         self.newest = newest
         self.icondelete = None
         self.plugin_dir = os.path.dirname(os.path.abspath(__file__))
@@ -60,7 +59,7 @@ class TrackerFrame:
             return
         self.power["text"] = f"Pledged: {pledgedPower.Power} - Rank : {pledgedPower.Rank}"
         self.powerMerits["text"] = f"Merits session: {pledgedPower.MeritsSession:,} - total: {pledgedPower.Merits:,}".strip()
-        if self.currentSystemFlying != None and self.currentSystemFlying.StarSystem != "":
+        if currentSystemFlying != None and currentSystemFlying.StarSystem != "":
                 self.showButton.config(state=tk.NORMAL)
                 self.resetButton.config(state=tk.NORMAL)
         else:
@@ -68,18 +67,18 @@ class TrackerFrame:
 
         try:
             #logger.debug(system_data)
-            power = self.currentSystemFlying.getSystemStatePowerPlay(pledged=pledgedPower.Power)[0]
+            power = currentSystemFlying.getSystemStatePowerPlay(pledged=pledgedPower.Power)[0]
             #logger.debug("ZEFIX")
-            powerprogress = self.currentSystemFlying.getSystemProgressNumber()
+            powerprogress = currentSystemFlying.getSystemProgressNumber()
 
             if powerprogress is None:
                 powerprogress_percent = "--%"
             else:
                 powerprogress_percent = f"{powerprogress:.2f}%".rstrip('0').rstrip('.')
 
-            self.currentSystemLabel["text"] = f"'{self.currentSystemFlying.StarSystem}' : {self.currentSystemFlying.Merits} merits gained".strip()
-            self.systemPowerLabel["text"] = f"{self.currentSystemFlying.getSystemStateText()} ({powerprogress_percent}) by {power}  ".strip()
-            powercycle = self.currentSystemFlying.getPowerplayCycleNetValue()
+            self.currentSystemLabel["text"] = f"'{currentSystemFlying.StarSystem}' : {currentSystemFlying.Merits} merits gained".strip()
+            self.systemPowerLabel["text"] = f"{currentSystemFlying.getSystemStateText()} ({powerprogress_percent}) by {power}  ".strip()
+            powercycle = currentSystemFlying.getPowerplayCycleNetValue()
             
             if powercycle is None:
                 systemPowerStatusText = ""
@@ -87,14 +86,14 @@ class TrackerFrame:
                 reinforcement = powercycle[0]
                 undermining = powercycle[1]
 
-                if not self.currentSystemFlying.PowerplayConflictProgress:
-                    systemPowerStatusText = f"Powerplaycycle {self.currentSystemFlying.getPowerPlayCycleNetStatusText()}"
+                if not currentSystemFlying.PowerplayConflictProgress:
+                    systemPowerStatusText = f"Powerplaycycle {currentSystemFlying.getPowerPlayCycleNetStatusText()}"
                 else:
                     systemPowerStatusText = ""
 
             self.systemPowerStatusLabel["text"] = systemPowerStatusText.strip()
         except KeyError as e:
-            logger.debug(f"KeyError for current system '{self.currentSystemFlying}': {e}")
+            logger.debug(f"KeyError for current system '{currentSystemFlying}': {e}")
         self.currentSystemLabel.grid()
 
     def create_tracker_frame(self, reset, auto_update):
@@ -129,9 +128,7 @@ class TrackerFrame:
         self.systemPowerLabel = tk.Label(self.frame_row4, text="Powerplay Status", anchor="w", justify="left",name="eliteMeritTrackerComponentsystemPowerLabel")
         self.systemPowerStatusLabel = tk.Label(self.frame_row5, text="Net progress", anchor="w", justify="left",name="eliteMeritTrackerComponentsystemPowerStatusLabel")
 
-        self.root.withdraw()  # Hide the main window
-
-        scale = self.get_scale_factor(self.root.winfo_screenwidth(), self.root.winfo_screenheight())
+        scale = self.get_scale_factor(self.parent.winfo_toplevel().winfo_screenwidth(), self.parent.winfo_toplevel().winfo_screenheight())
         imagedelete = self.load_and_scale_image(f"{self.assetspath}/delete.png", scale)
         self.icondelete = ImageTk.PhotoImage(imagedelete)
 
@@ -194,12 +191,10 @@ class TrackerFrame:
             logger.debug("Icon delete destroyed")
         if self.frame is not None:
             self.frame.destroy()
+            self.frame = None
             logger.debug("Frame destroyed")
         if self.parent is not None:
             self.parent.destroy()
             self.parent = None
             logger.debug("Parent destroyed")
-        self.frame = None
-        self.root.deiconify()   
-        self.root.destroy
-        self.root.update()  
+        self.root = None
