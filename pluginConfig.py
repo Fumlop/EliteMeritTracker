@@ -2,6 +2,7 @@ import logging
 from config import config, appname
 from log import logger, plugin_name
 import json
+import tkinter as tk
 import os
 
 class ConfigPlugin:
@@ -9,12 +10,12 @@ class ConfigPlugin:
         self.power_info_width: int = int(config.get_str("power_info_width") or "1280")
         self.power_info_height: int = int(config.get_str("power_info_height") or "800")
         self.cacheTime: int = int(config.get_str("cacheTime") or self.getCacheTime())
-        self.copyText: str = config.get_str("copyText") or self.getTextCopy()
-        self.reportOnFSDJump: bool = config.get_bool("reportOnFSDJump") or False
-        self.discordHook: str = config.get_str("discordHook") or ""
+        self.copyText= tk.StringVar(value=config.get_str("copyText") or self.getTextCopy())
+        self.reportOnFSDJump= tk.BooleanVar(value=config.get_bool("reportOnFSDJump") or False)
+        self.discordHook= tk.StringVar(value=config.get_str("discordHook") or "")
         self.reportSave: bool = config.get_bool("reportSave") or True
         self.never: bool = config.get_bool("never") or False
-        #self.keepHistory =  min(int(config.get_str("keepHistory") or 90), 90)
+        self.version: str = 'v0.4.70.1.200'
 
     def getTextCopy(self):
         return "@Leadership earned @MeritsValue merits in @System, @CPControlling, @CPOpposition"
@@ -24,20 +25,32 @@ class ConfigPlugin:
     
     def old(self):
         self.never = True
-        
+    
+    def loadConfig(self):
+        self.power_info_width = int(config.get_str("power_info_width") or "1280")
+        self.power_info_height = int(config.get_str("power_info_height") or "800")
+        self.cacheTime = int(config.get_str("cacheTime") or self.getCacheTime())
+        self.copyText = tk.StringVar(value=config.get_str("copyText") or self.getTextCopy())
+        self.reportOnFSDJump = tk.BooleanVar(value=config.get_bool("reportOnFSDJump") or False)
+        self.discordHook = tk.StringVar(value=config.get_str("discordHook") or "")
+        self.reportSave = config.get_bool("reportSave") or True
+        self.never = config.get_bool("never") or False
+
     def dumpConfig(self):
         config.set("power_info_width", str(self.power_info_width))
         config.set("power_info_height", str(self.power_info_height))
         config.set("cacheTime", str(self.cacheTime))
-        config.set("copyText", str(self.copyText))
-        config.set("reportOnFSDJump", bool(self.reportOnFSDJump))
-        config.set("discordHook", str(self.discordHook))
+        config.set("copyText", str(self.copyText.get()))
+        config.set("reportOnFSDJump", bool(self.reportOnFSDJump.get()))
+        config.set("discordHook", str(self.discordHook.get()))
         config.set("reportSave", bool(self.reportSave))
         config.set("never", bool(self.never))
         #config.set("keepHistory", str(self.keepHistory, 90))
 
 class ConfigEncoder(json.JSONEncoder):
     def default(self, o):
+        if isinstance(o, tk.StringVar) or isinstance(o, tk.BooleanVar):
+            return o.get()
         if isinstance(o, ConfigPlugin):
             return o.__dict__
         return super().default(o)

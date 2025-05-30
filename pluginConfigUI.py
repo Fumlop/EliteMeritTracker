@@ -1,7 +1,9 @@
 import tkinter as tk
 import myNotebook as nb
+from pluginConfig import configPlugin
+from log import logger, plugin_name
 
-def create_config_frame(parent, this, nb):
+def create_config_frame(parent, nb):
     config_frame = nb.Frame(parent)
     config_frame.columnconfigure(1, weight=1)
     config_frame.grid(sticky=tk.EW)
@@ -21,10 +23,10 @@ def create_config_frame(parent, this, nb):
         config_frame,
         text="@MeritsValue, @System, @CPOpposition, @CPControlling"
     ).grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
-
+    logger.warning(f"config {configPlugin.copyText}")
     nb.Entry(
         config_frame,
-        textvariable=this.copyText,
+        textvariable=configPlugin.copyText,
         width=50
     ).grid(row=next_config_row(), column=0, padx=5, pady=5, sticky="we")
 
@@ -34,21 +36,21 @@ def create_config_frame(parent, this, nb):
 
     nb.Entry(
         config_frame,
-        textvariable=this.discordHook,
+        textvariable=configPlugin.discordHook,
         width=50
     ).grid(row=next_config_row(), column=0, padx=5, pady=5, sticky="we")
 
     nb.Checkbutton(
         config_frame,
         text="Report merits from source system to Discord on FSDJump",
-        variable=this.reportOnFSDJump
+        variable=configPlugin.reportOnFSDJump
     ).grid(row=next_config_row(), columnspan=2, sticky=tk.W)
 
     nb.Label(config_frame, text="").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
 
     nb.Label(
         config_frame,
-        text=f"Version {this.version}"
+        text=f"Version {configPlugin.version}"
     ).grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
 
     return config_frame

@@ -23,17 +23,11 @@ from config import config, appname
 from pluginConfigUI import create_config_frame
 
 this = sys.modules[__name__]  # For holding module globals
-this.debug = False
-this.dump_test = False
 trackerFrame = None
 this.currentSystemFlying = StarSystem(eventEntry={}, reported=False)
-this.version = 'v0.4.70.1.200'
 this.crow = -1
 this.mainframerow = -1
 this.parent = None
-this.copyText = tk.StringVar(value=configPlugin.copyText if isinstance(configPlugin.copyText, str) else configPlugin.copyText.get())
-this.discordHook = tk.StringVar(value=configPlugin.discordHook if isinstance(configPlugin.discordHook, str) else configPlugin.discordHook.get())
-this.reportOnFSDJump = tk.BooleanVar(value=configPlugin.reportOnFSDJump if isinstance(configPlugin.reportOnFSDJump, bool) else False)
 this.assetpath = ""
 def auto_update():
     try:
@@ -147,7 +141,7 @@ def checkVersion():
         data = req.json()
         latest_version = parse_version(data['tag_name'])
         logger.info('latest_version: %s', latest_version)
-        current_version = parse_version(this.version)
+        current_version = parse_version(configPlugin.version)
         logger.info('current_version: %s', current_version)
 
         if current_version >= latest_version:
@@ -160,16 +154,8 @@ def checkVersion():
         return -1
 
 def plugin_start3(plugin_dir):
-    if configPlugin.never == True:
-        logger.debug("new config mode")
-        logger.debug(json.dumps(configPlugin, ensure_ascii=False, indent=4, cls=ConfigEncoder))
-    else:
-        this.discordText = tk.StringVar(value=config.get_str("dText") or "@Leader Earned @MeritsValue merits in @System")
-        this.saveSession = tk.BooleanVar(value=(config.get_str("saveSession") =="True" if config.get_str("saveSession") else True))
-        configPlugin.never = True
-        configPlugin.reportSave = this.saveSession
-        configPlugin.copyText = this.discordText
-    
+    configPlugin.loadConfig()
+    logger.debug(json.dumps(configPlugin, ensure_ascii=False, indent=4, cls=ConfigEncoder))    
     this.newest = checkVersion()
     this.currentSystemFlying.loadSystems()  # Lädt die Systeme aus der JSON-Datei
     pledgedPower.loadPower()  # Lädt die Power-Daten aus der JSON-Datei
@@ -180,24 +166,22 @@ def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
         trackerFrame.update_display(this.currentSystemFlying)
 
 def plugin_stop():
-    global this, trackerFrame, configPlugin, pledgedPower, report, history, systems
+    global report, systems, pledgedPower, configPlugin, trackerFrame
+
     update_json_file()    
     if trackerFrame:
         logger.warning("Destroying tracker frame.")
         trackerFrame.destroy_tracker_frame()
         trackerFrame = None
-    
-    this = None
-    trackerFrame = None
-    configPlugin = None
-    pledgedPower = None
-    report = None
-    history = None
-    systems = None
-    logger.info("Shutting down EliteMeritTracker plugin.")
 
+    systems = None
+    pledgedPower = None
+    configPlugin = None
+    trackerFrame = None
+    this.currentSystemFlying = None
+    logger.info("Shutting down EliteMeritTracker plugin.")
     #debug_plugin_widgets()  
-    debug_alive_widgets()
+    #debug_alive_widgets()
 
 def plugin_app(parent):
     # Adds to the main page UI
@@ -221,7 +205,7 @@ def reset():
 
 
 def plugin_prefs(parent, cmdr, is_beta):
-    return create_config_frame(parent, this, nb)
+    return create_config_frame(parent, nb)
 
 def debug_plugin_widgets():
     root = tk._default_root
@@ -261,9 +245,6 @@ def update_system_merits(merits_value, total):
     trackerFrame.update_display(this.currentSystemFlying)
 
 def prefs_changed(cmdr, is_beta):
-    configPlugin.copyText = this.copyText.get()
-    configPlugin.discordHook = this.discordHook.get()
-    configPlugin.reportOnFSDJump = this.reportOnFSDJump.get()
     configPlugin.dumpConfig()
            
 def update_json_file():

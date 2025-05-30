@@ -27,7 +27,7 @@ filter_power_var = None
 
 def copy_to_clipboard_or_report(text, name, table_frame, update_scrollregion):
     global report, systems
-    if configPlugin.discordHook:
+    if configPlugin.discordHook.get():
         report.send_to_discord(text)
         delete_entry(name, table_frame, update_scrollregion)
     else:
@@ -185,7 +185,7 @@ def add_power_info_headers():
 def populate_table(table_frame, update_scrollregion, show_filters_only=False):
     global detailed_view, data_frame_default,systems, pledgedPower
 
-    if configPlugin.discordHook:
+    if configPlugin.discordHook.get():
         textCopyReport = "report"
         textCopyReportHeader = "Discord"
         tlColumn = ""
@@ -251,7 +251,7 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
         merits = str(system_data.Merits)
 
         if int(merits) > 0:
-            dcText = f"{configPlugin.copyText.replace('@MeritsValue', merits).replace('@System', system_name)}"
+            dcText = f"{configPlugin.copyText.get().replace('@MeritsValue', merits).replace('@System', system_name)}"
             if '@CPOpposition' in dcText:
                 dcText = dcText.replace('@CPOpposition', f"Opposition {str(system_data.PowerplayStateUndermining)}")
             if '@CPControlling' in dcText:
