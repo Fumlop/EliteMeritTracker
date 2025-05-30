@@ -91,36 +91,35 @@ class TrackerFrame:
 
     def create_tracker_frame(self, reset, auto_update):
         stateButton = tk.NORMAL if len(systems) > 0 else tk.DISABLED
-        self.this.frame = tk.Frame(self.parent,name="eliteMeritTrackerComponent")
-        self.this.frame_row1 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponent")
+        self.this.frame = tk.Frame(self.parent,name="eliteMeritTrackerComponentframe")
+        self.this.frame_row1 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponentframe_row1")
         self.this.frame_row1.grid(row=0, column=0, columnspan=3, sticky="w")
-        self.this.frame_row2 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponent")
+        self.this.frame_row2 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponentframe_row2")
         self.this.frame_row2.grid(row=1, column=0, columnspan=3, sticky="w")
-        self.this.frame_row3 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponent")
+        self.this.frame_row3 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponentframe_row3")
         self.this.frame_row3.grid(row=2, column=0, columnspan=3, sticky="w")
-        self.this.frame_row4 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponent")
+        self.this.frame_row4 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponentframe_row4")
         self.this.frame_row4.grid(row=3, column=0, columnspan=3, sticky="w")
-        self.this.frame_row5 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponent")
+        self.this.frame_row5 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponentframe_row5")
         self.this.frame_row5.grid(row=4, column=0, columnspan=3, sticky="w")
-        self.this.frame_row6 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponent")
+        self.this.frame_row6 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponentframe_row6")
         self.this.frame_row6.grid(row=5, column=0, columnspan=3, sticky="we", padx=0, pady=2)
-        self.this.frame_row7 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponent")
+        self.this.frame_row7 = tk.Frame(self.this.frame,name="eliteMeritTrackerComponentframe_row7")
         self.this.frame_row7.grid(row=6, column=0, columnspan=3, sticky="w")
 
         self.this.power = tk.Label(
             self.this.frame_row1,
             text=f"Pledged: {pledgedPower.Power} - Rank : {pledgedPower.Rank}".strip(),
-            anchor="w", justify="left",name="eliteMeritTrackerComponent"
+            anchor="w", justify="left",name="eliteMeritTrackerComponentpower"
         )
         self.this.powerMerits = tk.Label(
             self.this.frame_row2,
             text=f"Merits session: {pledgedPower.MeritsSession:,} - Total: {pledgedPower.Merits:,}".strip(),
-            anchor="w", justify="left",name="eliteMeritTrackerComponent"
+            anchor="w", justify="left",name="eliteMeritTrackerComponentpowerMerits"
         )
-        self.this.currentSystemLabel = tk.Label(self.this.frame_row3, text="Waiting for Events".strip(), anchor="w", justify="left",name="eliteMeritTrackerComponent")
-        self.this.systemPowerLabel = tk.Label(self.this.frame_row4, text="Powerplay Status", anchor="w", justify="left",name="eliteMeritTrackerComponent")
-        self.this.systemPowerStatusLabel = tk.Label(self.this.frame_row5, text="Net progress", anchor="w", justify="left",name="eliteMeritTrackerComponent")
-        self.this.station_eco_label = tk.Label(self.this.frame_row7, text="", anchor="w", justify="left",name="eliteMeritTrackerComponent")
+        self.this.currentSystemLabel = tk.Label(self.this.frame_row3, text="Waiting for Events".strip(), anchor="w", justify="left",name="eliteMeritTrackerComponentcurrentSystemLabel")
+        self.this.systemPowerLabel = tk.Label(self.this.frame_row4, text="Powerplay Status", anchor="w", justify="left",name="eliteMeritTrackerComponentsystemPowerLabel")
+        self.this.systemPowerStatusLabel = tk.Label(self.this.frame_row5, text="Net progress", anchor="w", justify="left",name="eliteMeritTrackerComponentsystemPowerStatusLabel")
 
         self.parent.root = tk.Tk()
         self.parent.root.withdraw()  # Hide the main window
@@ -140,7 +139,7 @@ class TrackerFrame:
             self.this.frame_row6,
             image=self.this.frame.icondelete,
             command=reset,
-            state=stateButton,name="eliteMeritTrackerComponent"
+            state=stateButton,name="eliteMeritTrackerComponentresetButton"
         )
         self.this.resetButton.pack(side="right", padx=0, pady=2)
         self.this.updateButton = None
@@ -151,7 +150,7 @@ class TrackerFrame:
                 fg="red",
                 font=("Arial", 10, "bold"),
                 state=tk.NORMAL,
-                compound="right",name="eliteMeritTrackerComponent"
+                compound="right",name="eliteMeritTrackerComponentupdateButton"
             )
             self.this.updateButton.pack(side="left", padx=0, pady=2)
 
@@ -160,7 +159,7 @@ class TrackerFrame:
             text="Overview",
             command=lambda: show_power_info(self.parent, pledgedPower, systems),
             state=stateButton,
-            compound="center",name="eliteMeritTrackerComponent"
+            compound="center",name="eliteMeritTrackerComponentshowButton"
         )
         self.this.showButton.pack(side="left", expand=True, fill="both", padx=0, pady=2)
 
