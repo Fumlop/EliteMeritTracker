@@ -15,7 +15,7 @@ class ConfigPlugin:
         self.discordHook= tk.StringVar(value=config.get_str("discordHook") or "")
         self.reportSave: bool = config.get_bool("reportSave") or True
         self.never: bool = config.get_bool("never") or False
-        self.version: str = 'v0.4.73.1.200'
+        self.version: str = 'v0.4.68.1.200'
 
     def getTextCopy(self):
         return "@Leadership earned @MeritsValue merits in @System, @CPControlling, @CPOpposition"
@@ -51,6 +51,10 @@ class ConfigEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, tk.StringVar) or isinstance(o, tk.BooleanVar):
             return o.get()
+        if isinstance(o, ConfigPlugin):
+            config_dict = o.__dict__.copy()
+            config_dict.pop('version', None)  # Remove version from config
+            return config_dict
         if isinstance(o, ConfigPlugin):
             return o.__dict__
         return super().default(o)
