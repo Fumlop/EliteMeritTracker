@@ -171,6 +171,7 @@ class TrackerFrame:
             self.updateButton.config(text="Please Restart EDMC")
             self.update_display(self.this.currentSystemFlying)
 
+    def destroy_tracker_frame(self):
         for widget in [self.power, self.powerMerits, self.currentSystemLabel, self.systemPowerLabel, self.systemPowerStatusLabel]:
             if widget is not None:
                 widget.destroy()
