@@ -30,6 +30,7 @@ this.mainframerow = -1
 this.parent = None
 this.assetpath = ""
 def auto_update():
+    global trackerFrame
     try:
         url = 'https://api.github.com/repos/Fumlop/EliteMeritTracker/releases/latest'
         response = requests.get(url)
@@ -97,7 +98,7 @@ def auto_update():
             logger.warning(f"Failed to delete temp_update folder: {e}")
         
         # Ändere den Button-Text und die Funktion auf "Restart EDMC"
-        TrackerFrame.updateButtonText()
+        trackerFrame.updateButtonText()
         
     
     except Exception as e:
