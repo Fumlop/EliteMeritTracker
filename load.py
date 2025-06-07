@@ -97,7 +97,8 @@ def auto_update():
             logger.warning(f"Failed to delete temp_update folder: {e}")
         
         # Ändere den Button-Text und die Funktion auf "Restart EDMC"
-        this.updateButton.config(text="Close EDMC", command=restart_edmc)
+        TrackerFrame.updateButtonText()
+        
     
     except Exception as e:
         logger.exception("Error occurred during auto-update.")
