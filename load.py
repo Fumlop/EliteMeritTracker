@@ -198,7 +198,7 @@ def plugin_app(parent):
 def reset():
     global trackerFrame
     if this.currentSystemFlying:
-       systems.__init__()  # Leeres Dict in Singleton laden
+       systems.clear() 
        systems[this.currentSystemFlying.StarSystem] = this.currentSystemFlying
     trackerFrame.update_display(this.currentSystemFlying)
 
