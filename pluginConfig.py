@@ -15,7 +15,7 @@ class ConfigPlugin:
         self.discordHook= tk.StringVar(value=config.get_str("discordHook") or "")
         self.reportSave: bool = config.get_bool("reportSave") or True
         self.never: bool = config.get_bool("never") or False
-        self.version: str = 'v0.4.70.1.200'
+        self.version: str = 'v0.4.71.1.200'
 
     def getTextCopy(self):
         return "@Leadership earned @MeritsValue merits in @System, @CPControlling, @CPOpposition"
