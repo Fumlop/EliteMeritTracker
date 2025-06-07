@@ -195,7 +195,8 @@ def plugin_app(parent):
     global trackerFrame
     trackerFrame = TrackerFrame(parent=parent, newest=this.newest)
     trackerFrame.create_tracker_frame(reset, auto_update)
-    trackerFrame.update_display(this.currentSystemFlying)
+    if (this.currentSystemFlying):
+        trackerFrame.update_display(this.currentSystemFlying)
     return trackerFrame.frame
 
 def reset():
