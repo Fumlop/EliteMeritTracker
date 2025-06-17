@@ -3,8 +3,7 @@ from tkinter import filedialog
 import csv
 
 from config import config, appname
-from report import Report
-from report import report
+from report import Report, report
 from system import systems
 from power import pledgedPower
 from pluginConfig import configPlugin

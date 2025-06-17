@@ -139,9 +139,9 @@ class StarSystem:
                 return 'Unoccupied'
             progress = self.PowerplayConflictProgress[0].progress * 100
             if progress < 30:
-                return f"Unoccupied {progress} {self.PowerplayConflictProgress[0].power}"
+                return f"Unoccupied "
             if progress < 100:
-                return f"Contested {progress} {self.PowerplayConflictProgress[0].power}"
+                return f"Contested "
             return 'Controlled'
         return self.PowerplayState
 
