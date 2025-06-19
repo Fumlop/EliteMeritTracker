@@ -10,6 +10,7 @@ class PledgedPower:
         self.MeritsSession = int(eventEntry.get("MeritsSession", 0))
         self.Rank = str(eventEntry.get("Rank", ""))
         self.TimePledged = int(eventEntry.get("TimePledged", 0))
+        self.TimePledgedStr = ""
         days, remainder = divmod(self.TimePledged, 86400)
         hours, remainder = divmod(remainder, 3600)
         minutes, _ = divmod(remainder, 60)
@@ -36,10 +37,13 @@ class PledgedPower:
 
     def loadPower(self):
         directory_name = os.path.basename(os.path.dirname(__file__))
+        logger.debug(f"Loading power data from {directory_name}")
         plugin_path = os.path.join(config.plugin_dir, directory_name)
+        logger.debug(f"Loading power data from {plugin_path}")
         file_path = os.path.join(plugin_path, "power.json")
         if not os.path.exists(file_path):
             with open(file_path, "w") as json_file:
+                pledgedPower.__init__()
                 json.dump(pledgedPower, json_file, indent=4, cls=PowerEncoder)
             pledgedPower.from_dict({}) 
         else:
@@ -47,7 +51,7 @@ class PledgedPower:
                 with open(file_path, "r") as json_file:
                     pledgedPower.from_dict(json.load(json_file)) 
             except json.JSONDecodeError:
-                pledgedPower.from_dict({}) 
+                pledgedPower.__init__() 
 
 class PowerEncoder(json.JSONEncoder):
     def default(self, o):
