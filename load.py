@@ -209,13 +209,12 @@ def reset():
 def plugin_prefs(parent, cmdr, is_beta):
     return create_config_frame(parent, nb)
 
-def update_system_merits(merits_value, total):
+def update_system_merits(merits_value):
     global trackerFrame
     try:
         merits = int(merits_value)
-        total_merits = int(total)
     except (ValueError, TypeError):
-        logger.debug("Invalid merits value or total.")
+        logger.debug("Invalid merits value")
         return
 
     pledgedPower.MeritsSession += merits
@@ -226,7 +225,6 @@ def update_system_merits(merits_value, total):
         current.Merits += merits
         systems[sys_name] = current
 
-    pledgedPower.Merits = total_merits
     trackerFrame.update_display(this.currentSystemFlying)
 
 def prefs_changed(cmdr, is_beta):
@@ -241,8 +239,13 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] in ['Powerplay']:
         pledgedPower.__init__(eventEntry=entry)  # NEU: re-initialisiere das Singleton-Objekt
         trackerFrame.update_display(this.currentSystemFlying)
+    if entry['event'] in ['PowerplayRank']:
+        pledgedPower.Rank = entry.get('Rank', pledgedPower.Rank)
+        pledgedPower.Power = entry.get('Power', pledgedPower.Power)
     if entry['event'] in ['PowerplayMerits']:
-        update_system_merits(entry.get('MeritsGained'),entry.get('TotalMerits'))
+        update_system_merits(entry.get('MeritsGained'))
+        pledgedPower.Merits = entry.get('TotalMerits', pledgedPower.Merits)
+        pledgedPower.Power = entry.get('Power', pledgedPower.Power)
     if entry['event'] in ['FSDJump', 'Location']:
         nameSystem = entry.get('StarSystem',"Nomansland")
         if (not systems or len(systems)==0 or nameSystem not in systems):
