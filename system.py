@@ -143,7 +143,7 @@ class StarSystem:
                 return 'Controlled'
             if progress < 100.00:
                 return 'Contested'
-            if progress < 30.00:
+            if progress < 30.00 and progress > 0.00:
                 return 'Exploited'
         return self.PowerplayState
 
