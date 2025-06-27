@@ -138,11 +138,13 @@ class StarSystem:
             if not self.PowerplayConflictProgress:
                 return 'Unoccupied'
             progress = self.PowerplayConflictProgress[0].progress * 100
-            if progress < 30:
-                return f"Unoccupied "
-            if progress < 100:
-                return f"Contested "
-            return 'Controlled'
+            logger.debug(progress)
+            if progress > 100.00:
+                return 'Controlled'
+            if progress < 100.00:
+                return 'Contested'
+            if progress < 30.00:
+                return 'Exploited'
         return self.PowerplayState
 
     def getSystemStatePowerPlay(self, pledged):

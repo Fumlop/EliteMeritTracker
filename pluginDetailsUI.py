@@ -356,7 +356,7 @@ def populate_table_data_rows(parent, filtered, start_row=8):
         controlling_power = system_data.ControllingPower
         opposition = ", ".join(system_data.Opposition)
         progress = system_data.getSystemProgressNumber()
-        state = f"{(system_data.PowerplayState)} ({progress:.2f}%)"
+        state = f"{(system_data.getSystemStateText())} ({progress:.2f}%)"
         if not system_data.PowerplayConflictProgress or len(system_data.PowerplayConflictProgress)==0:
             power_status = system_data.getPowerPlayCycleNetStatusText()
             reinforcement = system_data.PowerplayStateReinforcement
