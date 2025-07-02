@@ -246,7 +246,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         update_system_merits(entry.get('MeritsGained'))
         pledgedPower.Merits = entry.get('TotalMerits', pledgedPower.Merits)
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
-    if entry['event'] in ['FSDJump', 'Location'] or (entry['event'] in ['CarrierJump'] and entry['Docked']):
+    if entry['event'] in ['FSDJump', 'Location'] or (entry['event'] in ['CarrierJump'] and entry['Docked'] == True):
         nameSystem = entry.get('StarSystem',"Nomansland")
         if (not systems or len(systems)==0 or nameSystem not in systems):
             new_system = StarSystem(eventEntry=entry, reported=False)
