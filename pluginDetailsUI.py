@@ -166,8 +166,31 @@ def show_power_info(parent, pp, sy):
     csv_button = tk.Button(button_frame, text="Export CSV", command=export_to_csv)
     csv_button.grid(row=0, column=1, padx=5)
     csv_button.grid_forget()  # Erst in detailed_view anzeigen
+
+    # Add the new button to copy all systems at once, only visible in default view
+    copy_all_button = tk.Button(button_frame, text="Copy All Systems", command=copy_all_systems_to_clipboard_or_report)
+    if not detailed_view:
+        copy_all_button.grid(row=0, column=2, padx=5)
+    else:
+        copy_all_button.grid_forget()
+
     populate_table(table_frame, update_scrollregion)
-    
+
+def copy_all_systems_to_clipboard_or_report():
+    global systems, configPlugin, report
+    all_texts = []
+    for system_name, system_data in systems.items():
+        merits = str(system_data.Merits)
+        if int(merits) > 0:
+            dcText = f"{configPlugin.copyText.get().replace('@MeritsValue', merits).replace('@System', system_name)}"
+            if '@CPOpposition' in dcText:
+                dcText = dcText.replace('@CPOpposition', f"Opposition {str(system_data.PowerplayStateUndermining)}")
+            if '@CPControlling' in dcText:
+                dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {str(system_data.PowerplayStateReinforcement)}")
+            all_texts.append(dcText)
+    combined_text = "\n".join(all_texts)
+    copy_to_clipboard_or_report(combined_text, "Systems worked on", table_frame, update_scrollregion)
+
 def add_power_info_headers():
     global systems, pledgedPower
     if detailed_view:

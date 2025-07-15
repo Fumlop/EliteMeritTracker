@@ -4,13 +4,15 @@ from config import config
 from log import logger, plugin_name
 
 class PledgedPower:
-    def __init__(self, eventEntry: dict = {}, reported: bool = False):
+    def __init__(self, eventEntry: dict = {}, reported: bool = False, commander: str = "Ganimed"):
+        assert isinstance(eventEntry, dict), "eventEntry must be a dictionary"
         self.Power = str(eventEntry.get("Power", ""))
         self.Merits = int(eventEntry.get("Merits", 0))
         self.MeritsSession = int(eventEntry.get("MeritsSession", 0))
         self.Rank = str(eventEntry.get("Rank", ""))
         self.TimePledged = int(eventEntry.get("TimePledged", 0))
         self.TimePledgedStr = ""
+        self.Commander = commander
         days, remainder = divmod(self.TimePledged, 86400)
         hours, remainder = divmod(remainder, 3600)
         minutes, _ = divmod(remainder, 60)
@@ -20,6 +22,7 @@ class PledgedPower:
         self.Merits = int(data.get("Merits", 0))
         self.Rank = str(data.get("Rank", ""))
         self.TimePledged = int(data.get("TimePledged", 0))
+        self.Commander = str(data.get("Commander", ""))
 
         seconds = self.TimePledged
         years, seconds = divmod(seconds, 31536000)   # 1 year = 31536000 seconds
@@ -59,6 +62,7 @@ class PowerEncoder(json.JSONEncoder):
             # Optional: Nur gewünschte Attribute serialisieren
             return {
                 "Power": o.Power,
+                "Commaner": o.Commander,
                 "Merits": o.Merits,
                 "MeritsSession": o.MeritsSession,
                 "Rank": o.Rank,

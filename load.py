@@ -28,6 +28,7 @@ this.currentSystemFlying = None
 this.crow = -1
 this.mainframerow = -1
 this.parent = None
+this.commander = ""
 this.assetpath = ""
 def auto_update():
     global trackerFrame
@@ -236,6 +237,8 @@ def update_json_file():
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     global trackerFrame
+    if entry['event'] in ['LoadGame']:
+        this.commander = entry.get('Commander', "Ganimed ")
     if entry['event'] in ['Powerplay']:
         pledgedPower.__init__(eventEntry=entry)  # NEU: re-initialisiere das Singleton-Objekt
         trackerFrame.update_display(this.currentSystemFlying)

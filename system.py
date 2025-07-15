@@ -3,13 +3,13 @@ import os
 from log import logger, plugin_name
 
 class StarSystem:
-    def __init__(self, eventEntry=None, reported: bool = False):
+    def __init__(self, eventEntry=None, reported: bool = False, commander: str = "Ganimed"):
         self.debug = False
         if eventEntry is None:
             self._init_defaults()
             return
-
         self.StarSystem = str(eventEntry.get("StarSystem", "unknown system"))
+        self.idSystem = f"self.StarSystem_{commander}"
         self.Merits = int(eventEntry.get("Merits", 0))
         self.Active = False
         self.PowerplayState = str(eventEntry.get("PowerplayState", "stateless"))
