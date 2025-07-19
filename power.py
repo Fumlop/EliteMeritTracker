@@ -62,7 +62,7 @@ class PowerEncoder(json.JSONEncoder):
             # Optional: Nur gewünschte Attribute serialisieren
             return {
                 "Power": o.Power,
-                "Commaner": o.Commander,
+                "Commander": o.Commander,
                 "Merits": o.Merits,
                 "MeritsSession": o.MeritsSession,
                 "Rank": o.Rank,

@@ -204,6 +204,7 @@ def reset():
     global trackerFrame
     if this.currentSystemFlying:
        systems.clear() 
+       this.currentSystemFlying.MeritsSession = 0
        systems[this.currentSystemFlying.StarSystem] = this.currentSystemFlying
     trackerFrame.update_display(this.currentSystemFlying)
 
