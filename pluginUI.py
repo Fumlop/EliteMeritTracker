@@ -179,26 +179,26 @@ class TrackerFrame:
             self.resetButton.config(command=None)
             self.resetButton.pack_forget()
             self.resetButton.destroy()
-            logger.debug("Reset Button destroyed")
+            #logger.debug("Reset Button destroyed")
         if self.updateButton is not None:
             self.updateButton.config(command=None)
             self.updateButton.pack_forget()
             self.updateButton.destroy()
-            logger.debug("Update Button destroyed")
+            #logger.debug("Update Button destroyed")
         if self.showButton is not None:
             self.showButton.config(command=None)
             self.showButton.pack_forget()
             self.showButton.destroy()
-            logger.debug("Show Button destroyed")
+            #logger.debug("Show Button destroyed")
         if self.icondelete is not None:
             del self.icondelete
             self.icondelete = None
-            logger.debug("Icon delete destroyed")
+            #logger.debug("Icon delete destroyed")
         if self.frame is not None:
             self.frame.destroy()
             self.frame = None
-            logger.debug("Frame destroyed")
+            #logger.debug("Frame destroyed")
         if self.parent is not None:
             self.parent.destroy()
             self.parent = None
-            logger.debug("Parent destroyed")
+            #logger.debug("Parent destroyed")

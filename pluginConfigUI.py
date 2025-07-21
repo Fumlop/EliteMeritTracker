@@ -23,7 +23,7 @@ def create_config_frame(parent, nb):
         config_frame,
         text="@MeritsValue, @System, @CPOpposition, @CPControlling"
     ).grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
-    logger.warning(f"config {configPlugin.copyText}")
+    #logger.warning(f"config {configPlugin.copyText}")
     nb.Entry(
         config_frame,
         textvariable=configPlugin.copyText,

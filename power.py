@@ -40,9 +40,9 @@ class PledgedPower:
 
     def loadPower(self):
         directory_name = os.path.basename(os.path.dirname(__file__))
-        logger.debug(f"Loading power data from {directory_name}")
+        #logger.debug(f"Loading power data from {directory_name}")
         plugin_path = os.path.join(config.plugin_dir, directory_name)
-        logger.debug(f"Loading power data from {plugin_path}")
+        #logger.debug(f"Loading power data from {plugin_path}")
         file_path = os.path.join(plugin_path, "power.json")
         if not os.path.exists(file_path):
             with open(file_path, "w") as json_file:

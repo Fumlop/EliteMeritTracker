@@ -14,6 +14,7 @@ from typing import Dict, Any
 
 from report import report
 from system import systems, StarSystem, loadSystems, dumpSystems
+from salvage import Salvage, salvageInventory, save_salvage, load_salvage, VALID_SALVAGE_TYPES
 from power import pledgedPower, PowerEncoder
 from pluginUI import TrackerFrame
 from pluginConfig import configPlugin, ConfigEncoder
@@ -30,6 +31,7 @@ this.mainframerow = -1
 this.parent = None
 this.commander = ""
 this.assetpath = ""
+this.lastSARSystem = None
 def auto_update():
     global trackerFrame
     try:
@@ -158,9 +160,10 @@ def checkVersion():
 
 def plugin_start3(plugin_dir):
     configPlugin.loadConfig()
-    logger.debug(json.dumps(configPlugin, ensure_ascii=False, indent=4, cls=ConfigEncoder))    
+    #logger.debug(json.dumps(configPlugin, ensure_ascii=False, indent=4, cls=ConfigEncoder))    
     this.newest = checkVersion()
     loadSystems()  # Lädt die Systeme aus der JSON-Datei
+    load_salvage()  # Lädt das Salvage Inventory
     for system in systems.values():
         if (system.Active):
             this.currentSystemFlying = system
@@ -211,6 +214,34 @@ def reset():
 def plugin_prefs(parent, cmdr, is_beta):
     return create_config_frame(parent, nb)
 
+def update_system_merits_sar(merits_value, system_name):
+    if (this.lastSARSystem is None):
+        return
+    
+    #logger.debug(f"Adding merits to SAR system {system_name}")
+    
+    try:
+        merits = int(merits_value)
+    except (ValueError, TypeError):
+        #logger.debug("Invalid merits value")
+        return
+
+    pledgedPower.MeritsSession += merits
+
+    if system_name in systems:
+        systems[system_name].Merits += merits
+        #logger.debug(f"Added {merits} merits to system {system_name}")
+    else:
+        # System existiert noch nicht, also erstellen wir ein neues
+        #logger.debug(f"Creating new system {system_name}")
+        new_system = StarSystem()
+        new_system.StarSystem = system_name
+        new_system.Merits = merits
+        systems[system_name] = new_system
+        #logger.debug(f"Created new system {system_name} with {merits} merits")
+        
+    this.lastSARSystem = None  # Reset after processing
+
 def update_system_merits(merits_value):
     global trackerFrame
     try:
@@ -235,11 +266,35 @@ def prefs_changed(cmdr, is_beta):
 def update_json_file():
     pledgedPower.dumpJson()  
     dumpSystems()
+    save_salvage()
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     global trackerFrame
     if entry['event'] in ['LoadGame']:
         this.commander = entry.get('Commander', "Ganimed ")
+    if entry['event'] in ['CollectCargo']:
+        # Process cargo collection with new Salvage system
+        Salvage.process_collect_cargo(entry, this.currentSystemFlying)
+    if entry['event'] in ['SearchAndRescue']:
+        # Remove cargo when delivered to Search and Rescue - from any system
+        cargo_type = entry.get("Name", "Unknown").lower()  # Use Name field from SearchAndRescue event
+        #logger.debug(f"Processing SearchAndRescue for {cargo_type}")
+        if cargo_type in VALID_SALVAGE_TYPES:
+            count = entry.get("Count", 1)
+            remaining_count = count
+            #logger.debug(f"Processing SearchAndRescue for {cargo_type} with count {count}")
+            # Sort systems alphabetically
+            sorted_systems = sorted(salvageInventory.keys())
+           
+            # Try to remove cargo from each system until count is satisfied
+            for system_name in sorted_systems:
+                if remaining_count <= 0:
+                    break
+                if salvageInventory[system_name].has_cargo(cargo_type):
+                    removed = salvageInventory[system_name].remove_cargo(cargo_type, remaining_count)
+                    remaining_count -= removed
+                    this.lastSARSystem = system_name  # Update last SAR system
+                    #logger.debug(f"Removed {removed} {cargo_type} from {system_name}, {remaining_count} remaining")
     if entry['event'] in ['Powerplay']:
         pledgedPower.__init__(eventEntry=entry)  # NEU: re-initialisiere das Singleton-Objekt
         trackerFrame.update_display(this.currentSystemFlying)
@@ -247,7 +302,13 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         pledgedPower.Rank = entry.get('Rank', pledgedPower.Rank)
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
     if entry['event'] in ['PowerplayMerits']:
-        update_system_merits(entry.get('MeritsGained'))
+        merits_gained = entry.get('MeritsGained', 0)
+        if this.lastSARSystem is not None:
+            #logger.debug(f"Processing PowerplayMerits for SAR in system {this.lastSARSystem}")
+            update_system_merits_sar(merits_gained, this.lastSARSystem)
+        else:
+            #logger.debug(f"Processing normal PowerplayMerits in current system")
+            update_system_merits(merits_gained)
         pledgedPower.Merits = entry.get('TotalMerits', pledgedPower.Merits)
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
     if entry['event'] in ['FSDJump', 'Location'] or (entry['event'] in ['CarrierJump'] and entry['Docked'] == True):
@@ -268,4 +329,5 @@ def updateSystemTracker(oldSystem, newSystem):
 
 def logdump(here:str, data:dict):
     if this.debug:
-        logger.debug(f"{here} - {json.dumps(data, indent=2)}")
+        #logger.debug(f"{here} - {json.dumps(data, indent=2)}")
+        pass

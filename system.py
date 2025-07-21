@@ -138,7 +138,7 @@ class StarSystem:
             if not self.PowerplayConflictProgress:
                 return 'Unoccupied'
             progress = self.PowerplayConflictProgress[0].progress * 100
-            logger.debug(progress)
+            #logger.debug(progress)
             if progress > 100.00:
                 return 'Controlled'
             if progress < 100.00:
