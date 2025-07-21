@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 import tkinter as tk
 import requests
 import gc
@@ -31,7 +30,8 @@ this.mainframerow = -1
 this.parent = None
 this.commander = ""
 this.assetpath = ""
-this.lastSARSystem = None
+this.lastSARCounts = None  # Dict zum Speichern der Counts pro System
+this.lastSARSystems = []  # Liste der Systeme in der Reihenfolge der Abgabe
 def auto_update():
     global trackerFrame
     try:
@@ -215,7 +215,7 @@ def plugin_prefs(parent, cmdr, is_beta):
     return create_config_frame(parent, nb)
 
 def update_system_merits_sar(merits_value, system_name):
-    if (this.lastSARSystem is None):
+    if merits_value <= 0:
         return
     
     #logger.debug(f"Adding merits to SAR system {system_name}")
@@ -278,11 +278,15 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] in ['SearchAndRescue']:
         # Remove cargo when delivered to Search and Rescue - from any system
         cargo_type = entry.get("Name", "Unknown").lower()  # Use Name field from SearchAndRescue event
-        #logger.debug(f"Processing SearchAndRescue for {cargo_type}")
         if cargo_type in VALID_SALVAGE_TYPES:
             count = entry.get("Count", 1)
             remaining_count = count
-            #logger.debug(f"Processing SearchAndRescue for {cargo_type} with count {count}")
+            
+            # Initialisiere das Dictionary für diesen SAR-Run
+            if this.lastSARCounts is None:
+                this.lastSARCounts = {}
+                this.lastSARSystems = []
+            
             # Sort systems alphabetically
             sorted_systems = sorted(salvageInventory.keys())
            
@@ -293,8 +297,12 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                 if salvageInventory[system_name].has_cargo(cargo_type):
                     removed = salvageInventory[system_name].remove_cargo(cargo_type, remaining_count)
                     remaining_count -= removed
-                    this.lastSARSystem = system_name  # Update last SAR system
-                    #logger.debug(f"Removed {removed} {cargo_type} from {system_name}, {remaining_count} remaining")
+                    
+                    # Speichere die Anzahl der Items pro System
+                    if system_name not in this.lastSARCounts:
+                        this.lastSARCounts[system_name] = 0
+                        this.lastSARSystems.append(system_name)
+                    this.lastSARCounts[system_name] += removed
     if entry['event'] in ['Powerplay']:
         pledgedPower.__init__(eventEntry=entry)  # NEU: re-initialisiere das Singleton-Objekt
         trackerFrame.update_display(this.currentSystemFlying)
@@ -303,9 +311,15 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
     if entry['event'] in ['PowerplayMerits']:
         merits_gained = entry.get('MeritsGained', 0)
-        if this.lastSARSystem is not None:
-            #logger.debug(f"Processing PowerplayMerits for SAR in system {this.lastSARSystem}")
-            update_system_merits_sar(merits_gained, this.lastSARSystem)
+        if this.lastSARCounts is not None and this.lastSARSystems:
+            total_items = sum(this.lastSARCounts.values())
+            if total_items > 0:
+                merits_per_item = merits_gained / total_items
+                for system_name, item_count in this.lastSARCounts.items():
+                    system_merits = int(merits_per_item * item_count)
+                    update_system_merits_sar(system_merits, system_name)
+            this.lastSARCounts = None
+            this.lastSARSystems = []
         else:
             #logger.debug(f"Processing normal PowerplayMerits in current system")
             update_system_merits(merits_gained)
