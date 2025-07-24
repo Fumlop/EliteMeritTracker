@@ -1,73 +1,71 @@
 import os
 import sys
-import tkinter as tk
 import requests
-import gc
 import shutil
 import zipfile
 import myNotebook as nb
 import io
 import re
-from PIL import Image, ImageTk
 from typing import Dict, Any
 
 from report import report
 from system import systems, StarSystem, loadSystems, dumpSystems
 from salvage import Salvage, salvageInventory, save_salvage, load_salvage, VALID_SALVAGE_TYPES
-from power import pledgedPower, PowerEncoder
+from power import pledgedPower
 from pluginUI import TrackerFrame
-from pluginConfig import configPlugin, ConfigEncoder
-from log import logger, plugin_name
-from pluginDetailsUI import show_power_info
+from pluginConfig import configPlugin
+from log import logger
 from config import config, appname
 from pluginConfigUI import create_config_frame
 
-this = sys.modules[__name__]  # For holding module globals
+# Module globals
+this = sys.modules[__name__]
 trackerFrame = None
+
+# System state
 this.currentSystemFlying = None
+this.commander = ""
+
+# UI state  
 this.crow = -1
 this.mainframerow = -1
 this.parent = None
-this.commander = ""
 this.assetpath = ""
-this.lastSARCounts = None  # Dict zum Speichern der Counts pro System
-this.lastSARSystems = []  # Liste der Systeme in der Reihenfolge der Abgabe
-def auto_update():
-    global trackerFrame
-    try:
-        url = 'https://api.github.com/repos/Fumlop/EliteMeritTracker/releases/latest'
-        response = requests.get(url)
-        if response.status_code != 200:
-            logger.error("Failed to fetch latest release information.")
-            return
-        
-        data = response.json()
-        zip_url = data.get("zipball_url")  # Holt die ZIP-URL
 
-        if not zip_url:
-            logger.error("No ZIP file found in latest release.")
-            return
-        
-        logger.info(f"Downloading update from {zip_url}")
+# SAR (Search and Rescue) tracking
+this.lastSARCounts = None
+this.lastSARSystems = []
+def _get_github_release_data():
+    """Fetch latest GitHub release data"""
+    try:
+        response = requests.get('https://api.github.com/repos/Fumlop/EliteMeritTracker/releases/latest')
+        return response.json() if response.status_code == 200 else None
+    except Exception as e:
+        logger.exception('Error fetching GitHub release data')
+        return None
+
+
+def _download_and_extract_update(zip_url):
+    """Download and extract update ZIP"""
+    try:
         zip_response = requests.get(zip_url)
         if zip_response.status_code != 200:
-            logger.error("Failed to download update ZIP.")
-            return
+            logger.error("Failed to download update ZIP")
+            return False
+
+        plugin_dir = os.path.dirname(os.path.abspath(__file__))
+        temp_dir = os.path.join(plugin_dir, "temp_update")
         
-        plugin_dir = os.path.dirname(os.path.abspath(__file__))  # Plugin-Verzeichnis
-        temp_dir = os.path.join(plugin_dir, "temp_update")  # Temporärer Ordner für Entpacken
-        
-        # Vorheriges Update-Verzeichnis löschen, falls vorhanden
+        # Clean previous temp directory
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
-        
         os.makedirs(temp_dir, exist_ok=True)
 
-        # ZIP entpacken
+        # Extract ZIP
         with zipfile.ZipFile(io.BytesIO(zip_response.content), 'r') as zip_ref:
             zip_ref.extractall(temp_dir)
 
-        # Suche das entpackte Unterverzeichnis (beginnt mit "Fumlop-EliteMeritTracker-")
+        # Find extracted subdirectory
         extracted_subdir = None
         for item in os.listdir(temp_dir):
             if item.startswith("Fumlop-EliteMeritTracker-"):
@@ -75,37 +73,54 @@ def auto_update():
                 break
 
         if not extracted_subdir or not os.path.isdir(extracted_subdir):
-            logger.error("Extracted directory not found.")
-            return
+            logger.error("Extracted directory not found")
+            return False
 
-        # Kopiere die entpackten Dateien ins Plugin-Verzeichnis
+        # Copy files to plugin directory
         for item in os.listdir(extracted_subdir):
             src_path = os.path.join(extracted_subdir, item)
             dest_path = os.path.join(plugin_dir, item)
 
             if os.path.isdir(src_path):
                 if os.path.exists(dest_path):
-                    shutil.rmtree(dest_path)  # Vorheriges Verzeichnis löschen
+                    shutil.rmtree(dest_path)
                 shutil.copytree(src_path, dest_path)
             else:
                 shutil.copy2(src_path, dest_path)
 
-        # Update abgeschlossen
-        logger.info("Update successfully installed. Restart required.")
-        
-        # Lösche das temp_update-Verzeichnis nach dem Update
+        # Cleanup temp directory
         try:
             shutil.rmtree(temp_dir)
-            logger.info("Temporary update folder deleted successfully.")
         except Exception as e:
             logger.warning(f"Failed to delete temp_update folder: {e}")
-        
-        # Ändere den Button-Text und die Funktion auf "Restart EDMC"
-        trackerFrame.updateButtonText()
-        
-    
+
+        return True
     except Exception as e:
-        logger.exception("Error occurred during auto-update.")
+        logger.exception("Error during update download/extraction")
+        return False
+
+
+def auto_update():
+    """Download and install plugin update"""
+    global trackerFrame
+    
+    data = _get_github_release_data()
+    if not data:
+        logger.error("Failed to fetch latest release information")
+        return
+
+    zip_url = data.get("zipball_url")
+    if not zip_url:
+        logger.error("No ZIP file found in latest release")
+        return
+
+    logger.info(f"Downloading update from {zip_url}")
+    
+    if _download_and_extract_update(zip_url):
+        logger.info("Update successfully installed. Restart required.")
+        trackerFrame.updateButtonText()
+    else:
+        logger.error("Update installation failed")
 
 def restart_edmc():
     logger.info("Restarting EDMC...")
@@ -114,51 +129,44 @@ def restart_edmc():
     os._exit(0)  # Beendet das aktuelle Python-Programm
 
 def parse_version(version_str):
+    """Parse version string to tuple of integers"""
     return tuple(int(part) for part in re.findall(r'\d+', version_str))
 
-def report_on_FSD(sourceSystem):
-    if not configPlugin.discordHook or configPlugin.reportOnFSDJump == False:
-        return
-    dcText = f"{this.copyText.replace('@MeritsValue', sourceSystem.Merits).replace('@System', sourceSystem.StarSystem)}"
-    if '@CPOpposition' in dcText:
-        dcText = dcText.replace('@CPOpposition', str(sourceSystem.PowerplayStateUndermining))
 
+def report_on_FSD(sourceSystem):
+    """Report system merits on FSD jump if configured"""
+    if not configPlugin.discordHook.get() or not configPlugin.reportOnFSDJump.get():
+        return
+        
+    dcText = configPlugin.copyText.get().replace('@MeritsValue', str(sourceSystem.Merits)).replace('@System', sourceSystem.StarSystem)
+    
+    if '@CPOpposition' in dcText:
+        dcText = dcText.replace('@CPOpposition', f"Opposition {sourceSystem.PowerplayStateUndermining}")
     if '@CPPledged' in dcText:
-        dcText = dcText.replace('@CPPledged', str(sourceSystem.PowerplayStateReinforcement))
+        dcText = dcText.replace('@CPPledged', f"Pledged {sourceSystem.PowerplayStateReinforcement}")
+        
     systems[sourceSystem.StarSystem].Merits = 0
     report.send_to_discord(dcText)
 
 def checkVersion():
-    try:
-        req = requests.get(url='https://api.github.com/repos/Fumlop/EliteMeritTracker/releases/latest')
-    except Exception as e:
-        # Exception mit vollständigem Stacktrace loggen
-        logger.exception('An error occurred while checking the version')
+    """Check if plugin update is available. Returns: -1=Error, 0=Current, 1=Update available"""
+    data = _get_github_release_data()
+    if not data:
         return -1
 
-    if req.status_code != requests.codes.ok:
-        logger.error('Request failed with status code: %s', req.status_code)
-        return -1  # Error
-    else:
-        logger.info('Request sucess with status code: %s', req.status_code)
-
     try:
-        data = req.json()
         latest_version = parse_version(data['tag_name'])
-        logger.info('latest_version: %s', latest_version)
         current_version = parse_version(configPlugin.version)
-        logger.info('current_version: %s', current_version)
-
-        if current_version >= latest_version:
-            return 0  # Newest
-        else:
-            return 1
+        logger.info(f'Version check: current={current_version}, latest={latest_version}')
+        
+        return 0 if current_version >= latest_version else 1
     except Exception as e:
-        # JSON-Parsing-Fehler loggen
-        logger.exception('Error while parsing the JSON response')
+        logger.exception('Error parsing version data')
         return -1
+
 
 def plugin_start3(plugin_dir):
+    logger.info("EliteMeritTracker plugin starting")
     configPlugin.loadConfig()
     #logger.debug(json.dumps(configPlugin, ensure_ascii=False, indent=4, cls=ConfigEncoder))    
     this.newest = checkVersion()
@@ -168,6 +176,7 @@ def plugin_start3(plugin_dir):
         if (system.Active):
             this.currentSystemFlying = system
     pledgedPower.loadPower()  # Lädt die Power-Daten aus der JSON-Datei
+    logger.info(f"Plugin initialized - Systems: {len(systems)}, Power: {pledgedPower.Power}")
         
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     global trackerFrame
@@ -215,35 +224,32 @@ def plugin_prefs(parent, cmdr, is_beta):
     return create_config_frame(parent, nb)
 
 def update_system_merits_sar(merits_value, system_name):
+    """Update merits for Search and Rescue activities"""
     if merits_value <= 0:
         return
-    
-    #logger.debug(f"Adding merits to SAR system {system_name}")
     
     try:
         merits = int(merits_value)
     except (ValueError, TypeError):
-        #logger.debug("Invalid merits value")
+        logger.debug("Invalid merits value for SAR")
         return
 
     pledgedPower.MeritsSession += merits
 
     if system_name in systems:
         systems[system_name].Merits += merits
-        #logger.debug(f"Added {merits} merits to system {system_name}")
     else:
-        # System existiert noch nicht, also erstellen wir ein neues
-        #logger.debug(f"Creating new system {system_name}")
+        # Create new system if it doesn't exist
         new_system = StarSystem()
         new_system.StarSystem = system_name
         new_system.Merits = merits
         systems[system_name] = new_system
-        #logger.debug(f"Created new system {system_name} with {merits} merits")
-        
-    this.lastSARSystem = None  # Reset after processing
+
 
 def update_system_merits(merits_value):
+    """Update merits for current system"""
     global trackerFrame
+    
     try:
         merits = int(merits_value)
     except (ValueError, TypeError):
@@ -282,6 +288,10 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             count = entry.get("Count", 1)
             remaining_count = count
             
+            # Log significant salvage deliveries
+            if count >= 10:
+                logger.info(f"Large salvage delivery: {count}x {cargo_type}")
+            
             # Initialisiere das Dictionary für diesen SAR-Run
             if this.lastSARCounts is None:
                 this.lastSARCounts = {}
@@ -304,13 +314,19 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                         this.lastSARSystems.append(system_name)
                     this.lastSARCounts[system_name] += removed
     if entry['event'] in ['Powerplay']:
+        logger.info(f"PowerPlay status changed - Power: {entry.get('Power', 'Unknown')}")
         pledgedPower.__init__(eventEntry=entry)  # NEU: re-initialisiere das Singleton-Objekt
         trackerFrame.update_display(this.currentSystemFlying)
     if entry['event'] in ['PowerplayRank']:
-        pledgedPower.Rank = entry.get('Rank', pledgedPower.Rank)
+        new_rank = entry.get('Rank', pledgedPower.Rank)
+        if new_rank != pledgedPower.Rank:
+            logger.info(f"PowerPlay rank changed: {pledgedPower.Rank} -> {new_rank}")
+        pledgedPower.Rank = new_rank
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
     if entry['event'] in ['PowerplayMerits']:
         merits_gained = entry.get('MeritsGained', 0)
+        if merits_gained > 0:
+            logger.info(f"PowerPlay merits gained: {merits_gained} (Total: {entry.get('TotalMerits', pledgedPower.Merits)})")
         if this.lastSARCounts is not None and this.lastSARSystems:
             total_items = sum(this.lastSARCounts.values())
             if total_items > 0:
@@ -328,7 +344,8 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] in ['FSDJump', 'Location'] or (entry['event'] in ['CarrierJump'] and entry['Docked'] == True):
         nameSystem = entry.get('StarSystem',"Nomansland")
         if (not systems or len(systems)==0 or nameSystem not in systems):
-            new_system = StarSystem(eventEntry=entry, reported=False)
+            new_system = StarSystem(eventEntry=entry)
+            new_system.setReported(False)  # Set reported status after creation
             systems[new_system.StarSystem] = new_system
         else:
             systems[nameSystem].updateSystem(eventEntry=entry)
@@ -340,6 +357,10 @@ def updateSystemTracker(oldSystem, newSystem):
         systems[oldSystem.StarSystem].Active = False
     systems[newSystem.StarSystem].Active = True
     this.currentSystemFlying = newSystem
+    
+    # Log only if system has meaningful merit activity
+    if newSystem.Merits > 0 or (oldSystem and oldSystem.Merits > 0):
+        logger.info(f"System changed: {oldSystem.StarSystem if oldSystem else 'None'} -> {newSystem.StarSystem} (Merits: {newSystem.Merits})")
 
 def logdump(here:str, data:dict):
     if this.debug:

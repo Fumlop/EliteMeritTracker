@@ -10,6 +10,8 @@
 !.vscode/*.code-snippets
 *.json
 
+# Claude Instructions (AI optimization notes)
+claude-instruction.md
 
 #Visual Studio
 .vs/*

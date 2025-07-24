@@ -23,6 +23,11 @@ class Salvage:
         if cargo_name_lower not in self.inventory:
             self.inventory[cargo_name_lower] = Cargo(cargo_name_lower)
         self.inventory[cargo_name_lower].add(count)
+        
+        # Log significant cargo collections
+        total_count = self.inventory[cargo_name_lower].count
+        if total_count >= 50:
+            logger.info(f"Large salvage collection in {self.system_name}: {total_count}x {cargo_name}")
     
     def has_cargo(self, cargo_name: str) -> bool:
         cargo_name_lower = cargo_name.lower()
