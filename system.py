@@ -21,8 +21,8 @@ class StarSystem:
             'StarSystem': "unknown system",
             'Merits': 0,
             'Active': False,
-            'PowerplayState': "stateless",
-            'ControllingPower': "no controlling power",
+            'PowerplayState': "no PP connection",
+            'ControllingPower': "no power",
             'Powers': [],
             'Opposition': [],
             'PowerplayConflictProgress': [],
@@ -36,8 +36,8 @@ class StarSystem:
 
     def _update_from_entry(self, eventEntry):
         """Update system data from event entry"""
-        self.PowerplayState = str(eventEntry.get("PowerplayState", "stateless"))
-        self.ControllingPower = str(eventEntry.get("ControllingPower", "no controlling power"))
+        self.PowerplayState = str(eventEntry.get("PowerplayState", "no PP connection"))
+        self.ControllingPower = str(eventEntry.get("ControllingPower", "no power"))
         self.Powers = self._safe_list(eventEntry.get("Powers", []))
         self.Opposition = [p for p in self.Powers if p != self.ControllingPower]
         

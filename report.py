@@ -1,32 +1,46 @@
 import requests
-from log import logger, plugin_name
-from pluginConfig import configPlugin, ConfigEncoder
+from log import logger
+from pluginConfig import configPlugin
 
 class Report:
     def send_to_discord(self, message: str) -> bool:
+        """Send message to Discord webhook"""
         webhook_url = getattr(configPlugin, "discordHook", None)
+        if not webhook_url:
+            return False
+            
+        # Validate webhook URL format
         if not isinstance(webhook_url, str) or not webhook_url.strip():
+            return False
+            
+        if not webhook_url.startswith(('http://', 'https://')):
+            logger.warning("Invalid Discord webhook URL format")
             return False
 
         payload = {"content": str(message)}
 
         try:
-            response = requests.post(webhook_url, json=payload, timeout=5)
-            if response.status_code in (200, 204):
-                from log import logger
-                logger.info(f"Discord report sent successfully: {len(str(message))} chars")
-                return True
+            response = requests.post(webhook_url, json=payload, timeout=10)
+            success = response.status_code in (200, 204)
+            
+            if success:
+                logger.info(f"Discord report sent: {len(str(message))} chars")
             else:
-                from log import logger
-                logger.warning(f"Discord webhook failed with status {response.status_code}")
-                return False
+                logger.warning(f"Discord webhook failed: HTTP {response.status_code}")
+            
+            return success
+            
+        except requests.exceptions.Timeout:
+            logger.warning("Discord webhook timed out")
+            return False
+        except requests.exceptions.ConnectionError:
+            logger.warning("Discord webhook connection failed") 
+            return False
         except requests.exceptions.RequestException as e:
-            from log import logger
-            logger.warning(f"Discord webhook request failed: {type(e).__name__}")
+            logger.warning(f"Discord webhook request error: {type(e).__name__}")
             return False
         except Exception as e:
-            from log import logger
-            logger.error(f"Unexpected error in Discord webhook: {type(e).__name__}")
+            logger.error(f"Unexpected Discord webhook error: {type(e).__name__}")
             return False
 
 report = Report()

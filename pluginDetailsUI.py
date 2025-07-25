@@ -380,7 +380,24 @@ def populate_table_data_rows(parent, filtered, start_row=8):
         opposition = ", ".join(system_data.Opposition)
         progress = system_data.getSystemProgressNumber()
         state_font = ("Arial", 10, "bold")  # Immer fett für die definierten Bereiche
-        state_bg = "darkred" if 0 <= progress < 25 else "lightgreen" if 25 <= progress < 75 else "orange"
+        if (controlling_power == "no power"):
+            state_bg = "grey"
+            state_fg = "black"
+        else:
+            if progress > 100 and system_data.getSystemStateText() != "Stronghold":
+                progress = progress - 100
+            
+            # Saubere Farblogik
+            if 0 <= progress < 20:
+                state_bg = "darkred"
+            elif 20 <= progress < 80:
+                state_bg = "darkgreen"
+            elif progress >= 80:
+                if system_data.getSystemStateText() == "Stronghold":
+                    state_bg = "darkgreen"
+                else:
+                    state_bg = "darkorange"
+            state_fg = "white"
         state = f"{(system_data.getSystemStateText())} ({progress:.2f}%)"
         if not system_data.PowerplayConflictProgress or len(system_data.PowerplayConflictProgress)==0:
             power_status = system_data.getPowerPlayCycleNetStatusText()
@@ -395,7 +412,7 @@ def populate_table_data_rows(parent, filtered, start_row=8):
         # Labels vorerst unsichtbar setzen (grid, dann remove)
         widgets = [
             tk.Label(parent, text=system_name, width=20, anchor="w"),
-            tk.Label(parent, text=state, width=20, anchor="w", font=state_font, bg=state_bg, fg="white"),
+            tk.Label(parent, text=state, width=20, anchor="w", font=state_font, bg=state_bg, fg=state_fg),
             tk.Label(parent, text=controlling_power, width=20, anchor="w", font=reinforce_font),
             tk.Label(parent, text=power_status, width=25, anchor="w"),
             tk.Label(parent, text=reinforcement, width=15, anchor="w"),
