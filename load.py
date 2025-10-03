@@ -214,10 +214,14 @@ def plugin_app(parent):
 
 def reset():
     global trackerFrame
-    if this.currentSystemFlying:
-       systems.clear() 
-       this.currentSystemFlying.MeritsSession = 0
-       systems[this.currentSystemFlying.StarSystem] = this.currentSystemFlying
+    # Reset session merits for the pledged power
+    pledgedPower.MeritsSession = 0
+    
+    # Reset merits for all systems but keep the systems themselves
+    for system in systems.values():
+        system.Merits = 0
+    
+    # Update the display with current system
     trackerFrame.update_display(this.currentSystemFlying)
 
 def plugin_prefs(parent, cmdr, is_beta):
