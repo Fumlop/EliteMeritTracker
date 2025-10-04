@@ -5,7 +5,7 @@ from system import StarSystem
 from ppcargo import Cargo
 
 # Valid cargo types that can be salvaged
-VALID_SALVAGE_TYPES = {
+VALID_POWERPLAY_SALVAGE_TYPES = {
     "usscargoblackbox": "Black Box",
     "wreckagecomponents": "Wreckage Components"
 }
@@ -17,7 +17,7 @@ class Salvage:
 
     def add_cargo(self, cargo_name: str, count: int = 1):
         cargo_name_lower = cargo_name.lower()
-        if cargo_name_lower not in VALID_SALVAGE_TYPES:
+        if cargo_name_lower not in VALID_POWERPLAY_SALVAGE_TYPES:
             logger.error(f"Invalid salvage type: {cargo_name}")
             return
         if cargo_name_lower not in self.inventory:
@@ -35,7 +35,7 @@ class Salvage:
         
     def remove_cargo(self, cargo_name: str, count: int = 1) -> int:
         cargo_name_lower = cargo_name.lower()
-        if cargo_name_lower not in VALID_SALVAGE_TYPES:
+        if cargo_name_lower not in VALID_POWERPLAY_SALVAGE_TYPES:
             logger.error(f"Invalid salvage type: {cargo_name}")
             return 0
         if cargo_name_lower in self.inventory:

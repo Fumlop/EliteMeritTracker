@@ -10,7 +10,7 @@ from typing import Dict, Any
 
 from report import report
 from system import systems, StarSystem, loadSystems, dumpSystems
-from salvage import Salvage, salvageInventory, save_salvage, load_salvage, VALID_SALVAGE_TYPES
+from salvage import Salvage, salvageInventory, save_salvage, load_salvage, VALID_POWERPLAY_SALVAGE_TYPES
 from power import pledgedPower
 from pluginUI import TrackerFrame
 from pluginConfig import configPlugin
@@ -35,6 +35,7 @@ this.assetpath = ""
 # SAR (Search and Rescue) tracking
 this.lastSARCounts = None
 this.lastSARSystems = []
+this.lastPowerPlayDeliverySystem = None
 def _get_github_release_data():
     """Fetch latest GitHub release data"""
     try:
@@ -250,6 +251,31 @@ def update_system_merits_sar(merits_value, system_name):
         systems[system_name] = new_system
 
 
+def update_system_merits_powerplay_delivery(merits_value, delivery_system_name):
+    """Update merits for PowerPlay cargo delivery system with reduced formula: merits / 1.15 * 0.65"""
+    if merits_value <= 0 or not delivery_system_name:
+        return
+    
+    try:
+        # Apply the formula: merits / 1.15 * 0.65
+        reduced_merits = int((merits_value / 1.15) * 0.65)
+        logger.info(f"PowerPlay cargo delivery: {delivery_system_name} gets {reduced_merits} merits (reduced from {merits_value})")
+    except (ValueError, TypeError):
+        logger.debug("Invalid merits value for PowerPlay delivery")
+        return
+
+    pledgedPower.MeritsSession += reduced_merits
+
+    if delivery_system_name in systems:
+        systems[delivery_system_name].Merits += reduced_merits
+    else:
+        # Create new system if it doesn't exist
+        new_system = StarSystem()
+        new_system.StarSystem = delivery_system_name
+        new_system.Merits = reduced_merits
+        systems[delivery_system_name] = new_system
+
+
 def update_system_merits(merits_value):
     """Update merits for current system"""
     global trackerFrame
@@ -288,18 +314,21 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] in ['SearchAndRescue']:
         # Remove cargo when delivered to Search and Rescue - from any system
         cargo_type = entry.get("Name", "Unknown").lower()  # Use Name field from SearchAndRescue event
-        if cargo_type in VALID_SALVAGE_TYPES:
+        if cargo_type in VALID_POWERPLAY_SALVAGE_TYPES:
             count = entry.get("Count", 1)
             remaining_count = count
             
-            # Log significant salvage deliveries
+            # Log significant PowerPlay cargo deliveries
             if count >= 10:
-                logger.info(f"Large salvage delivery: {count}x {cargo_type}")
+                logger.info(f"Large PowerPlay cargo delivery: {count}x {cargo_type}")
             
-            # Initialisiere das Dictionary für diesen SAR-Run
+            # Initialisiere das Dictionary für diesen PowerPlay SAR-Run
             if this.lastSARCounts is None:
                 this.lastSARCounts = {}
                 this.lastSARSystems = []
+            
+            # Track delivery to current system (will get reduced merits)
+            this.lastPowerPlayDeliverySystem = this.currentSystemFlying.StarSystem if this.currentSystemFlying else None
             
             # Sort systems alphabetically
             sorted_systems = sorted(salvageInventory.keys())
@@ -338,6 +367,12 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                 for system_name, item_count in this.lastSARCounts.items():
                     system_merits = int(merits_per_item * item_count)
                     update_system_merits_sar(system_merits, system_name)
+                
+                # Apply PowerPlay delivery formula to destination system
+                if this.lastPowerPlayDeliverySystem:
+                    update_system_merits_powerplay_delivery(merits_gained, this.lastPowerPlayDeliverySystem)
+                    this.lastPowerPlayDeliverySystem = None
+                    
             this.lastSARCounts = None
             this.lastSARSystems = []
         else:
