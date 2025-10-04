@@ -4,7 +4,7 @@ from config import config
 
 class ConfigPlugin:
     def __init__(self):
-        self.version = 'v0.4.200.1.100'
+        self.version = 'v0.4.200.1.101'
         self.loadConfig()
 
     def getTextCopy(self):
