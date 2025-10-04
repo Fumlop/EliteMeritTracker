@@ -146,7 +146,7 @@ class TrackerFrame:
         # Show button
         self.widgets['showButton'] = tk.Button(
             self.frames['frame_row6'], text="Overview",
-            command=lambda: show_power_info(self.parent, pledgedPower, systems),
+            command=lambda: show_power_info(self.parent, pledgedPower, systems, self),
             state=stateButton, compound="center", name="eliteMeritTrackerComponentshowButton"
         )
         self.widgets['showButton'].pack(side="left", expand=True, fill="both", padx=0, pady=2)

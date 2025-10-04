@@ -23,6 +23,7 @@ filter_frame = None
 filter_system_var = None
 filter_state_var = None
 filter_power_var = None
+main_tracker_frame = None  # Reference to main UI tracker frame
 
 def copy_to_clipboard_or_report(text, name, table_frame, update_scrollregion):
     global report, systems
@@ -38,7 +39,7 @@ def copy_to_clipboard_or_report(text, name, table_frame, update_scrollregion):
         root.destroy()
 
 def delete_entry(system_name, table_frame, update_scrollregion):
-    global data_frame_default, data_frame_detailed, detailed_view,systems, pledgedPower
+    global data_frame_default, data_frame_detailed, detailed_view, systems, pledgedPower, main_tracker_frame
 
     if system_name in systems:
         systems[system_name].Merits = 0
@@ -51,6 +52,13 @@ def delete_entry(system_name, table_frame, update_scrollregion):
                 widget.destroy()
 
         populate_table(table_frame, update_scrollregion)
+        
+        # Update main UI only if the reset system is the currently active system
+        if main_tracker_frame:
+            # Import here to avoid circular import
+            from load import this
+            if this.currentSystemFlying and this.currentSystemFlying.StarSystem == system_name:
+                main_tracker_frame.update_display(this.currentSystemFlying)
 
 def toggle_view():
     global detailed_view, csv_button, systems, pledgedPower
@@ -114,12 +122,13 @@ def export_to_csv():
 
     print(f"CSV export successful: {file_path}")  # Debug log (replace with a messagebox if needed)
 
-def show_power_info(parent, pp, sy):
-    global table_frame, toggle_button, csv_button, detailed_view, filter_frame, data_frame, systems, pledgedPower, update_scrollregion
+def show_power_info(parent, pp, sy, tracker_frame=None):
+    global table_frame, toggle_button, csv_button, detailed_view, filter_frame, data_frame, systems, pledgedPower, update_scrollregion, main_tracker_frame
     update_scrollregion = lambda event=None: canvas.configure(scrollregion=canvas.bbox("all"))
     
     pledgedPower = pp
     systems = sy
+    main_tracker_frame = tracker_frame  # Store reference to main tracker frame
 
     detailed_view = False  
 
