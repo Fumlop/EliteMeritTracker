@@ -42,6 +42,7 @@ this.lastPowerPlayDeliverySystem = None
 this.lastPowerplayMeritsEvent = None
 this.powerplayEventTimeWindow = 2.0  # 2 seconds tolerance
 this.retroactiveDuplicateDetected = False  # Flag for retroactive duplicate correction
+this.lastJournalEventTimestamp = None  # Track any journal event between PowerplayMerits events
 
 def parse_timestamp_diff(timestamp1, timestamp2):
     """Calculate difference in seconds between two Elite Dangerous timestamps"""
@@ -327,6 +328,12 @@ def update_json_file():
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     global trackerFrame
+    
+    # Track any journal event timestamp for duplicate detection
+    current_timestamp = entry.get('timestamp')
+    if current_timestamp and entry['event'] != 'PowerplayMerits':
+        this.lastJournalEventTimestamp = current_timestamp
+    
     if entry['event'] in ['LoadGame']:
         this.commander = entry.get('Commander', "Ganimed ")
     if entry['event'] in ['CollectCargo']:
@@ -413,16 +420,34 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             same_merits = current_event_key['merits_gained'] == this.lastPowerplayMeritsEvent['merits_gained']
             same_power = current_event_key['power'] == this.lastPowerplayMeritsEvent['power']
             
+            # Check if there was another event between the two PowerplayMerits events
+            no_events_between = True
+            if this.lastJournalEventTimestamp:
+                last_pp_time = parse_timestamp_diff(this.lastPowerplayMeritsEvent['timestamp'], "2000-01-01T00:00:00Z")
+                current_pp_time = parse_timestamp_diff(current_event_key['timestamp'], "2000-01-01T00:00:00Z")
+                last_journal_time = parse_timestamp_diff(this.lastJournalEventTimestamp, "2000-01-01T00:00:00Z")
+                
+                # If there was an event between the two PowerplayMerits events, it's not a duplicate
+                if last_pp_time < last_journal_time < current_pp_time:
+                    no_events_between = False
+            
             # Additional validation: TotalMerits should be consistent
             expected_total = this.lastPowerplayMeritsEvent['total_merits'] + current_event_key['merits_gained']
             total_merits_inconsistent = current_event_key['total_merits'] != expected_total
             
-            if time_diff < this.powerplayEventTimeWindow and same_merits and same_power:
+            if time_diff < this.powerplayEventTimeWindow and same_merits and same_power and no_events_between:
                 if total_merits_inconsistent:
                     logger.warning(f"Duplicate PowerplayMerits event detected (inconsistent totals): {current_event_key['merits_gained']} merits, expected total {expected_total}, got {current_event_key['total_merits']}")
                 else:
-                    logger.warning(f"Duplicate PowerplayMerits event detected and ignored: {current_event_key['merits_gained']} merits within {time_diff:.1f}s")
+                    logger.warning(f"Duplicate PowerplayMerits event detected and ignored: {current_event_key['merits_gained']} merits within {time_diff:.1f}s, no events between")
+                
+                # CRITICAL: Reset tracking variables to prevent next event being falsely flagged
+                this.lastPowerplayMeritsEvent = None
+                this.lastJournalEventTimestamp = None
+                this.retroactiveDuplicateDetected = False
                 return  # Skip this duplicate event
+            elif time_diff < this.powerplayEventTimeWindow and same_merits and same_power and not no_events_between:
+                logger.info(f"Similar PowerplayMerits event found but NOT duplicate: {current_event_key['merits_gained']} merits within {time_diff:.1f}s, but other events occurred between")
         
         # Store this event for future deduplication
         this.lastPowerplayMeritsEvent = current_event_key
@@ -450,6 +475,10 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             update_system_merits(merits_gained)
         pledgedPower.Merits = entry.get('TotalMerits', pledgedPower.Merits)
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
+        
+        # Reset retroactive duplicate flag after processing current event
+        # This ensures the next event can be checked for retroactive duplicates
+        this.retroactiveDuplicateDetected = False
     if entry['event'] in ['FSDJump', 'Location'] or (entry['event'] in ['CarrierJump'] and entry['Docked'] == True):
         nameSystem = entry.get('StarSystem',"Nomansland")
         if (not systems or len(systems)==0 or nameSystem not in systems):
