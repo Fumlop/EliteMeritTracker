@@ -7,6 +7,7 @@ import myNotebook as nb
 import io
 import re
 from typing import Dict, Any
+from datetime import datetime
 
 from report import report
 from system import systems, StarSystem, loadSystems, dumpSystems
@@ -36,6 +37,25 @@ this.assetpath = ""
 this.lastSARCounts = None
 this.lastSARSystems = []
 this.lastPowerPlayDeliverySystem = None
+
+# PowerPlay deduplication tracking
+this.lastPowerplayMeritsEvent = None
+this.powerplayEventTimeWindow = 2.0  # 2 seconds tolerance
+
+def parse_timestamp_diff(timestamp1, timestamp2):
+    """Calculate difference in seconds between two Elite Dangerous timestamps"""
+    if not timestamp1 or not timestamp2:
+        return float('inf')
+    
+    try:
+        # Parse Elite Dangerous timestamp format: "2025-10-05T17:12:04Z"
+        dt1 = datetime.fromisoformat(timestamp1.replace('Z', '+00:00'))
+        dt2 = datetime.fromisoformat(timestamp2.replace('Z', '+00:00'))
+        return (dt1 - dt2).total_seconds()
+    except Exception as e:
+        logger.warning(f"Error parsing timestamps: {e}")
+        return float('inf')
+
 def _get_github_release_data():
     """Fetch latest GitHub release data"""
     try:
@@ -357,6 +377,34 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         pledgedPower.Rank = new_rank
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
     if entry['event'] in ['PowerplayMerits']:
+        # Deduplication: Check if this event is a duplicate
+        current_event_key = {
+            'timestamp': entry.get('timestamp'),
+            'merits_gained': entry.get('MeritsGained', 0),
+            'total_merits': entry.get('TotalMerits', 0),
+            'power': entry.get('Power', '')
+        }
+        
+        if this.lastPowerplayMeritsEvent is not None:
+            # Check if this looks like a duplicate event
+            time_diff = abs(parse_timestamp_diff(current_event_key['timestamp'], this.lastPowerplayMeritsEvent['timestamp']))
+            same_merits = current_event_key['merits_gained'] == this.lastPowerplayMeritsEvent['merits_gained']
+            same_power = current_event_key['power'] == this.lastPowerplayMeritsEvent['power']
+            
+            # Additional validation: TotalMerits should be consistent
+            expected_total = this.lastPowerplayMeritsEvent['total_merits'] + current_event_key['merits_gained']
+            total_merits_inconsistent = current_event_key['total_merits'] != expected_total
+            
+            if time_diff < this.powerplayEventTimeWindow and same_merits and same_power:
+                if total_merits_inconsistent:
+                    logger.warning(f"Duplicate PowerplayMerits event detected (inconsistent totals): {current_event_key['merits_gained']} merits, expected total {expected_total}, got {current_event_key['total_merits']}")
+                else:
+                    logger.warning(f"Duplicate PowerplayMerits event detected and ignored: {current_event_key['merits_gained']} merits within {time_diff:.1f}s")
+                return  # Skip this duplicate event
+        
+        # Store this event for future deduplication
+        this.lastPowerplayMeritsEvent = current_event_key
+        
         merits_gained = entry.get('MeritsGained', 0)
         if merits_gained > 0:
             logger.info(f"PowerPlay merits gained: {merits_gained} (Total: {entry.get('TotalMerits', pledgedPower.Merits)})")
