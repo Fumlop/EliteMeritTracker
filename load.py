@@ -40,7 +40,7 @@ this.lastPowerPlayDeliverySystem = None
 
 # PowerPlay deduplication tracking
 this.lastPowerplayMeritsEvent = None
-this.powerplayEventTimeWindow = 2.0  # 2 seconds tolerance
+this.powerplayEventTimeWindow = 3.0  # 3 seconds tolerance (increased from 2.0)
 this.retroactiveDuplicateDetected = False  # Flag for retroactive duplicate correction
 this.lastJournalEventTimestamp = None  # Track any journal event between PowerplayMerits events
 
@@ -421,33 +421,48 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             same_power = current_event_key['power'] == this.lastPowerplayMeritsEvent['power']
             
             # Check if there was another event between the two PowerplayMerits events
+            # Only apply event-sequence check for very short time differences (< 1 second)
+            # For longer time differences, focus on merit/power matching regardless of intermediate events
             no_events_between = True
-            if this.lastJournalEventTimestamp:
-                last_pp_time = parse_timestamp_diff(this.lastPowerplayMeritsEvent['timestamp'], "2000-01-01T00:00:00Z")
-                current_pp_time = parse_timestamp_diff(current_event_key['timestamp'], "2000-01-01T00:00:00Z")
-                last_journal_time = parse_timestamp_diff(this.lastJournalEventTimestamp, "2000-01-01T00:00:00Z")
-                
-                # If there was an event between the two PowerplayMerits events, it's not a duplicate
-                if last_pp_time < last_journal_time < current_pp_time:
-                    no_events_between = False
+            apply_sequence_check = time_diff < 1.0  # Only check sequence for very short intervals
+            
+            if apply_sequence_check and this.lastJournalEventTimestamp:
+                # Convert timestamps to datetime objects for proper comparison
+                try:
+                    last_pp_dt = datetime.fromisoformat(this.lastPowerplayMeritsEvent['timestamp'].replace('Z', '+00:00'))
+                    current_pp_dt = datetime.fromisoformat(current_event_key['timestamp'].replace('Z', '+00:00'))
+                    last_journal_dt = datetime.fromisoformat(this.lastJournalEventTimestamp.replace('Z', '+00:00'))
+                    
+                    # If there was an event between the two PowerplayMerits events, it's not a duplicate
+                    if last_pp_dt < last_journal_dt < current_pp_dt:
+                        no_events_between = False
+                        logger.debug(f"Event between PP events detected: {this.lastJournalEventTimestamp} between {this.lastPowerplayMeritsEvent['timestamp']} and {current_event_key['timestamp']}")
+                except Exception as e:
+                    logger.warning(f"Error parsing timestamps for event sequence check: {e}")
+                    no_events_between = True  # Conservative: assume no events between if parsing fails
+            
+            # For longer time differences (>= 1 second), skip sequence check
+            # Focus purely on merit/power/time matching for duplicate detection
+            duplicate_condition = (time_diff < this.powerplayEventTimeWindow and same_merits and same_power)
+            if apply_sequence_check:
+                duplicate_condition = duplicate_condition and no_events_between
             
             # Additional validation: TotalMerits should be consistent
             expected_total = this.lastPowerplayMeritsEvent['total_merits'] + current_event_key['merits_gained']
             total_merits_inconsistent = current_event_key['total_merits'] != expected_total
             
-            if time_diff < this.powerplayEventTimeWindow and same_merits and same_power and no_events_between:
+            if duplicate_condition:
                 if total_merits_inconsistent:
                     logger.warning(f"Duplicate PowerplayMerits event detected (inconsistent totals): {current_event_key['merits_gained']} merits, expected total {expected_total}, got {current_event_key['total_merits']}")
                 else:
-                    logger.warning(f"Duplicate PowerplayMerits event detected and ignored: {current_event_key['merits_gained']} merits within {time_diff:.1f}s, no events between")
+                    sequence_info = f", no events between" if apply_sequence_check and no_events_between else f", events between ignored (>{time_diff:.1f}s)" if not apply_sequence_check else f", events between detected"
+                    logger.warning(f"Duplicate PowerplayMerits event detected and ignored: {current_event_key['merits_gained']} merits within {time_diff:.1f}s{sequence_info}")
                 
                 # CRITICAL: Reset tracking variables to prevent next event being falsely flagged
                 this.lastPowerplayMeritsEvent = None
                 this.lastJournalEventTimestamp = None
                 this.retroactiveDuplicateDetected = False
                 return  # Skip this duplicate event
-            elif time_diff < this.powerplayEventTimeWindow and same_merits and same_power and not no_events_between:
-                logger.info(f"Similar PowerplayMerits event found but NOT duplicate: {current_event_key['merits_gained']} merits within {time_diff:.1f}s, but other events occurred between")
         
         # Store this event for future deduplication
         this.lastPowerplayMeritsEvent = current_event_key
