@@ -41,6 +41,7 @@ this.lastPowerPlayDeliverySystem = None
 # PowerPlay deduplication tracking
 this.lastPowerplayMeritsEvent = None
 this.powerplayEventTimeWindow = 2.0  # 2 seconds tolerance
+this.retroactiveDuplicateDetected = False  # Flag for retroactive duplicate correction
 
 def parse_timestamp_diff(timestamp1, timestamp2):
     """Calculate difference in seconds between two Elite Dangerous timestamps"""
@@ -386,6 +387,27 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         }
         
         if this.lastPowerplayMeritsEvent is not None:
+            # RETROACTIVE CHECK: If TotalMerits is lower than expected, previous event was duplicate
+            expected_minimum_total = this.lastPowerplayMeritsEvent['total_merits'] 
+            if current_event_key['total_merits'] < expected_minimum_total and not this.retroactiveDuplicateDetected:
+                logger.error(f"RETROACTIVE DUPLICATE DETECTED: Previous PowerplayMerits event was a duplicate! "
+                           f"Expected minimum total: {expected_minimum_total}, got: {current_event_key['total_merits']} "
+                           f"Previous duplicate merits: {this.lastPowerplayMeritsEvent['merits_gained']}")
+                
+                # Correct the previous duplicate by reversing its effects
+                duplicate_merits = this.lastPowerplayMeritsEvent['merits_gained']
+                pledgedPower.MeritsSession -= duplicate_merits
+                
+                # Also correct system merits if they were affected
+                if this.currentSystemFlying and this.currentSystemFlying.StarSystem in systems:
+                    if systems[this.currentSystemFlying.StarSystem].Merits >= duplicate_merits:
+                        systems[this.currentSystemFlying.StarSystem].Merits -= duplicate_merits
+                        logger.info(f"Corrected system merits for {this.currentSystemFlying.StarSystem}: -{duplicate_merits}")
+                
+                this.retroactiveDuplicateDetected = True
+            else:
+                this.retroactiveDuplicateDetected = False
+            
             # Check if this looks like a duplicate event
             time_diff = abs(parse_timestamp_diff(current_event_key['timestamp'], this.lastPowerplayMeritsEvent['timestamp']))
             same_merits = current_event_key['merits_gained'] == this.lastPowerplayMeritsEvent['merits_gained']
