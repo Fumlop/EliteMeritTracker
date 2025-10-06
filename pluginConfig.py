@@ -25,6 +25,7 @@ class ConfigPlugin:
         self.discordHook = tk.StringVar(value=config.get_str("discordHook") or "")
         self.reportSave = config.get_bool("reportSave") or True
         self.never = config.get_bool("never") or False
+        self.duplicateScanDays = tk.StringVar(value=config.get_str("duplicateScanDays") or "7")
 
     def dumpConfig(self):
         config.set("power_info_width", str(self.power_info_width))
@@ -35,6 +36,7 @@ class ConfigPlugin:
         config.set("discordHook", str(self.discordHook.get()))
         config.set("reportSave", bool(self.reportSave))
         config.set("never", bool(self.never))
+        config.set("duplicateScanDays", str(self.duplicateScanDays.get()))
         #config.set("keepHistory", str(self.keepHistory, 90))
 
 class ConfigEncoder(json.JSONEncoder):
