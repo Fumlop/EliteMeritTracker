@@ -233,46 +233,46 @@ def create_config_frame(parent, nb):
     nb.Label(config_frame, text="").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
 
     # Duplicate Scanner Section
-    nb.Label(config_frame, text="Duplicate Merit Scanner", font=("TkDefaultFont", 9, "bold")).grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=(10, 5))
+    #nb.Label(config_frame, text="Duplicate Merit Scanner", font=("TkDefaultFont", 9, "bold")).grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=(10, 5))
     
     # Scanner controls frame
-    scanner_frame = nb.Frame(config_frame)
-    scanner_frame.grid(row=next_config_row(), column=0, columnspan=2, sticky="we", padx=5, pady=5)
-    scanner_frame.columnconfigure(4, weight=1)
+    #scanner_frame = nb.Frame(config_frame)
+    #scanner_frame.grid(row=next_config_row(), column=0, columnspan=2, sticky="we", padx=5, pady=5)
+    #scanner_frame.columnconfigure(4, weight=1)
     
-    nb.Label(scanner_frame, text="Scan last").grid(row=0, column=0, sticky="w")
+    #nb.Label(scanner_frame, text="Scan last").grid(row=0, column=0, sticky="w")
     
-    nb.Entry(
-        scanner_frame,
-        textvariable=configPlugin.duplicateScanDays,
-        width=5
-    ).grid(row=0, column=1, padx=(5, 5), sticky="w")
+    #nb.Entry(
+    #    scanner_frame,
+    #    textvariable=configPlugin.duplicateScanDays,
+    #    width=5
+    #).grid(row=0, column=1, padx=(5, 5), sticky="w")
     
-    nb.Label(scanner_frame, text="days for duplicate merits").grid(row=0, column=2, sticky="w", padx=(0, 10))
+    #nb.Label(scanner_frame, text="days for duplicate merits").grid(row=0, column=2, sticky="w", padx=(0, 10))
     
-    def start_duplicate_scan():
-        try:
-            days = configPlugin.duplicateScanDays.get()
-            scan_for_duplicates(days, scan_results_text)
-        except Exception as e:
-            logger.error(f"Error starting duplicate scan: {e}")
+    #def start_duplicate_scan():
+    #    try:
+    #        days = configPlugin.duplicateScanDays.get()
+    #        scan_for_duplicates(days, scan_results_text)
+    #    except Exception as e:
+    #        logger.error(f"Error starting duplicate scan: {e}")
     
-    nb.Button(
-        scanner_frame,
-        text="🔍 Scan",
-        command=start_duplicate_scan
-    ).grid(row=0, column=3, padx=(10, 0))
+    #nb.Button(
+    #    scanner_frame,
+    #    text="🔍 Scan",
+    #    command=start_duplicate_scan
+    #).grid(row=0, column=3, padx=(10, 0))
     
     # Results text area
-    scan_results_text = tk.Text(
-        config_frame,
-        height=6,
-        width=70,
-        font=("Consolas", 8),
-        wrap=tk.WORD
-    )
-    scan_results_text.grid(row=next_config_row(), column=0, columnspan=2, sticky="we", padx=5, pady=5)
-    scan_results_text.insert(1.0, "Click 'Scan' to check for duplicate merits...")
+    #scan_results_text = tk.Text(
+    #    config_frame,
+    #    height=6,
+    #    width=70,
+    #    font=("Consolas", 8),
+    #    wrap=tk.WORD
+    #)
+    #scan_results_text.grid(row=next_config_row(), column=0, columnspan=2, sticky="we", padx=5, pady=5)
+    #scan_results_text.insert(1.0, "Click 'Scan' to check for duplicate merits...")
 
     nb.Label(config_frame, text="").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
 

@@ -37,7 +37,7 @@ this.assetpath = ""
 # SAR (Search and Rescue) tracking
 this.lastSARCounts = None
 this.lastSARSystems = []
-this.lastPowerPlayDeliverySystem = None
+#this.lastPowerPlayDeliverySystem = None
 
 def _get_github_release_data():
     """Fetch latest GitHub release data"""
@@ -337,7 +337,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                 this.lastSARSystems = []
             
             # Track delivery to current system (will get reduced merits)
-            this.lastPowerPlayDeliverySystem = this.currentSystemFlying.StarSystem if this.currentSystemFlying else None
+            #this.lastPowerPlayDeliverySystem = this.currentSystemFlying.StarSystem if this.currentSystemFlying else None
             
             # Sort systems alphabetically
             sorted_systems = sorted(salvageInventory.keys())
@@ -399,9 +399,9 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                     update_system_merits_sar(system_merits, system_name)
                 
                 # Apply PowerPlay delivery formula to destination system
-                if this.lastPowerPlayDeliverySystem:
-                    update_system_merits_powerplay_delivery(merits_gained, this.lastPowerPlayDeliverySystem)
-                    this.lastPowerPlayDeliverySystem = None
+                #if this.lastPowerPlayDeliverySystem:
+                #    update_system_merits_powerplay_delivery(merits_gained, this.lastPowerPlayDeliverySystem)
+                #    this.lastPowerPlayDeliverySystem = None
                     
             this.lastSARCounts = None
             this.lastSARSystems = []
