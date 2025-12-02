@@ -276,9 +276,63 @@ def create_config_frame(parent, nb):
 
     nb.Label(config_frame, text="").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
 
+    # Beta Update Section
+    nb.Label(config_frame, text="Beta Updates", font=("TkDefaultFont", 9, "bold")).grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=(10, 5))
+
+    beta_frame = nb.Frame(config_frame)
+    beta_frame.grid(row=next_config_row(), column=0, columnspan=2, sticky="we", padx=5, pady=5)
+
+    # Status label
+    beta_status_label = nb.Label(beta_frame, text="")
+    beta_status_label.grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 5))
+
+    def update_beta_status():
+        if configPlugin.beta:
+            beta_status_label.config(text="Currently running: Beta version")
+        else:
+            beta_status_label.config(text="Currently running: Stable release")
+
+    update_beta_status()
+
+    def on_update_to_beta():
+        from load import update_to_prerelease, check_prerelease_available
+        prerelease = check_prerelease_available()
+        if prerelease:
+            if update_to_prerelease():
+                beta_status_label.config(text=f"Beta {prerelease} installed! Restart EDMC.")
+                update_beta_status()
+        else:
+            beta_status_label.config(text="No pre-release available")
+
+    def on_revert_to_release():
+        from load import revert_to_release
+        if revert_to_release():
+            beta_status_label.config(text="Reverted to stable! Restart EDMC.")
+            update_beta_status()
+
+    # Show different buttons based on current state
+    if not configPlugin.beta:
+        nb.Button(
+            beta_frame,
+            text="Update to Pre-Release",
+            command=on_update_to_beta
+        ).grid(row=1, column=0, padx=(0, 10), sticky="w")
+    else:
+        nb.Button(
+            beta_frame,
+            text="Revert to Latest Release",
+            command=on_revert_to_release
+        ).grid(row=1, column=0, padx=(0, 10), sticky="w")
+
+    nb.Label(config_frame, text="").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
+
+    # Version label with beta indicator
+    version_text = f"Version {configPlugin.version}"
+    if configPlugin.beta:
+        version_text += " (Beta)"
     nb.Label(
         config_frame,
-        text=f"Version {configPlugin.version}"
+        text=version_text
     ).grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
 
     return config_frame

@@ -4,7 +4,8 @@ from config import config
 
 class ConfigPlugin:
     def __init__(self):
-        self.version = 'v0.4.200.1.105'
+        self.version = 'v0.4.300.1.001'
+        self.beta = False  # Will be loaded from config
         self.loadConfig()
 
     def getTextCopy(self):
@@ -25,7 +26,7 @@ class ConfigPlugin:
         self.discordHook = tk.StringVar(value=config.get_str("discordHook") or "")
         self.reportSave = config.get_bool("reportSave") or True
         self.never = config.get_bool("never") or False
-        #self.duplicateScanDays = tk.StringVar(value=config.get_str("duplicateScanDays") or "7")
+        self.beta = config.get_bool("beta") or False
 
     def dumpConfig(self):
         config.set("power_info_width", str(self.power_info_width))
@@ -36,8 +37,7 @@ class ConfigPlugin:
         config.set("discordHook", str(self.discordHook.get()))
         config.set("reportSave", bool(self.reportSave))
         config.set("never", bool(self.never))
-        #config.set("duplicateScanDays", str(self.duplicateScanDays.get()))
-        #config.set("keepHistory", str(self.keepHistory, 90))
+        config.set("beta", bool(self.beta))
 
 class ConfigEncoder(json.JSONEncoder):
     def default(self, o):

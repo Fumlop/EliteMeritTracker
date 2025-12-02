@@ -19,6 +19,10 @@ from pluginConfig import configPlugin
 from log import logger
 from config import config, appname
 from pluginConfigUI import create_config_frame
+from backpack import playerBackpack, save_backpack, load_backpack
+from umdata import is_valid_um_data
+from reinfdata import is_valid_reinf_data
+from acqdata import is_valid_acq_data
 
 # Module globals
 this = sys.modules[__name__]
@@ -46,6 +50,23 @@ def _get_github_release_data():
         return response.json() if response.status_code == 200 else None
     except Exception as e:
         logger.exception('Error fetching GitHub release data')
+        return None
+
+
+def _get_github_prerelease_data():
+    """Fetch latest GitHub pre-release data"""
+    try:
+        response = requests.get('https://api.github.com/repos/Fumlop/EliteMeritTracker/releases')
+        if response.status_code != 200:
+            return None
+        releases = response.json()
+        # Find the first pre-release
+        for release in releases:
+            if release.get('prerelease', False):
+                return release
+        return None
+    except Exception as e:
+        logger.exception('Error fetching GitHub pre-release data')
         return None
 
 
@@ -107,7 +128,7 @@ def _download_and_extract_update(zip_url):
 def auto_update():
     """Download and install plugin update"""
     global trackerFrame
-    
+
     data = _get_github_release_data()
     if not data:
         logger.error("Failed to fetch latest release information")
@@ -119,12 +140,84 @@ def auto_update():
         return
 
     logger.info(f"Downloading update from {zip_url}")
-    
+
     if _download_and_extract_update(zip_url):
         logger.info("Update successfully installed. Restart required.")
         trackerFrame.updateButtonText()
     else:
         logger.error("Update installation failed")
+
+
+def update_to_prerelease():
+    """Download and install pre-release version"""
+    global trackerFrame
+
+    data = _get_github_prerelease_data()
+    if not data:
+        logger.error("No pre-release version found")
+        return False
+
+    zip_url = data.get("zipball_url")
+    if not zip_url:
+        logger.error("No ZIP file found in pre-release")
+        return False
+
+    version = data.get('tag_name', 'unknown')
+    logger.info(f"Downloading pre-release {version} from {zip_url}")
+
+    if _download_and_extract_update(zip_url):
+        configPlugin.beta = True
+        configPlugin.dumpConfig()
+        logger.info(f"Pre-release {version} installed. Restart required.")
+        return True
+    else:
+        logger.error("Pre-release installation failed")
+        return False
+
+
+def revert_to_release():
+    """Revert from beta to latest stable release"""
+    global trackerFrame
+
+    data = _get_github_release_data()
+    if not data:
+        logger.error("Failed to fetch latest release information")
+        return False
+
+    zip_url = data.get("zipball_url")
+    if not zip_url:
+        logger.error("No ZIP file found in latest release")
+        return False
+
+    version = data.get('tag_name', 'unknown')
+    logger.info(f"Reverting to stable release {version} from {zip_url}")
+
+    if _download_and_extract_update(zip_url):
+        configPlugin.beta = False
+        configPlugin.dumpConfig()
+        logger.info(f"Reverted to stable release {version}. Restart required.")
+        return True
+    else:
+        logger.error("Revert to stable release failed")
+        return False
+
+
+def check_prerelease_available():
+    """Check if a pre-release is available and newer than current version"""
+    data = _get_github_prerelease_data()
+    if not data:
+        return None
+
+    try:
+        prerelease_version = parse_version(data['tag_name'])
+        current_version = parse_version(configPlugin.version)
+
+        if prerelease_version > current_version:
+            return data['tag_name']
+        return None
+    except Exception as e:
+        logger.exception('Error checking pre-release version')
+        return None
 
 def restart_edmc():
     logger.info("Restarting EDMC...")
@@ -176,6 +269,7 @@ def plugin_start3(plugin_dir):
     this.newest = checkVersion()
     loadSystems()  # Lädt die Systeme aus der JSON-Datei
     load_salvage()  # Lädt das Salvage Inventory
+    load_backpack()  # Lädt das Backpack
     for system in systems.values():
         if (system.Active):
             this.currentSystemFlying = system
@@ -303,9 +397,10 @@ def prefs_changed(cmdr, is_beta):
     configPlugin.dumpConfig()
            
 def update_json_file():
-    pledgedPower.dumpJson()  
+    pledgedPower.dumpJson()
     dumpSystems()
     save_salvage()
+    save_backpack()
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     global trackerFrame
@@ -317,6 +412,37 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     
     if entry['event'] in ['LoadGame']:
         this.commander = entry.get('Commander', "Ganimed ")
+    if entry['event'] == 'BackpackChange':
+        # Track PowerPlay data collection
+        current_system = this.currentSystemFlying.StarSystem if this.currentSystemFlying else None
+        controlling_power = this.currentSystemFlying.ControllingPower if this.currentSystemFlying else None
+        player_pledged_power = pledgedPower.Power
+
+        # Process added items
+        for item in entry.get('Added', []):
+            item_name = item.get('Name', '').lower()
+            item_count = item.get('Count', 1)
+            if is_valid_um_data(item_name) or is_valid_reinf_data(item_name) or is_valid_acq_data(item_name):
+                playerBackpack.add_item(item_name, item_count, current_system, controlling_power, player_pledged_power)
+
+        # Process removed items
+        for item in entry.get('Removed', []):
+            item_name = item.get('Name', '').lower()
+            item_count = item.get('Count', 1)
+            if is_valid_um_data(item_name) or is_valid_reinf_data(item_name) or is_valid_acq_data(item_name):
+                playerBackpack.remove_item(item_name, item_count)
+    if entry['event'] == 'DeliverPowerMicroResources':
+        # Hand-in PowerPlay data at power contact
+        for item in entry.get('MicroResources', []):
+            item_name = item.get('Name', '').lower()
+            item_count = item.get('Count', 1)
+            if is_valid_um_data(item_name) or is_valid_reinf_data(item_name) or is_valid_acq_data(item_name):
+                playerBackpack.remove_item(item_name, item_count)
+    if entry['event'] == 'ShipLocker':
+        # Cross-check backpack against game state (handles death, etc.)
+        data_items = entry.get('Data', [])
+        if data_items:
+            playerBackpack.sync_from_shiplocker(data_items)
     if entry['event'] in ['CollectCargo']:
         # Process cargo collection with new Salvage system
         Salvage.process_collect_cargo(entry, this.currentSystemFlying)
