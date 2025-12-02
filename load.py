@@ -41,7 +41,9 @@ this.assetpath = ""
 # SAR (Search and Rescue) tracking
 this.lastSARCounts = None
 this.lastSARSystems = []
-#this.lastPowerPlayDeliverySystem = None
+
+# DeliverPowerMicroResources tracking (backpack hand-in)
+this.lastDeliveryCounts = None
 
 def _get_github_release_data():
     """Fetch latest GitHub release data"""
@@ -325,11 +327,34 @@ def reset():
 def plugin_prefs(parent, cmdr, is_beta):
     return create_config_frame(parent, nb)
 
+def update_system_merits_for_collection(merits_value, system_name):
+    """Update merits for PowerPlay data collection system (backpack hand-in)"""
+    if merits_value <= 0:
+        return
+
+    try:
+        merits = int(merits_value)
+    except (ValueError, TypeError):
+        logger.debug("Invalid merits value for collection")
+        return
+
+    pledgedPower.MeritsSession += merits
+    logger.info(f"PowerPlay data delivery: {system_name} gets {merits} merits")
+
+    if system_name in systems:
+        systems[system_name].Merits += merits
+    else:
+        new_system = StarSystem()
+        new_system.StarSystem = system_name
+        new_system.Merits = merits
+        systems[system_name] = new_system
+
+
 def update_system_merits_sar(merits_value, system_name):
     """Update merits for Search and Rescue activities"""
     if merits_value <= 0:
         return
-    
+
     try:
         merits = int(merits_value)
     except (ValueError, TypeError):
@@ -432,12 +457,16 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             if is_valid_um_data(item_name) or is_valid_reinf_data(item_name) or is_valid_acq_data(item_name):
                 playerBackpack.remove_item(item_name, item_count)
     if entry['event'] == 'DeliverPowerMicroResources':
-        # Hand-in PowerPlay data at power contact
+        # Hand-in PowerPlay data at power contact - capture system distribution for merit assignment
+        this.lastDeliveryCounts = {}
         for item in entry.get('MicroResources', []):
             item_name = item.get('Name', '').lower()
             item_count = item.get('Count', 1)
             if is_valid_um_data(item_name) or is_valid_reinf_data(item_name) or is_valid_acq_data(item_name):
-                playerBackpack.remove_item(item_name, item_count)
+                systems_removed = playerBackpack.remove_item(item_name, item_count)
+                # Aggregate system counts for merit distribution
+                for system, count in systems_removed.items():
+                    this.lastDeliveryCounts[system] = this.lastDeliveryCounts.get(system, 0) + count
     if entry['event'] == 'ShipLocker':
         # Cross-check backpack against game state (handles death, etc.)
         data_items = entry.get('Data', [])
@@ -515,24 +544,26 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         
         # Process the valid PowerplayMerits event
         merits_gained = entry.get('MeritsGained', 0)
-        
-        if this.lastSARCounts is not None and this.lastSARSystems:
+
+        # Check DeliverPowerMicroResources first (backpack hand-in at power contact)
+        if this.lastDeliveryCounts:
+            total_items = sum(this.lastDeliveryCounts.values())
+            if total_items > 0:
+                merits_per_item = merits_gained / total_items
+                for system_name, item_count in this.lastDeliveryCounts.items():
+                    system_merits = int(merits_per_item * item_count)
+                    update_system_merits_for_collection(system_merits, system_name)
+            this.lastDeliveryCounts = None
+        elif this.lastSARCounts is not None and this.lastSARSystems:
             total_items = sum(this.lastSARCounts.values())
             if total_items > 0:
                 merits_per_item = merits_gained / total_items
                 for system_name, item_count in this.lastSARCounts.items():
                     system_merits = int(merits_per_item * item_count)
                     update_system_merits_sar(system_merits, system_name)
-                
-                # Apply PowerPlay delivery formula to destination system
-                #if this.lastPowerPlayDeliverySystem:
-                #    update_system_merits_powerplay_delivery(merits_gained, this.lastPowerPlayDeliverySystem)
-                #    this.lastPowerPlayDeliverySystem = None
-                    
             this.lastSARCounts = None
             this.lastSARSystems = []
         else:
-            #logger.debug(f"Processing normal PowerplayMerits in current system")
             update_system_merits(merits_gained)
         
         pledgedPower.Merits = entry.get('TotalMerits', pledgedPower.Merits)

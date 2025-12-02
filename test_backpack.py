@@ -39,53 +39,76 @@ def get_acq_display_name(name): return VALID_ACQUISITION_DATA_TYPES.get(name.low
 # Inline Backpack classes (simplified for testing)
 # ============================================================
 
-class BackpackItem:
-    def __init__(self, name, count=0, system=None, controlling_power=None):
-        self.name = name.lower()
-        self.count = count
-        self.system = system
-        self.controlling_power = controlling_power
-
-    def add(self, amount, system=None, controlling_power=None):
-        if amount <= 0: return
-        self.count += amount
-        if system: self.system = system
-        if controlling_power: self.controlling_power = controlling_power
-
-    def remove(self, amount):
-        if amount <= 0: return 0
-        actual = min(amount, self.count)
-        self.count -= actual
-        return actual
-
-    def to_dict(self):
-        return {"name": self.name, "count": self.count, "system": self.system, "controlling_power": self.controlling_power}
-
-
 class Bag:
+    """Bag tracks items per system: {item_name: {system_name: count}}"""
     def __init__(self, name):
         self.name = name
-        self.items = {}
+        self.items = {}  # {item_name: {system_name: count}}
 
     def add_item(self, name, count, system=None, controlling_power=None):
+        if count <= 0:
+            return
         name_lower = name.lower()
+        system_key = system or "unknown"
+
         if name_lower not in self.items:
-            self.items[name_lower] = BackpackItem(name_lower, 0, system, controlling_power)
-        self.items[name_lower].add(count, system, controlling_power)
+            self.items[name_lower] = {}
+        if system_key not in self.items[name_lower]:
+            self.items[name_lower][system_key] = 0
+        self.items[name_lower][system_key] += count
 
     def remove_item(self, name, count):
+        """Remove item alphabetically by system. Returns {system: removed_count}."""
         name_lower = name.lower()
-        if name_lower not in self.items: return 0
-        removed = self.items[name_lower].remove(count)
-        if self.items[name_lower].count <= 0:
+        if name_lower not in self.items:
+            return {}
+
+        systems_data = self.items[name_lower]
+        if not systems_data:
+            return {}
+
+        removed_per_system = {}
+        remaining = count
+
+        for system in sorted(systems_data.keys()):
+            if remaining <= 0:
+                break
+            available = systems_data[system]
+            if available <= 0:
+                continue
+
+            to_remove = min(available, remaining)
+            systems_data[system] -= to_remove
+            removed_per_system[system] = to_remove
+            remaining -= to_remove
+
+            if systems_data[system] <= 0:
+                del systems_data[system]
+
+        if not systems_data:
             del self.items[name_lower]
-        return removed
+
+        return removed_per_system
+
+    def get_count(self, name):
+        name_lower = name.lower()
+        if name_lower not in self.items:
+            return 0
+        return sum(self.items[name_lower].values())
 
     def get_total(self):
-        return sum(item.count for item in self.items.values())
+        total = 0
+        for systems in self.items.values():
+            total += sum(systems.values())
+        return total
 
-    def to_dict(self):
-        return {name: item.to_dict() for name, item in self.items.items()}
+    def get_systems_summary(self):
+        """Returns {system: total_count}"""
+        summary = {}
+        for item_systems in self.items.values():
+            for system, count in item_systems.items():
+                summary[system] = summary.get(system, 0) + count
+        return summary
 
 
 class Backpack:
@@ -115,29 +138,40 @@ class Backpack:
             added_to.append("Acq")
 
         if added_to:
-            print(f"  -> Added to [{'/'.join(added_to)}]: +{count} {name_lower}")
+            print(f"  -> Added to [{'/'.join(added_to)}]: +{count} {name_lower} from {system}")
 
     def remove_item(self, name, count):
+        """Remove item and return {system: removed_count} for merit distribution."""
         name_lower = name.lower()
-        removed = 0
+        all_systems_removed = {}
         removed_from = []
 
         if is_valid_um_data(name_lower):
-            r = self.umbag.remove_item(name_lower, count)
-            if r > 0: removed = r; removed_from.append("UM")
+            systems_removed = self.umbag.remove_item(name_lower, count)
+            if systems_removed:
+                removed_from.append(f"UM:{sum(systems_removed.values())}")
+                for s, c in systems_removed.items():
+                    all_systems_removed[s] = all_systems_removed.get(s, 0) + c
 
         if is_valid_reinf_data(name_lower):
-            r = self.reinfbag.remove_item(name_lower, count)
-            if r > 0: removed = r; removed_from.append("Reinf")
+            systems_removed = self.reinfbag.remove_item(name_lower, count)
+            if systems_removed:
+                removed_from.append(f"Reinf:{sum(systems_removed.values())}")
+                for s, c in systems_removed.items():
+                    all_systems_removed[s] = all_systems_removed.get(s, 0) + c
 
         if is_valid_acq_data(name_lower):
-            r = self.acqbag.remove_item(name_lower, count)
-            if r > 0: removed = r; removed_from.append("Acq")
+            systems_removed = self.acqbag.remove_item(name_lower, count)
+            if systems_removed:
+                removed_from.append(f"Acq:{sum(systems_removed.values())}")
+                for s, c in systems_removed.items():
+                    all_systems_removed[s] = all_systems_removed.get(s, 0) + c
 
-        if removed > 0:
-            print(f"  -> Removed from [{'/'.join(removed_from)}]: -{removed} {name_lower}")
+        if all_systems_removed:
+            systems_str = ", ".join(f"{s}:{c}" for s, c in all_systems_removed.items())
+            print(f"  -> Removed [{'/'.join(removed_from)}]: -{sum(all_systems_removed.values())} {name_lower} from [{systems_str}]")
 
-        return removed
+        return all_systems_removed
 
 
 # ============================================================
@@ -357,6 +391,50 @@ def test_backpack():
         assert False
 
     print("[OK] PASS - Mismatch detection works")
+
+    # ============================================================
+    print("\n" + "=" * 70)
+    print("TEST 8: Merit Distribution - Multiple Collection Systems")
+    print("=" * 70)
+    print("Scenario: Collect items from multiple enemy systems, then hand in all")
+    print()
+
+    bp8 = Backpack()
+    enemy_power2 = "Felicia Winters"
+
+    # Collect from multiple enemy systems (alphabetically: Achenar, Cubeo, Eotienses)
+    print("Collecting powerfinancialrecords from 3 enemy systems:")
+    bp8.add_item("powerfinancialrecords", 10, "Cubeo", enemy_power, pledged_power)      # 10 from Cubeo
+    bp8.add_item("powerfinancialrecords", 5, "Achenar", enemy_power, pledged_power)     # 5 from Achenar
+    bp8.add_item("powerfinancialrecords", 8, "Eotienses", enemy_power2, pledged_power)  # 8 from Eotienses
+
+    total = bp8.umbag.get_total()
+    print(f"\nTotal in UM bag: {total}")
+    print(f"Per system: {bp8.umbag.get_systems_summary()}")
+    assert total == 23, f"Expected 23, got {total}"
+
+    # Hand in 15 items - should come alphabetically: Achenar(5), Cubeo(10)
+    print(f"\nHanding in 15 items (alphabetically: Achenar first, then Cubeo):")
+    systems_removed = bp8.remove_item("powerfinancialrecords", 15)
+
+    print(f"Systems that got merits: {systems_removed}")
+    assert systems_removed.get("Achenar", 0) == 5, f"Achenar should get 5, got {systems_removed.get('Achenar', 0)}"
+    assert systems_removed.get("Cubeo", 0) == 10, f"Cubeo should get 10, got {systems_removed.get('Cubeo', 0)}"
+    assert "Eotienses" not in systems_removed, "Eotienses should not be touched yet"
+
+    print(f"\nRemaining in bag: {bp8.umbag.get_total()}")
+    print(f"Remaining per system: {bp8.umbag.get_systems_summary()}")
+    assert bp8.umbag.get_total() == 8, f"Expected 8 remaining, got {bp8.umbag.get_total()}"
+
+    # Hand in remaining 8 - should come from Eotienses
+    print(f"\nHanding in remaining 8 items:")
+    systems_removed2 = bp8.remove_item("powerfinancialrecords", 8)
+
+    print(f"Systems that got merits: {systems_removed2}")
+    assert systems_removed2.get("Eotienses", 0) == 8, f"Eotienses should get 8, got {systems_removed2.get('Eotienses', 0)}"
+    assert bp8.umbag.get_total() == 0, "Bag should be empty now"
+
+    print("[OK] PASS - Merit distribution works correctly")
 
     # ============================================================
     print("\n" + "=" * 70)

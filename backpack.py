@@ -7,93 +7,112 @@ from reinfdata import is_valid_reinf_data, get_reinf_display_name
 from acqdata import is_valid_acq_data, get_acq_display_name
 
 
-class BackpackItem:
-    """Single item in the backpack with collection metadata"""
-    def __init__(self, name: str, count: int = 0, system: str = None, controlling_power: str = None):
-        self.name = name.lower()
-        self.count = count
-        self.system = system  # System where data was collected
-        self.controlling_power = controlling_power  # Power controlling the system
-
-    def add(self, amount: int, system: str = None, controlling_power: str = None):
-        """Add items, updating collection system if provided"""
-        if amount <= 0:
-            return
-        self.count += amount
-        if system:
-            self.system = system
-        if controlling_power:
-            self.controlling_power = controlling_power
-
-    def remove(self, amount: int) -> int:
-        """Remove items, returns actual amount removed"""
-        if amount <= 0:
-            return 0
-        actual = min(amount, self.count)
-        self.count -= actual
-        return actual
-
-    def to_dict(self) -> dict:
-        return {
-            "name": self.name,
-            "count": self.count,
-            "system": self.system,
-            "controlling_power": self.controlling_power
-        }
-
-    @staticmethod
-    def from_dict(data: dict) -> 'BackpackItem':
-        return BackpackItem(
-            name=data.get("name", "unknown"),
-            count=data.get("count", 0),
-            system=data.get("system"),
-            controlling_power=data.get("controlling_power")
-        )
-
-
 class Bag:
-    """Generic bag for storing items of a specific type"""
+    """Generic bag for storing items per system - tracks item_type -> system -> count"""
     def __init__(self, name: str):
         self.name = name
-        self.items = {}  # Dict[str, BackpackItem]
+        # Structure: {item_name: {system_name: count}}
+        self.items = {}
 
     def add_item(self, name: str, count: int, system: str = None, controlling_power: str = None):
-        """Add item to bag"""
+        """Add item to bag, tracking per system"""
+        if count <= 0:
+            return
+        name_lower = name.lower()
+        system_key = system or "unknown"
+
+        if name_lower not in self.items:
+            self.items[name_lower] = {}
+        if system_key not in self.items[name_lower]:
+            self.items[name_lower][system_key] = 0
+        self.items[name_lower][system_key] += count
+
+    def remove_item(self, name: str, count: int) -> dict:
+        """Remove item from bag, alphabetically by system.
+        Returns dict of {system: removed_count} for merit distribution."""
         name_lower = name.lower()
         if name_lower not in self.items:
-            self.items[name_lower] = BackpackItem(name_lower, 0, system, controlling_power)
-        self.items[name_lower].add(count, system, controlling_power)
+            return {}
 
-    def remove_item(self, name: str, count: int) -> int:
-        """Remove item from bag, returns actual amount removed"""
+        systems_data = self.items[name_lower]
+        if not systems_data:
+            return {}
+
+        removed_per_system = {}
+        remaining = count
+
+        # Sort systems alphabetically and remove in order
+        for system in sorted(systems_data.keys()):
+            if remaining <= 0:
+                break
+            available = systems_data[system]
+            if available <= 0:
+                continue
+
+            to_remove = min(available, remaining)
+            systems_data[system] -= to_remove
+            removed_per_system[system] = to_remove
+            remaining -= to_remove
+
+            # Clean up empty system
+            if systems_data[system] <= 0:
+                del systems_data[system]
+
+        # Clean up empty item
+        if not systems_data:
+            del self.items[name_lower]
+
+        return removed_per_system
+
+    def get_count(self, name: str) -> int:
+        """Get total count of specific item across all systems"""
         name_lower = name.lower()
         if name_lower not in self.items:
             return 0
-        removed = self.items[name_lower].remove(count)
-        if self.items[name_lower].count <= 0:
-            del self.items[name_lower]
-        return removed
+        return sum(self.items[name_lower].values())
 
-    def get_count(self, name: str) -> int:
-        """Get count of specific item"""
-        item = self.items.get(name.lower())
-        return item.count if item else 0
+    def get_count_by_system(self, name: str) -> dict:
+        """Get count of specific item per system"""
+        name_lower = name.lower()
+        return dict(self.items.get(name_lower, {}))
 
     def get_total(self) -> int:
-        """Get total count of all items"""
-        return sum(item.count for item in self.items.values())
+        """Get total count of all items across all systems"""
+        total = 0
+        for systems in self.items.values():
+            total += sum(systems.values())
+        return total
+
+    def get_systems_summary(self) -> dict:
+        """Get summary of items per system: {system: total_count}"""
+        summary = {}
+        for item_systems in self.items.values():
+            for system, count in item_systems.items():
+                summary[system] = summary.get(system, 0) + count
+        return summary
 
     def clear(self):
         """Clear all items"""
         self.items.clear()
 
     def to_dict(self) -> dict:
-        return {name: item.to_dict() for name, item in self.items.items()}
+        """Serialize to dict for JSON storage"""
+        return dict(self.items)
 
     def from_dict(self, data: dict):
+        """Deserialize from dict"""
         self.items.clear()
-        for name, item_data in data.items():
-            self.items[name] = BackpackItem.from_dict(item_data)
+        for name, systems_data in data.items():
+            if isinstance(systems_data, dict):
+                # New format: {item: {system: count}}
+                self.items[name] = dict(systems_data)
+            else:
+                # Legacy format: {item: BackpackItem.to_dict()}
+                # Convert to new format
+                legacy_system = systems_data.get("system", "unknown")
+                legacy_count = systems_data.get("count", 0)
+                if legacy_count > 0:
+                    self.items[name] = {legacy_system: legacy_count}
 
 
 class Backpack:
@@ -132,40 +151,52 @@ class Backpack:
             display_name = get_um_display_name(name_lower) if is_valid_um_data(name_lower) else get_acq_display_name(name_lower)
             logger.info(f"Backpack [{'/'.join(added_to)}]: +{count} {display_name} from {system} ({controlling_power})")
 
-    def remove_item(self, name: str, count: int) -> int:
-        """Remove PowerPlay data from appropriate bag(s). Returns actual amount removed."""
+    def remove_item(self, name: str, count: int) -> dict:
+        """Remove PowerPlay data from appropriate bag(s).
+        Returns dict of {system: removed_count} for merit distribution."""
         name_lower = name.lower()
         total_removed = 0
         removed_from = []
+        all_systems_removed = {}  # Aggregated {system: count} across all bags
 
-        # Try to remove from each bag, tracking actual removed amounts
+        # Try to remove from each bag, tracking actual removed amounts per system
         if is_valid_um_data(name_lower):
-            r = self.umbag.remove_item(name_lower, count)
-            if r > 0:
-                total_removed += r
-                removed_from.append(f"UM:{r}")
+            systems_removed = self.umbag.remove_item(name_lower, count)
+            if systems_removed:
+                bag_total = sum(systems_removed.values())
+                total_removed += bag_total
+                removed_from.append(f"UM:{bag_total}")
+                for system, cnt in systems_removed.items():
+                    all_systems_removed[system] = all_systems_removed.get(system, 0) + cnt
 
         if is_valid_reinf_data(name_lower):
-            r = self.reinfbag.remove_item(name_lower, count)
-            if r > 0:
-                total_removed += r
-                removed_from.append(f"Reinf:{r}")
+            systems_removed = self.reinfbag.remove_item(name_lower, count)
+            if systems_removed:
+                bag_total = sum(systems_removed.values())
+                total_removed += bag_total
+                removed_from.append(f"Reinf:{bag_total}")
+                for system, cnt in systems_removed.items():
+                    all_systems_removed[system] = all_systems_removed.get(system, 0) + cnt
 
         if is_valid_acq_data(name_lower):
-            r = self.acqbag.remove_item(name_lower, count)
-            if r > 0:
-                total_removed += r
-                removed_from.append(f"Acq:{r}")
+            systems_removed = self.acqbag.remove_item(name_lower, count)
+            if systems_removed:
+                bag_total = sum(systems_removed.values())
+                total_removed += bag_total
+                removed_from.append(f"Acq:{bag_total}")
+                for system, cnt in systems_removed.items():
+                    all_systems_removed[system] = all_systems_removed.get(system, 0) + cnt
 
         if total_removed > 0:
             display_name = get_um_display_name(name_lower) if is_valid_um_data(name_lower) else get_acq_display_name(name_lower)
-            logger.info(f"Backpack [{'/'.join(removed_from)}]: -{total_removed} {display_name}")
+            systems_str = ", ".join(f"{s}:{c}" for s, c in all_systems_removed.items())
+            logger.info(f"Backpack [{'/'.join(removed_from)}]: -{total_removed} {display_name} from [{systems_str}]")
 
         # Warn if requested count exceeds what we had tracked
         if total_removed < count:
             logger.warning(f"Backpack: Requested removal of {count} {name_lower} but only had {total_removed} tracked")
 
-        return total_removed
+        return all_systems_removed
 
     def sync_from_shiplocker(self, data_items: list):
         """Cross-check backpack counts against ShipLocker event Data section.

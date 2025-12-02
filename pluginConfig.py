@@ -5,7 +5,7 @@ from config import config
 class ConfigPlugin:
     def __init__(self):
         self.version = 'v0.4.300.1.001'
-        self.beta = False  # Will be loaded from config
+        self.beta = True  # Will be loaded from config
         self.loadConfig()
 
     def getTextCopy(self):
