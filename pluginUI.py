@@ -7,8 +7,21 @@ from system import systems
 import os
 import sys
 from config import config
+from theme import theme
 from merit_log import logger
 from pluginDetailsUI import show_power_info
+
+
+def get_theme_colors():
+    """Get EDMC theme colors with fallbacks"""
+    try:
+        return {
+            'bg': theme.current.get('background', '#000000'),
+            'fg': theme.current.get('foreground', '#ff8c00'),
+            'highlight': theme.current.get('highlight', '#ff8c00'),
+        }
+    except:
+        return {'bg': '#000000', 'fg': '#ff8c00', 'highlight': '#ff8c00'}
 
 
 class TrackerFrame:
@@ -19,7 +32,7 @@ class TrackerFrame:
         self.plugin_dir = os.path.dirname(os.path.abspath(__file__))
         self.assetspath = f"{self.plugin_dir}/assets"
         self.this = sys.modules[__name__]
-        
+
         # Initialize all frame and widget references
         self.frame = None
         self.frames = {}  # Store all row frames
@@ -29,6 +42,23 @@ class TrackerFrame:
         scale_x = current_width / base_width
         scale_y = current_height / base_height
         return min(scale_x, scale_y)
+
+    def _get_dim_color(self, hex_color):
+        """Get a dimmer version of the color (50% towards background)"""
+        try:
+            colors = get_theme_colors()
+            bg = colors['bg'].lstrip('#')
+            fg = hex_color.lstrip('#')
+            # Parse colors
+            bg_r, bg_g, bg_b = int(bg[0:2], 16), int(bg[2:4], 16), int(bg[4:6], 16)
+            fg_r, fg_g, fg_b = int(fg[0:2], 16), int(fg[2:4], 16), int(fg[4:6], 16)
+            # Blend 50% towards background
+            r = int(fg_r * 0.5 + bg_r * 0.5)
+            g = int(fg_g * 0.5 + bg_g * 0.5)
+            b = int(fg_b * 0.5 + bg_b * 0.5)
+            return f'#{r:02x}{g:02x}{b:02x}'
+        except:
+            return '#888888'
 
     def load_and_scale_image(self, path: str, scale: float) -> Image:
         image = Image.open(path)
@@ -42,11 +72,15 @@ class TrackerFrame:
     def update_display(self, currentSystemFlying):
         if not currentSystemFlying:
             return
-            
-        # Update power information
-        self.widgets['power']['text'] = f"Pledged: {pledgedPower.Power} - Rank: {pledgedPower.Rank}"
-        self.widgets['powerMerits']['text'] = f"Merits session: {pledgedPower.MeritsSession:,} - total: {pledgedPower.Merits:,}"
-        
+
+        colors = get_theme_colors()
+
+        # Update power information with split labels
+        self.widgets['powerValue']['text'] = f"{pledgedPower.Power}"
+        self.widgets['rankValue']['text'] = f"{pledgedPower.Rank}"
+        self.widgets['sessionValue']['text'] = f"{pledgedPower.MeritsSession:,}"
+        self.widgets['totalValue']['text'] = f"{pledgedPower.Merits:,}"
+
         # Enable buttons if system is available
         if currentSystemFlying and currentSystemFlying.StarSystem:
             self.widgets['showButton'].config(state=tk.NORMAL)
@@ -60,29 +94,68 @@ class TrackerFrame:
             powerprogress = currentSystemFlying.getSystemProgressNumber()
             powerprogress_percent = f"{powerprogress:.2f}%" if powerprogress is not None else "--%"
 
-            self.widgets['currentSystemLabel']['text'] = f"'{currentSystemFlying.StarSystem}': {currentSystemFlying.Merits} merits gained"
-            self.widgets['systemPowerLabel']['text'] = f"{currentSystemFlying.getSystemStateText()} ({powerprogress_percent}) by {power}"
-            
-            # Handle power cycle information
-            systemPowerStatusText = ""
+            # System name with merits - highlight merits if > 0
+            merits = currentSystemFlying.Merits
+            if merits > 0:
+                self.widgets['currentSystemLabel']['text'] = f"'{currentSystemFlying.StarSystem}'"
+                self.widgets['meritsGainedLabel']['text'] = f"+{merits:,} merits"
+                self.widgets['meritsGainedLabel']['fg'] = '#00ff00'  # Green for positive
+            else:
+                self.widgets['currentSystemLabel']['text'] = f"'{currentSystemFlying.StarSystem}'"
+                self.widgets['meritsGainedLabel']['text'] = "0 merits"
+                self.widgets['meritsGainedLabel']['fg'] = colors['fg']
+
+            # System state with progress - colored state word
+            state_text = currentSystemFlying.getSystemStateText()
+
+            # State text - use theme color for all states
+            self.widgets['stateWord']['text'] = f"{state_text}"
+            self.widgets['stateDetails']['text'] = f" ({powerprogress_percent}) by {power}"
+
+            # Handle power cycle information with color coding
             if not currentSystemFlying.PowerplayConflictProgress:
                 cycle_status = currentSystemFlying.getPowerPlayCycleNetStatusText()
                 if cycle_status:
-                    systemPowerStatusText = f"Powerplaycycle {cycle_status}"
-            
-            self.widgets['systemPowerStatusLabel']['text'] = systemPowerStatusText
-            
+                    # Parse the NET value to determine color
+                    try:
+                        # Extract percentage from text like "NET -52.02%"
+                        net_str = cycle_status.replace("NET", "").replace("%", "").strip()
+                        net_value = float(net_str)
+                        if net_value > 0:
+                            net_color = '#00ff00'  # Green for positive
+                            arrow = chr(0x25B2)  # Up arrow
+                        elif net_value < 0:
+                            net_color = '#ff4444'  # Red for negative
+                            arrow = chr(0x25BC)  # Down arrow
+                        else:
+                            net_color = colors['fg']
+                            arrow = ""
+                        self.widgets['netLabel']['text'] = f"Cycle NET {net_value:+.2f}% {arrow}"
+                        self.widgets['netLabel']['fg'] = net_color
+                    except:
+                        self.widgets['netLabel']['text'] = f"Cycle {cycle_status}"
+                        self.widgets['netLabel']['fg'] = colors['fg']
+                else:
+                    self.widgets['netLabel']['text'] = ""
+            else:
+                self.widgets['netLabel']['text'] = "Conflict in progress"
+                self.widgets['netLabel']['fg'] = '#ffaa00'  # Orange for conflict
+
         except KeyError as e:
             logger.debug(f"KeyError for current system '{currentSystemFlying}': {e}")
-        
+
         self.widgets['currentSystemLabel'].grid()
 
     def create_tracker_frame(self, reset, auto_update):
         stateButton = tk.NORMAL if len(systems) > 0 else tk.DISABLED
-        
+        colors = get_theme_colors()
+
+        # Dim color for labels (50% opacity effect)
+        dim_color = self._get_dim_color(colors['fg'])
+
         # Create main frame
         self.frame = tk.Frame(self.parent, name="eliteMeritTrackerComponentframe")
-        
+
         # Create row frames
         for i in range(1, 8):
             frame_name = f"frame_row{i}"
@@ -91,41 +164,113 @@ class TrackerFrame:
             pady = 2 if i == 6 else 0
             self.frames[frame_name].grid(row=i-1, column=0, columnspan=3, sticky=sticky, padx=0, pady=pady)
 
-        # Create labels
+        # Row 1: "Pledged:" (dim) + Power name (bright) + "Rank:" (dim) + rank value (bright)
+        self.widgets['pledgedLabel'] = tk.Label(
+            self.frames['frame_row1'], text="Pledged:", fg=dim_color,
+            anchor="w", justify="left", name="eliteMeritTrackerComponentpledgedLabel"
+        )
+        self.widgets['powerValue'] = tk.Label(
+            self.frames['frame_row1'], text=f"{pledgedPower.Power}",
+            anchor="w", justify="left", name="eliteMeritTrackerComponentpowerValue"
+        )
+        self.widgets['rankLabel'] = tk.Label(
+            self.frames['frame_row1'], text="Rank:", fg=dim_color,
+            anchor="w", justify="left", name="eliteMeritTrackerComponentrankLabel"
+        )
+        self.widgets['rankValue'] = tk.Label(
+            self.frames['frame_row1'], text=f"{pledgedPower.Rank}",
+            anchor="w", justify="left", name="eliteMeritTrackerComponentrankValue"
+        )
+        # Keep original for compatibility
         self.widgets['power'] = tk.Label(
-            self.frames['frame_row1'],
-            text=f"Pledged: {pledgedPower.Power} - Rank: {pledgedPower.Rank}",
-            anchor="w", justify="left", name="eliteMeritTrackerComponentpower"
+            self.frames['frame_row1'], text="", anchor="w", justify="left",
+            name="eliteMeritTrackerComponentpower"
         )
+
+        # Row 2: "Session:" (dim) + value (bright) + "Total:" (dim) + value (highlight)
+        self.widgets['sessionLabel'] = tk.Label(
+            self.frames['frame_row2'], text="Session:", fg=dim_color,
+            anchor="w", justify="left", name="eliteMeritTrackerComponentsessionLabel"
+        )
+        self.widgets['sessionValue'] = tk.Label(
+            self.frames['frame_row2'], text=f"{pledgedPower.MeritsSession:,}",
+            anchor="w", justify="left", name="eliteMeritTrackerComponentsessionValue"
+        )
+        self.widgets['totalLabel'] = tk.Label(
+            self.frames['frame_row2'], text="Total:", fg=dim_color,
+            anchor="w", justify="left", name="eliteMeritTrackerComponenttotalLabel"
+        )
+        self.widgets['totalValue'] = tk.Label(
+            self.frames['frame_row2'], text=f"{pledgedPower.Merits:,}",
+            anchor="w", justify="left", name="eliteMeritTrackerComponenttotalValue"
+        )
+        # Keep original for compatibility
         self.widgets['powerMerits'] = tk.Label(
-            self.frames['frame_row2'],
-            text=f"Merits session: {pledgedPower.MeritsSession:,} - Total: {pledgedPower.Merits:,}",
-            anchor="w", justify="left", name="eliteMeritTrackerComponentpowerMerits"
+            self.frames['frame_row2'], text="", anchor="w", justify="left",
+            name="eliteMeritTrackerComponentpowerMerits"
         )
+
+        # Row 3: System name + merits gained (side by side)
         self.widgets['currentSystemLabel'] = tk.Label(
             self.frames['frame_row3'], text="Waiting for Events",
             anchor="w", justify="left", name="eliteMeritTrackerComponentcurrentSystemLabel"
         )
+        self.widgets['meritsGainedLabel'] = tk.Label(
+            self.frames['frame_row3'], text="",
+            anchor="w", justify="left", name="eliteMeritTrackerComponentmeritsGainedLabel"
+        )
+
+        # Row 4: System state (Stronghold, etc.) - split for colored state word
+        self.widgets['stateWord'] = tk.Label(
+            self.frames['frame_row4'], text="Powerplay",
+            anchor="w", justify="left", name="eliteMeritTrackerComponentstateWord"
+        )
+        self.widgets['stateDetails'] = tk.Label(
+            self.frames['frame_row4'], text="Status",
+            anchor="w", justify="left", name="eliteMeritTrackerComponentstateDetails"
+        )
+        # Keep original for compatibility
         self.widgets['systemPowerLabel'] = tk.Label(
-            self.frames['frame_row4'], text="Powerplay Status",
+            self.frames['frame_row4'], text="",
             anchor="w", justify="left", name="eliteMeritTrackerComponentsystemPowerLabel"
         )
+
+        # Row 5: NET progress with color coding
+        self.widgets['netLabel'] = tk.Label(
+            self.frames['frame_row5'], text="",
+            anchor="w", justify="left", name="eliteMeritTrackerComponentnetLabel"
+        )
+
+        # Keep old label for compatibility but hide it
         self.widgets['systemPowerStatusLabel'] = tk.Label(
-            self.frames['frame_row5'], text="Net progress",
+            self.frames['frame_row5'], text="",
             anchor="w", justify="left", name="eliteMeritTrackerComponentsystemPowerStatusLabel"
         )
 
         # Load and scale icon
-        scale = self.get_scale_factor(self.parent.winfo_toplevel().winfo_screenwidth(), 
+        scale = self.get_scale_factor(self.parent.winfo_toplevel().winfo_screenwidth(),
                                       self.parent.winfo_toplevel().winfo_screenheight())
         imagedelete = self.load_and_scale_image(f"{self.assetspath}/delete.png", scale)
         self.icondelete = ImageTk.PhotoImage(imagedelete)
 
-        # Grid all labels
-        for widget in ['systemPowerLabel', 'systemPowerStatusLabel', 'currentSystemLabel']:
-            self.widgets[widget].grid(row=0, column=0, sticky='w', padx=0, pady=0)
-        for widget in ['power', 'powerMerits']:
-            self.widgets[widget].grid(row=0, column=0, columnspan=3, sticky='w', padx=0, pady=0)
+        # Grid Row 1: Pledged + Power + Rank
+        self.widgets['pledgedLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
+        self.widgets['powerValue'].grid(row=0, column=1, sticky='w', padx=(2, 8), pady=0)
+        self.widgets['rankLabel'].grid(row=0, column=2, sticky='w', padx=0, pady=0)
+        self.widgets['rankValue'].grid(row=0, column=3, sticky='w', padx=(2, 0), pady=0)
+
+        # Grid Row 2: Session + Total
+        self.widgets['sessionLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
+        self.widgets['sessionValue'].grid(row=0, column=1, sticky='w', padx=(2, 8), pady=0)
+        self.widgets['totalLabel'].grid(row=0, column=2, sticky='w', padx=0, pady=0)
+        self.widgets['totalValue'].grid(row=0, column=3, sticky='w', padx=(2, 0), pady=0)
+
+        # Grid Row 3-5
+        self.widgets['currentSystemLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
+        self.widgets['meritsGainedLabel'].grid(row=0, column=1, sticky='w', padx=(5, 0), pady=0)
+        self.widgets['stateWord'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
+        self.widgets['stateDetails'].grid(row=0, column=1, sticky='w', padx=0, pady=0)
+        self.widgets['netLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
 
         # Create buttons
         self.widgets['resetButton'] = tk.Button(

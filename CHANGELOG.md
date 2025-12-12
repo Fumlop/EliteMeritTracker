@@ -2,6 +2,16 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.004] - 2025-12-12
+
+### Added
+- **Main UI Visual Improvements**
+  - Split state word and details into separate widgets for cleaner layout
+  - Dim labels vs bright values for visual separation (Pledged:, Rank:, Session:, Total:)
+  - Color-coded NET value with arrows: green ▲ for positive, red ▼ for negative
+  - Green highlight for positive merits gained in current system
+  - Split `stateWord` and `stateDetails` widgets for independent styling
+
 ## [v0.4.300.1.003] - 2025-12-12
 
 ### Added
