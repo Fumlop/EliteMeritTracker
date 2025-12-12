@@ -2,6 +2,22 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.007] - 2025-12-12
+
+### Added
+- **Architecture Improvements (Phase 3)**
+  - New `plugin_state.py` centralized state manager replacing `sys.modules[__name__]` antipattern
+  - State manager provides explicit, type-safe access to plugin state variables
+  - Helper methods for SAR and delivery tracking (`init_sar_tracking`, `add_sar_count`, `reset_sar_tracking`, etc.)
+
+### Changed
+- Refactored `load.py` to use centralized state manager instead of module-level `this` variables
+- Refactored `pluginUI.py` to use state manager for current system reference
+- Renamed `journal_entry` parameter from `state` to `game_state` to avoid conflict with state manager import
+
+### Fixed
+- Removed duplicate `isinstance(o, ConfigPlugin)` check in `pluginConfig.py` ConfigEncoder
+
 ## [v0.4.300.1.006] - 2025-12-12
 
 ### Added

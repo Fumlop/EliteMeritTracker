@@ -5,11 +5,11 @@ from PIL import Image, ImageTk
 from power import pledgedPower
 from system import systems
 import os
-import sys
 from config import config
 from theme import theme
 from merit_log import logger
 from pluginDetailsUI import show_power_info
+from plugin_state import state
 
 
 def get_theme_colors():
@@ -31,7 +31,6 @@ class TrackerFrame:
         self.icondelete = None
         self.plugin_dir = os.path.dirname(os.path.abspath(__file__))
         self.assetspath = f"{self.plugin_dir}/assets"
-        self.this = sys.modules[__name__]
 
         # Initialize all frame and widget references
         self.frame = None
@@ -299,7 +298,7 @@ class TrackerFrame:
     def updateButtonText(self):
         if 'updateButton' in self.widgets:
             self.widgets['updateButton'].config(text="Please Restart EDMC")
-            self.update_display(self.this.currentSystemFlying)
+            self.update_display(state.current_system)
 
     def destroy_tracker_frame(self):
         # Destroy all widgets

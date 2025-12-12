@@ -4,7 +4,7 @@ from config import config
 
 class ConfigPlugin:
     def __init__(self):
-        self.version = 'v0.4.300.1.006'
+        self.version = 'v0.4.300.1.007'
         self.beta = False  # Will be loaded from config
         self.loadConfig()
 
@@ -41,14 +41,12 @@ class ConfigPlugin:
 
 class ConfigEncoder(json.JSONEncoder):
     def default(self, o):
-        if isinstance(o, tk.StringVar) or isinstance(o, tk.BooleanVar):
+        if isinstance(o, (tk.StringVar, tk.BooleanVar)):
             return o.get()
         if isinstance(o, ConfigPlugin):
             config_dict = o.__dict__.copy()
             config_dict.pop('version', None)  # Remove version from config
             return config_dict
-        if isinstance(o, ConfigPlugin):
-            return o.__dict__
         return super().default(o)
 
 

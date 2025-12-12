@@ -1,5 +1,4 @@
 import os
-import sys
 import requests
 import shutil
 import zipfile
@@ -7,7 +6,6 @@ import myNotebook as nb
 import io
 import re
 from typing import Dict, Any
-from datetime import datetime
 
 from report import report
 from system import systems, StarSystem, loadSystems, dumpSystems
@@ -23,25 +21,10 @@ from backpack import playerBackpack, save_backpack, load_backpack
 from umdata import is_valid_um_data
 from reinfdata import is_valid_reinf_data
 from acqdata import is_valid_acq_data
+from plugin_state import state
 
 # Module globals
-this = sys.modules[__name__]
 trackerFrame = None
-
-# System state
-this.currentSystemFlying = None
-this.commander = ""
-
-# UI state
-this.parent = None
-this.assetpath = ""
-
-# SAR (Search and Rescue) tracking
-this.lastSARCounts = None
-this.lastSARSystems = []
-
-# DeliverPowerMicroResources tracking (backpack hand-in)
-this.lastDeliveryCounts = None
 
 def _get_github_release_data():
     """Fetch latest GitHub release data"""
@@ -265,26 +248,25 @@ def checkVersion():
 def plugin_start3(plugin_dir):
     logger.info("EliteMeritTracker plugin starting")
     configPlugin.loadConfig()
-    #logger.debug(json.dumps(configPlugin, ensure_ascii=False, indent=4, cls=ConfigEncoder))    
-    this.newest = checkVersion()
-    loadSystems()  # Lädt die Systeme aus der JSON-Datei
-    load_salvage()  # Lädt das Salvage Inventory
-    load_backpack()  # Lädt das Backpack
+    state.newest = checkVersion()
+    loadSystems()
+    load_salvage()
+    load_backpack()
     for system in systems.values():
-        if (system.Active):
-            this.currentSystemFlying = system
-    pledgedPower.loadPower()  # Lädt die Power-Daten aus der JSON-Datei
+        if system.Active:
+            state.current_system = system
+    pledgedPower.loadPower()
     logger.info(f"Plugin initialized - Systems: {len(systems)}, Power: {pledgedPower.Power}")
         
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     global trackerFrame
-    if (this.currentSystemFlying):
-        trackerFrame.update_display(this.currentSystemFlying)
+    if state.current_system:
+        trackerFrame.update_display(state.current_system)
 
 def plugin_stop():
     global report, systems, pledgedPower, configPlugin, trackerFrame
 
-    update_json_file()    
+    update_json_file()
     if trackerFrame:
         logger.warning("Destroying tracker frame.")
         trackerFrame.destroy_tracker_frame()
@@ -298,29 +280,29 @@ def plugin_stop():
         configPlugin.copyText = None
         configPlugin = None
     trackerFrame = None
-    this.currentSystemFlying = None
+    state.current_system = None
     logger.info("Shutting down EliteMeritTracker plugin.")
 
 def plugin_app(parent):
     # Adds to the main page UI
     global trackerFrame
-    trackerFrame = TrackerFrame(parent=parent, newest=this.newest)
+    trackerFrame = TrackerFrame(parent=parent, newest=state.newest)
     trackerFrame.create_tracker_frame(reset, auto_update)
-    if (this.currentSystemFlying):
-        trackerFrame.update_display(this.currentSystemFlying)
+    if state.current_system:
+        trackerFrame.update_display(state.current_system)
     return trackerFrame.frame
 
 def reset():
     global trackerFrame
     # Reset session merits for the pledged power
     pledgedPower.MeritsSession = 0
-    
+
     # Reset merits for all systems but keep the systems themselves
     for system in systems.values():
         system.Merits = 0
-    
+
     # Update the display with current system
-    trackerFrame.update_display(this.currentSystemFlying)
+    trackerFrame.update_display(state.current_system)
 
 def plugin_prefs(parent, cmdr, is_beta):
     return create_config_frame(parent, nb)
@@ -374,15 +356,15 @@ def update_system_merits(merits_value, system_name: str = None, apply_cargo_form
     if system_name:
         _add_merits_to_system(system_name, merits)
     else:
-        sys_name = getattr(this.currentSystemFlying, "StarSystem", None)
+        sys_name = getattr(state.current_system, "StarSystem", None)
         if sys_name:
-            current = systems.get(sys_name, this.currentSystemFlying)
+            current = systems.get(sys_name, state.current_system)
             current.Merits += merits
             systems[sys_name] = current
 
     # Update UI if requested
     if update_ui:
-        trackerFrame.update_display(this.currentSystemFlying)
+        trackerFrame.update_display(state.current_system)
 
 def prefs_changed(cmdr, is_beta):
     configPlugin.dumpConfig()
@@ -393,20 +375,20 @@ def update_json_file():
     save_salvage()
     save_backpack()
 
-def journal_entry(cmdr, is_beta, system, station, entry, state):
+def journal_entry(cmdr, is_beta, system, station, entry, game_state):
     global trackerFrame
-    
+
     # Track any journal event timestamp for duplicate detection
     current_timestamp = entry.get('timestamp')
     if current_timestamp and entry['event'] != 'PowerplayMerits':
         track_journal_event(current_timestamp)
-    
+
     if entry['event'] in ['LoadGame']:
-        this.commander = entry.get('Commander', "")
+        state.commander = entry.get('Commander', "")
     if entry['event'] == 'BackpackChange':
         # Track PowerPlay data collection
-        current_system = this.currentSystemFlying.StarSystem if this.currentSystemFlying else None
-        controlling_power = this.currentSystemFlying.ControllingPower if this.currentSystemFlying else None
+        current_system = state.current_system.StarSystem if state.current_system else None
+        controlling_power = state.current_system.ControllingPower if state.current_system else None
         player_pledged_power = pledgedPower.Power
 
         # Process added items
@@ -424,15 +406,15 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                 playerBackpack.remove_item(item_name, item_count)
     if entry['event'] == 'DeliverPowerMicroResources':
         # Hand-in PowerPlay data at power contact - capture system distribution for merit assignment
-        this.lastDeliveryCounts = {}
+        state.last_delivery_counts = {}
         for item in entry.get('MicroResources', []):
             item_name = item.get('Name', '').lower()
             item_count = item.get('Count', 1)
             if is_valid_um_data(item_name) or is_valid_reinf_data(item_name) or is_valid_acq_data(item_name):
                 systems_removed = playerBackpack.remove_item(item_name, item_count)
                 # Aggregate system counts for merit distribution
-                for system, count in systems_removed.items():
-                    this.lastDeliveryCounts[system] = this.lastDeliveryCounts.get(system, 0) + count
+                for sys_name, count in systems_removed.items():
+                    state.add_delivery_count(sys_name, count)
     if entry['event'] == 'ShipLocker':
         # Cross-check backpack against game state (handles death, etc.)
         data_items = entry.get('Data', [])
@@ -440,29 +422,24 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             playerBackpack.sync_from_shiplocker(data_items)
     if entry['event'] in ['CollectCargo']:
         # Process cargo collection with new Salvage system
-        Salvage.process_collect_cargo(entry, this.currentSystemFlying)
+        Salvage.process_collect_cargo(entry, state.current_system)
     if entry['event'] in ['SearchAndRescue']:
         # Remove cargo when delivered to Search and Rescue - from any system
-        cargo_type = entry.get("Name", "Unknown").lower()  # Use Name field from SearchAndRescue event
+        cargo_type = entry.get("Name", "Unknown").lower()
         if cargo_type in VALID_POWERPLAY_SALVAGE_TYPES:
             count = entry.get("Count", 1)
             remaining_count = count
-            
+
             # Log significant PowerPlay cargo deliveries
             if count >= 10:
                 logger.info(f"Large PowerPlay cargo delivery: {count}x {cargo_type}")
-            
-            # Initialisiere das Dictionary für diesen PowerPlay SAR-Run
-            if this.lastSARCounts is None:
-                this.lastSARCounts = {}
-                this.lastSARSystems = []
-            
-            # Track delivery to current system (will get reduced merits)
-            #this.lastPowerPlayDeliverySystem = this.currentSystemFlying.StarSystem if this.currentSystemFlying else None
-            
+
+            # Initialize SAR tracking for this batch
+            state.init_sar_tracking()
+
             # Sort systems alphabetically
             sorted_systems = sorted(salvageInventory.keys())
-           
+
             # Try to remove cargo from each system until count is satisfied
             for system_name in sorted_systems:
                 if remaining_count <= 0:
@@ -470,16 +447,11 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                 if salvageInventory[system_name].has_cargo(cargo_type):
                     removed = salvageInventory[system_name].remove_cargo(cargo_type, remaining_count)
                     remaining_count -= removed
-                    
-                    # Speichere die Anzahl der Items pro System
-                    if system_name not in this.lastSARCounts:
-                        this.lastSARCounts[system_name] = 0
-                        this.lastSARSystems.append(system_name)
-                    this.lastSARCounts[system_name] += removed
+                    state.add_sar_count(system_name, removed)
     if entry['event'] in ['Powerplay']:
         logger.info(f"PowerPlay status changed - Power: {entry.get('Power', 'Unknown')}")
-        pledgedPower.__init__(eventEntry=entry)  # NEU: re-initialisiere das Singleton-Objekt
-        trackerFrame.update_display(this.currentSystemFlying)
+        pledgedPower.__init__(eventEntry=entry)
+        trackerFrame.update_display(state.current_system)
     if entry['event'] in ['PowerplayRank']:
         new_rank = entry.get('Rank', pledgedPower.Rank)
         if new_rank != pledgedPower.Rank:
@@ -489,73 +461,68 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry['event'] in ['PowerplayMerits']:
         # Process PowerplayMerits event through duplicate detection
         is_duplicate, retroactive_correction, log_message = process_powerplay_event(entry)
-        
+
         if is_duplicate:
             logger.warning(log_message)
             return  # Skip duplicate event
-        
+
         # Log successful processing
         logger.info(log_message)
-        
+
         # Apply retroactive correction if needed
         if retroactive_correction:
             logger.info(f"Applying retroactive correction: -{retroactive_correction} merits")
             pledgedPower.MeritsSession -= retroactive_correction
-            
+
             # Also correct system merits if they were affected
-            if this.currentSystemFlying and this.currentSystemFlying.StarSystem in systems:
-                if systems[this.currentSystemFlying.StarSystem].Merits >= retroactive_correction:
-                    systems[this.currentSystemFlying.StarSystem].Merits -= retroactive_correction
-                    logger.info(f"Corrected system merits for {this.currentSystemFlying.StarSystem}: -{retroactive_correction}")
-        
+            if state.current_system and state.current_system.StarSystem in systems:
+                if systems[state.current_system.StarSystem].Merits >= retroactive_correction:
+                    systems[state.current_system.StarSystem].Merits -= retroactive_correction
+                    logger.info(f"Corrected system merits for {state.current_system.StarSystem}: -{retroactive_correction}")
+
         # Process the valid PowerplayMerits event
         merits_gained = entry.get('MeritsGained', 0)
 
         # Check DeliverPowerMicroResources first (backpack hand-in at power contact)
-        if this.lastDeliveryCounts:
-            total_items = sum(this.lastDeliveryCounts.values())
+        if state.last_delivery_counts:
+            total_items = sum(state.last_delivery_counts.values())
             if total_items > 0:
                 merits_per_item = merits_gained / total_items
-                for system_name, item_count in this.lastDeliveryCounts.items():
+                for system_name, item_count in state.last_delivery_counts.items():
                     system_merits = int(merits_per_item * item_count)
                     update_system_merits(system_merits, system_name=system_name)
-            this.lastDeliveryCounts = None
-        elif this.lastSARCounts is not None and this.lastSARSystems:
-            total_items = sum(this.lastSARCounts.values())
+            state.reset_delivery_tracking()
+        elif state.last_sar_counts is not None and state.last_sar_systems:
+            total_items = sum(state.last_sar_counts.values())
             if total_items > 0:
                 merits_per_item = merits_gained / total_items
-                for system_name, item_count in this.lastSARCounts.items():
+                for system_name, item_count in state.last_sar_counts.items():
                     system_merits = int(merits_per_item * item_count)
                     update_system_merits(system_merits, system_name=system_name)
-            this.lastSARCounts = None
-            this.lastSARSystems = []
+            state.reset_sar_tracking()
         else:
             update_system_merits(merits_gained, update_ui=True)
-        
+
         pledgedPower.Merits = entry.get('TotalMerits', pledgedPower.Merits)
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
     if entry['event'] in ['FSDJump', 'Location'] or (entry['event'] in ['CarrierJump'] and entry['Docked'] == True):
-        nameSystem = entry.get('StarSystem',"Nomansland")
-        if (not systems or len(systems)==0 or nameSystem not in systems):
+        nameSystem = entry.get('StarSystem', "Nomansland")
+        if not systems or len(systems) == 0 or nameSystem not in systems:
             new_system = StarSystem(eventEntry=entry)
-            new_system.setReported(False)  # Set reported status after creation
+            new_system.setReported(False)
             systems[new_system.StarSystem] = new_system
         else:
             systems[nameSystem].updateSystem(eventEntry=entry)
-        updateSystemTracker(this.currentSystemFlying,systems[nameSystem])
-        trackerFrame.update_display(this.currentSystemFlying)
+        updateSystemTracker(state.current_system, systems[nameSystem])
+        trackerFrame.update_display(state.current_system)
+
 
 def updateSystemTracker(oldSystem, newSystem):
-    if (oldSystem != None) :
+    if oldSystem is not None:
         systems[oldSystem.StarSystem].Active = False
     systems[newSystem.StarSystem].Active = True
-    this.currentSystemFlying = newSystem
-    
+    state.current_system = newSystem
+
     # Log only if system has meaningful merit activity
     if newSystem.Merits > 0 or (oldSystem and oldSystem.Merits > 0):
         logger.info(f"System changed: {oldSystem.StarSystem if oldSystem else 'None'} -> {newSystem.StarSystem} (Merits: {newSystem.Merits})")
-
-def logdump(here:str, data:dict):
-    if this.debug:
-        #logger.debug(f"{here} - {json.dumps(data, indent=2)}")
-        pass
