@@ -206,7 +206,7 @@ def restart_edmc():
     logger.info("Restarting EDMC...")
     global trackerFrame
     trackerFrame.destroy_tracker_frame()
-    os._exit(0)  # Beendet das aktuelle Python-Programm
+    os._exit(0)  # Terminate the current Python process
 
 def parse_version(version_str):
     """Parse version string to tuple of integers"""

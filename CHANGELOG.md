@@ -2,6 +2,13 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.009] - 2025-12-12
+
+### Changed
+- **Code Quality Polish (Phase 5)**
+  - Translate German comments to English in `load.py`
+  - Remove remaining hardcoded "Ganimed" default values in `power.py` and `system.py`
+
 ## [v0.4.300.1.008] - 2025-12-12
 
 ### Fixed

@@ -3,7 +3,7 @@ from merit_log import logger
 from storage import load_json, save_json
 
 class PledgedPower:
-    def __init__(self, eventEntry: dict = {}, commander: str = "Ganimed"):
+    def __init__(self, eventEntry: dict = {}, commander: str = ""):
         self.Power = str(eventEntry.get("Power", ""))
         self.Merits = int(eventEntry.get("Merits", 0))
         self.MeritsSession = int(eventEntry.get("MeritsSession", 0))

@@ -3,7 +3,7 @@ from merit_log import logger
 from storage import load_json, save_json, get_file_path
 
 class StarSystem:
-    def __init__(self, eventEntry=None, commander: str = "Ganimed"):
+    def __init__(self, eventEntry=None, commander: str = ""):
         if eventEntry is None:
             self._init_defaults()
             return
