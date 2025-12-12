@@ -2,6 +2,19 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.005] - 2025-12-12
+
+### Fixed
+- **Critical Bug Fixes & Cleanup (Phase 1)**
+  - Fixed silent data loss in `system.py`: corrupted JSON files now create backup before clearing
+  - Added 10-second timeout to GitHub API requests to prevent indefinite hangs
+  - Added 30-second timeout to ZIP download requests for updates
+  - Removed hardcoded "Ganimed" Commander fallback (now uses empty string)
+
+### Removed
+- Deleted unused `history.py` file (dead code with broken imports)
+- Removed unused `crow` and `mainframerow` variables from `load.py`
+
 ## [v0.4.300.1.004] - 2025-12-12
 
 ### Added

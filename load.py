@@ -32,9 +32,7 @@ trackerFrame = None
 this.currentSystemFlying = None
 this.commander = ""
 
-# UI state  
-this.crow = -1
-this.mainframerow = -1
+# UI state
 this.parent = None
 this.assetpath = ""
 
@@ -48,7 +46,7 @@ this.lastDeliveryCounts = None
 def _get_github_release_data():
     """Fetch latest GitHub release data"""
     try:
-        response = requests.get('https://api.github.com/repos/Fumlop/EliteMeritTracker/releases/latest')
+        response = requests.get('https://api.github.com/repos/Fumlop/EliteMeritTracker/releases/latest', timeout=10)
         return response.json() if response.status_code == 200 else None
     except Exception as e:
         logger.exception('Error fetching GitHub release data')
@@ -58,7 +56,7 @@ def _get_github_release_data():
 def _get_github_prerelease_data():
     """Fetch latest GitHub pre-release data"""
     try:
-        response = requests.get('https://api.github.com/repos/Fumlop/EliteMeritTracker/releases')
+        response = requests.get('https://api.github.com/repos/Fumlop/EliteMeritTracker/releases', timeout=10)
         if response.status_code != 200:
             return None
         releases = response.json()
@@ -75,7 +73,7 @@ def _get_github_prerelease_data():
 def _download_and_extract_update(zip_url):
     """Download and extract update ZIP"""
     try:
-        zip_response = requests.get(zip_url)
+        zip_response = requests.get(zip_url, timeout=30)
         if zip_response.status_code != 200:
             logger.error("Failed to download update ZIP")
             return False
@@ -436,7 +434,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         track_journal_event(current_timestamp)
     
     if entry['event'] in ['LoadGame']:
-        this.commander = entry.get('Commander', "Ganimed ")
+        this.commander = entry.get('Commander', "")
     if entry['event'] == 'BackpackChange':
         # Track PowerPlay data collection
         current_system = this.currentSystemFlying.StarSystem if this.currentSystemFlying else None

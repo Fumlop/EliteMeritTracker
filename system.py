@@ -242,8 +242,18 @@ def loadSystems():
                     system = StarSystem()
                     system.from_dict(system_data)
                     systems[name] = system
-    except json.JSONDecodeError:
-        logger.error("Failed to load systems.json, using empty systems data.")
+    except json.JSONDecodeError as e:
+        # Create backup of corrupted file before clearing
+        backup_path = systems_path + ".corrupted"
+        try:
+            import shutil
+            shutil.copy2(systems_path, backup_path)
+            logger.error(f"systems.json is corrupted: {e}. Backup saved to {backup_path}")
+        except Exception as backup_error:
+            logger.error(f"systems.json is corrupted: {e}. Failed to create backup: {backup_error}")
+        systems.clear()
+    except Exception as e:
+        logger.error(f"Failed to load systems.json: {e}", exc_info=True)
         systems.clear()
 
 
