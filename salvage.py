@@ -1,6 +1,5 @@
-import json
-import os
 from merit_log import logger
+from storage import load_json, save_json
 from system import StarSystem
 from ppcargo import Cargo
 
@@ -76,38 +75,17 @@ class Salvage:
         logger.debug(f"Added {cargo_count} {cargo_type} to {system_name}")
 
 def save_salvage():
-    try:
-        plugin_dir = os.path.dirname(os.path.abspath(__file__))
-        salvage_path = os.path.join(plugin_dir, "salvage.json")
-        
-        data = {name: salvage.to_dict() for name, salvage in salvageInventory.items()}
-        
-        with open(salvage_path, "w") as f:
-            json.dump(data, f, indent=4)
-            
-    except Exception as e:
-        logger.error(f"Failed to save salvage inventory: {e}")
+    """Save salvage inventory to JSON file"""
+    data = {name: salvage.to_dict() for name, salvage in salvageInventory.items()}
+    save_json("salvage.json", data)
+
 
 def load_salvage():
-    try:
-        plugin_dir = os.path.dirname(os.path.abspath(__file__))
-        salvage_path = os.path.join(plugin_dir, "salvage.json")
-        
-        if not os.path.exists(salvage_path):
-            #logger.debug("No salvage.json found, starting with empty inventory")
-            return
-            
-        with open(salvage_path, "r") as f:
-            data = json.load(f)
-            #logger.debug(f"Loading salvage.json content: {json.dumps(data, indent=4)}")
-            
+    """Load salvage inventory from JSON file"""
+    data = load_json("salvage.json")
+    if data:
         for system_name, salvage_data in data.items():
             salvageInventory[system_name] = Salvage.from_dict(salvage_data)
-            #logger.debug(f"Loaded salvage for system {system_name}: {json.dumps(salvage_data, indent=4)}")
-            
-        #logger.debug(f"Loaded salvage inventory for {len(salvageInventory)} systems")    
-    except Exception as e:
-        logger.error(f"Failed to load salvage inventory: {e}", exc_info=True)
 
 # Global inventory of all salvage by system
 salvageInventory = {}

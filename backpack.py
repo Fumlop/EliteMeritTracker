@@ -1,7 +1,6 @@
 # backpack.py - Player Backpack for tracking PowerPlay data collection
-import json
-import os
 from merit_log import logger
+from storage import load_json, save_json
 from umdata import is_valid_um_data, get_um_display_name
 from reinfdata import is_valid_reinf_data, get_reinf_display_name
 from acqdata import is_valid_acq_data, get_acq_display_name
@@ -245,29 +244,12 @@ playerBackpack = Backpack()
 
 def save_backpack():
     """Save backpack to JSON file"""
-    try:
-        plugin_dir = os.path.dirname(os.path.abspath(__file__))
-        backpack_path = os.path.join(plugin_dir, "backpack.json")
-
-        with open(backpack_path, "w") as f:
-            json.dump(playerBackpack.to_dict(), f, indent=4)
-    except Exception as e:
-        logger.error(f"Failed to save backpack: {e}")
+    save_json("backpack.json", playerBackpack.to_dict())
 
 
 def load_backpack():
     """Load backpack from JSON file"""
-    try:
-        plugin_dir = os.path.dirname(os.path.abspath(__file__))
-        backpack_path = os.path.join(plugin_dir, "backpack.json")
-
-        if not os.path.exists(backpack_path):
-            return
-
-        with open(backpack_path, "r") as f:
-            data = json.load(f)
-
+    data = load_json("backpack.json")
+    if data:
         playerBackpack.from_dict(data)
         logger.info(f"Loaded backpack - UM: {len(playerBackpack.umbag.items)}, Reinf: {len(playerBackpack.reinfbag.items)}, Acq: {len(playerBackpack.acqbag.items)}")
-    except Exception as e:
-        logger.error(f"Failed to load backpack: {e}")

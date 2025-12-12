@@ -325,20 +325,13 @@ def reset():
 def plugin_prefs(parent, cmdr, is_beta):
     return create_config_frame(parent, nb)
 
-def update_system_merits_for_collection(merits_value, system_name):
-    """Update merits for PowerPlay data collection system (backpack hand-in)"""
-    if merits_value <= 0:
-        return
+# Merit calculation constants
+MERIT_CARGO_DIVISOR = 1.15
+MERIT_CARGO_MULTIPLIER = 0.65
 
-    try:
-        merits = int(merits_value)
-    except (ValueError, TypeError):
-        logger.debug("Invalid merits value for collection")
-        return
 
-    pledgedPower.MeritsSession += merits
-    logger.info(f"PowerPlay data delivery: {system_name} gets {merits} merits")
-
+def _add_merits_to_system(system_name: str, merits: int):
+    """Add merits to a system, creating it if necessary."""
     if system_name in systems:
         systems[system_name].Merits += merits
     else:
@@ -348,73 +341,48 @@ def update_system_merits_for_collection(merits_value, system_name):
         systems[system_name] = new_system
 
 
-def update_system_merits_sar(merits_value, system_name):
-    """Update merits for Search and Rescue activities"""
-    if merits_value <= 0:
-        return
+def update_system_merits(merits_value, system_name: str = None, apply_cargo_formula: bool = False, update_ui: bool = False):
+    """Unified merit update function.
 
-    try:
-        merits = int(merits_value)
-    except (ValueError, TypeError):
-        logger.debug("Invalid merits value for SAR")
-        return
-
-    pledgedPower.MeritsSession += merits
-
-    if system_name in systems:
-        systems[system_name].Merits += merits
-    else:
-        # Create new system if it doesn't exist
-        new_system = StarSystem()
-        new_system.StarSystem = system_name
-        new_system.Merits = merits
-        systems[system_name] = new_system
-
-
-def update_system_merits_powerplay_delivery(merits_value, delivery_system_name):
-    """Update merits for PowerPlay cargo delivery system with reduced formula: merits / 1.15 * 0.65"""
-    if merits_value <= 0 or not delivery_system_name:
-        return
-    
-    try:
-        # Apply the formula: merits / 1.15 * 0.65
-        reduced_merits = int((merits_value / 1.15) * 0.65)
-        logger.info(f"PowerPlay cargo delivery: {delivery_system_name} gets {reduced_merits} merits (reduced from {merits_value})")
-    except (ValueError, TypeError):
-        logger.debug("Invalid merits value for PowerPlay delivery")
-        return
-
-    pledgedPower.MeritsSession += reduced_merits
-
-    if delivery_system_name in systems:
-        systems[delivery_system_name].Merits += reduced_merits
-    else:
-        # Create new system if it doesn't exist
-        new_system = StarSystem()
-        new_system.StarSystem = delivery_system_name
-        new_system.Merits = reduced_merits
-        systems[delivery_system_name] = new_system
-
-
-def update_system_merits(merits_value):
-    """Update merits for current system"""
+    Args:
+        merits_value: Raw merit value to add
+        system_name: Target system (uses current system if None)
+        apply_cargo_formula: If True, applies cargo delivery reduction formula
+        update_ui: If True, updates the tracker UI after adding merits
+    """
     global trackerFrame
-    
+
+    if merits_value <= 0:
+        return
+
     try:
         merits = int(merits_value)
     except (ValueError, TypeError):
         logger.debug("Invalid merits value")
         return
 
+    # Apply cargo delivery formula if requested
+    if apply_cargo_formula:
+        original = merits
+        merits = int((merits / MERIT_CARGO_DIVISOR) * MERIT_CARGO_MULTIPLIER)
+        logger.info(f"PowerPlay cargo delivery: {system_name} gets {merits} merits (reduced from {original})")
+
+    # Update session total
     pledgedPower.MeritsSession += merits
 
-    sys_name = getattr(this.currentSystemFlying, "StarSystem", None)
-    if sys_name:
-        current = systems.get(sys_name, this.currentSystemFlying)
-        current.Merits += merits
-        systems[sys_name] = current
+    # Determine target system
+    if system_name:
+        _add_merits_to_system(system_name, merits)
+    else:
+        sys_name = getattr(this.currentSystemFlying, "StarSystem", None)
+        if sys_name:
+            current = systems.get(sys_name, this.currentSystemFlying)
+            current.Merits += merits
+            systems[sys_name] = current
 
-    trackerFrame.update_display(this.currentSystemFlying)
+    # Update UI if requested
+    if update_ui:
+        trackerFrame.update_display(this.currentSystemFlying)
 
 def prefs_changed(cmdr, is_beta):
     configPlugin.dumpConfig()
@@ -550,7 +518,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                 merits_per_item = merits_gained / total_items
                 for system_name, item_count in this.lastDeliveryCounts.items():
                     system_merits = int(merits_per_item * item_count)
-                    update_system_merits_for_collection(system_merits, system_name)
+                    update_system_merits(system_merits, system_name=system_name)
             this.lastDeliveryCounts = None
         elif this.lastSARCounts is not None and this.lastSARSystems:
             total_items = sum(this.lastSARCounts.values())
@@ -558,11 +526,11 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                 merits_per_item = merits_gained / total_items
                 for system_name, item_count in this.lastSARCounts.items():
                     system_merits = int(merits_per_item * item_count)
-                    update_system_merits_sar(system_merits, system_name)
+                    update_system_merits(system_merits, system_name=system_name)
             this.lastSARCounts = None
             this.lastSARSystems = []
         else:
-            update_system_merits(merits_gained)
+            update_system_merits(merits_gained, update_ui=True)
         
         pledgedPower.Merits = entry.get('TotalMerits', pledgedPower.Merits)
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)

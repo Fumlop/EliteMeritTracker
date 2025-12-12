@@ -2,6 +2,19 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.006] - 2025-12-12
+
+### Added
+- **Code Consolidation (Phase 2)**
+  - New `storage.py` utility for centralized JSON file I/O with error handling and backup
+  - Unified `update_system_merits()` function with optional parameters for all merit update scenarios
+  - Named constants `MERIT_CARGO_DIVISOR` and `MERIT_CARGO_MULTIPLIER` for cargo delivery formula
+
+### Changed
+- Refactored `backpack.py`, `salvage.py`, `system.py`, `power.py` to use centralized storage utility
+- Merged 4 nearly identical merit update functions into single unified function
+- Removed 60+ lines of duplicated file I/O code
+
 ## [v0.4.300.1.005] - 2025-12-12
 
 ### Fixed

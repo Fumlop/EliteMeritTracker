@@ -1,6 +1,6 @@
 import json
-import os
 from merit_log import logger
+from storage import load_json, save_json, get_file_path
 
 class StarSystem:
     def __init__(self, eventEntry=None, commander: str = "Ganimed"):
@@ -204,57 +204,26 @@ class SystemEncoder(json.JSONEncoder):
             return o.__dict__
         return super().default(o)
 
-def _get_systems_path():
-    """Get path to systems.json file"""
-    plugin_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(plugin_dir, "systems.json")
-
 
 def dumpSystems():
     """Save systems to JSON file"""
-    systems_path = _get_systems_path()
-    
     filtered_systems = {
         name: data.to_dict()
         for name, data in systems.items()
         if (not data.reported and data.Merits > 0) or data.Active
     }
-    
-    try:
-        with open(systems_path, "w") as json_file:
-            json.dump(filtered_systems, json_file, cls=SystemEncoder, indent=4)
-    except Exception as e:
-        logger.error(f"Failed to save systems: {e}")
+    save_json("systems.json", filtered_systems, encoder=SystemEncoder)
 
 
 def loadSystems():
     """Load systems from JSON file"""
-    systems_path = _get_systems_path()
-    
-    if not os.path.exists(systems_path):
-        return
-        
-    try:
-        with open(systems_path, "r") as json_file:
-            tmp = json.load(json_file)
-            for name, system_data in tmp.items():
-                if isinstance(system_data, dict):
-                    system = StarSystem()
-                    system.from_dict(system_data)
-                    systems[name] = system
-    except json.JSONDecodeError as e:
-        # Create backup of corrupted file before clearing
-        backup_path = systems_path + ".corrupted"
-        try:
-            import shutil
-            shutil.copy2(systems_path, backup_path)
-            logger.error(f"systems.json is corrupted: {e}. Backup saved to {backup_path}")
-        except Exception as backup_error:
-            logger.error(f"systems.json is corrupted: {e}. Failed to create backup: {backup_error}")
-        systems.clear()
-    except Exception as e:
-        logger.error(f"Failed to load systems.json: {e}", exc_info=True)
-        systems.clear()
+    data = load_json("systems.json")
+    if data:
+        for name, system_data in data.items():
+            if isinstance(system_data, dict):
+                system = StarSystem()
+                system.from_dict(system_data)
+                systems[name] = system
 
 
 systems = {} 

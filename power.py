@@ -1,7 +1,6 @@
 import json
-import os
-from config import config
 from merit_log import logger
+from storage import load_json, save_json
 
 class PledgedPower:
     def __init__(self, eventEntry: dict = {}, commander: str = "Ganimed"):
@@ -30,32 +29,19 @@ class PledgedPower:
         self.Commander = str(data.get("Commander", ""))
         self._update_time_pledged_str()
 
-    def _get_file_path(self):
-        """Get the path to power.json file"""
-        directory_name = os.path.basename(os.path.dirname(__file__))
-        plugin_path = os.path.join(config.plugin_dir, directory_name)
-        return os.path.join(plugin_path, "power.json")
-    
     def dumpJson(self):
         """Save power data to JSON file"""
-        file_path = self._get_file_path()
-        with open(file_path, "w") as json_file:
-            json.dump(self, json_file, indent=4, cls=PowerEncoder)
+        save_json("power.json", self, encoder=PowerEncoder)
 
     def loadPower(self):
         """Load power data from JSON file"""
-        file_path = self._get_file_path()
-        if not os.path.exists(file_path):
+        data = load_json("power.json")
+        if data:
+            self.from_dict(data)
+        else:
             # Create new file with current data
             self.dumpJson()
-            self.from_dict({})
-        else:
-            try:
-                with open(file_path, "r") as json_file:
-                    self.from_dict(json.load(json_file))
-            except json.JSONDecodeError:
-                logger.warning(f"Invalid JSON in {file_path}, resetting to defaults")
-                self.__init__() 
+            self.from_dict({}) 
 
 class PowerEncoder(json.JSONEncoder):
     def default(self, o):
