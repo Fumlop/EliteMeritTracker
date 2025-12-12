@@ -2,6 +2,23 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.003] - 2025-12-12
+
+### Added
+- **Power Info UI Overhaul**
+  - Rounded buttons with hover effects
+  - Detailed view with sortable Treeview table
+  - Filter dropdowns for System, State, and Power
+  - Zebra-striped rows with status-based coloring (danger/safe/warning/neutral)
+  - Proper EDMC theme integration (background, foreground, highlights)
+  - Centered column alignment for all columns except System name
+  - CSV export functionality in detailed view
+
+### Fixed
+- Layout issues when switching between default and detailed views
+- Window lifecycle errors when clicking after window closed
+- Treeview theme matching on Windows (using clam theme base)
+
 ## [v0.4.300.1.002] - 2025-12-12
 
 ### Fixed
