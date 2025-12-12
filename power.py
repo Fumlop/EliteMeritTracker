@@ -1,7 +1,7 @@
 import json
 import os
 from config import config
-from log import logger
+from merit_log import logger
 
 class PledgedPower:
     def __init__(self, eventEntry: dict = {}, commander: str = "Ganimed"):

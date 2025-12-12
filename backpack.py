@@ -1,7 +1,7 @@
 # backpack.py - Player Backpack for tracking PowerPlay data collection
 import json
 import os
-from log import logger
+from merit_log import logger
 from umdata import is_valid_um_data, get_um_display_name
 from reinfdata import is_valid_reinf_data, get_reinf_display_name
 from acqdata import is_valid_acq_data, get_acq_display_name

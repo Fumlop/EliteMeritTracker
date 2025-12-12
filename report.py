@@ -1,5 +1,5 @@
 import requests
-from log import logger
+from merit_log import logger
 from pluginConfig import configPlugin
 
 class Report:

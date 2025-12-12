@@ -7,7 +7,7 @@ from report import Report, report
 from system import systems
 from power import pledgedPower
 from pluginConfig import configPlugin
-from log import logger, plugin_name
+from merit_log import logger, plugin_name
 # Wenn du Typen verwendest:
 from typing import Dict, Any, List, Optional
 

@@ -1,6 +1,6 @@
 import json
 import os
-from log import logger
+from merit_log import logger
 
 class StarSystem:
     def __init__(self, eventEntry=None, commander: str = "Ganimed"):

@@ -1,6 +1,6 @@
 import json
 import os
-from log import logger
+from merit_log import logger
 from system import StarSystem
 from ppcargo import Cargo
 

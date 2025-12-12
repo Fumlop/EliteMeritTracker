@@ -7,7 +7,7 @@ from system import systems
 import os
 import sys
 from config import config
-from log import logger
+from merit_log import logger
 from pluginDetailsUI import show_power_info
 
 

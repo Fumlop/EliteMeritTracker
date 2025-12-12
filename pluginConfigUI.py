@@ -1,7 +1,7 @@
 import tkinter as tk
 import myNotebook as nb
 from pluginConfig import configPlugin
-from log import logger, plugin_name
+from merit_log import logger, plugin_name
 
 # Simple duplicate scanner that shows results in config window
 def scan_for_duplicates(days, result_text_widget):

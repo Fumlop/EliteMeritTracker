@@ -16,7 +16,7 @@ from power import pledgedPower
 from pluginUI import TrackerFrame
 from duplicate import track_journal_event, process_powerplay_event, reset_duplicate_tracking
 from pluginConfig import configPlugin
-from log import logger
+from merit_log import logger
 from config import config, appname
 from pluginConfigUI import create_config_frame
 from backpack import playerBackpack, save_backpack, load_backpack

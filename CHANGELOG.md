@@ -2,6 +2,18 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.002] - 2025-12-12
+
+### Fixed
+- **Import Conflict Resolution**
+  - Renamed `log.py` to `merit_log.py` to avoid import conflicts with other EDMC plugins
+  - Updated all 11 files to use `from merit_log import logger`
+  - Fixes `ImportError: cannot import name 'logger' from 'log'` when another plugin (e.g., EDMC-SettlementDataTracker) has its own `log.py`
+
+### Files Modified
+- `merit_log.py` (renamed from `log.py`)
+- `load.py`, `report.py`, `duplicate.py`, `backpack.py`, `salvage.py`, `ppcargo.py`, `system.py`, `power.py`, `pluginUI.py`, `pluginDetailsUI.py`, `pluginConfigUI.py` - Updated imports
+
 ## [v0.4.300.1.001] - 2025-12-02
 
 ### Added
