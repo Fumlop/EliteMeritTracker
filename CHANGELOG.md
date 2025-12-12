@@ -12,6 +12,9 @@ All notable changes to EliteMeritTracker will be documented in this file.
   - Green highlight for positive merits gained in current system
   - Split `stateWord` and `stateDetails` widgets for independent styling
 
+### Fixed
+- Value labels (power, rank, session, total) now use explicit theme foreground color for dark/transparent themes
+
 ## [v0.4.300.1.003] - 2025-12-12
 
 ### Added

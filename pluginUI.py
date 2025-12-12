@@ -170,7 +170,7 @@ class TrackerFrame:
             anchor="w", justify="left", name="eliteMeritTrackerComponentpledgedLabel"
         )
         self.widgets['powerValue'] = tk.Label(
-            self.frames['frame_row1'], text=f"{pledgedPower.Power}",
+            self.frames['frame_row1'], text=f"{pledgedPower.Power}", fg=colors['fg'],
             anchor="w", justify="left", name="eliteMeritTrackerComponentpowerValue"
         )
         self.widgets['rankLabel'] = tk.Label(
@@ -178,7 +178,7 @@ class TrackerFrame:
             anchor="w", justify="left", name="eliteMeritTrackerComponentrankLabel"
         )
         self.widgets['rankValue'] = tk.Label(
-            self.frames['frame_row1'], text=f"{pledgedPower.Rank}",
+            self.frames['frame_row1'], text=f"{pledgedPower.Rank}", fg=colors['fg'],
             anchor="w", justify="left", name="eliteMeritTrackerComponentrankValue"
         )
         # Keep original for compatibility
@@ -193,7 +193,7 @@ class TrackerFrame:
             anchor="w", justify="left", name="eliteMeritTrackerComponentsessionLabel"
         )
         self.widgets['sessionValue'] = tk.Label(
-            self.frames['frame_row2'], text=f"{pledgedPower.MeritsSession:,}",
+            self.frames['frame_row2'], text=f"{pledgedPower.MeritsSession:,}", fg=colors['fg'],
             anchor="w", justify="left", name="eliteMeritTrackerComponentsessionValue"
         )
         self.widgets['totalLabel'] = tk.Label(
@@ -201,7 +201,7 @@ class TrackerFrame:
             anchor="w", justify="left", name="eliteMeritTrackerComponenttotalLabel"
         )
         self.widgets['totalValue'] = tk.Label(
-            self.frames['frame_row2'], text=f"{pledgedPower.Merits:,}",
+            self.frames['frame_row2'], text=f"{pledgedPower.Merits:,}", fg=colors['fg'],
             anchor="w", justify="left", name="eliteMeritTrackerComponenttotalValue"
         )
         # Keep original for compatibility
