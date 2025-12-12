@@ -529,7 +529,7 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
 
         # Configure columns - first column left, all others centered
         col_config = [
-            ("System", 250, "w"),       # Left align (first column) - wider for long system names
+            ("System", 220, "w"),       # Left align (first column) - wider for long system names
             ("Status", 100, "center"),
             ("Progress", 80, "center"),
             ("Power", 120, "center"),
