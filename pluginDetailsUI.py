@@ -529,7 +529,7 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
 
         # Configure columns - first column left, all others centered
         col_config = [
-            ("System", 220, "w"),       # Left align (first column) - wider for long system names
+            ("System", 250, "w"),       # Left align (first column) - wider for long system names
             ("Status", 100, "center"),
             ("Progress", 80, "center"),
             ("Power", 120, "center"),
@@ -540,7 +540,11 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
         ]
         for col, width, anchor in col_config:
             treeview.heading(col, text=col, command=lambda c=col: sort_treeview(treeview, c, False))
-            treeview.column(col, width=width, minwidth=50, anchor=anchor)
+            # System column: fixed width, no shrinking; others can shrink
+            if col == "System":
+                treeview.column(col, width=width, minwidth=width, anchor=anchor, stretch=False)
+            else:
+                treeview.column(col, width=width, minwidth=50, anchor=anchor)
 
         # Scrollbars
         tree_scroll_y = ttk.Scrollbar(tree_frame, orient="vertical", command=treeview.yview)
@@ -604,7 +608,7 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
                 dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {str(system_data.PowerplayStateReinforcement)}")
 
             # System name
-            tk.Label(data_frame_default, text=system_name, width=20, anchor="w", **lbl_opts).grid(
+            tk.Label(data_frame_default, text=system_name, width=28, anchor="w", **lbl_opts).grid(
                 row=row_index, column=0, padx=5, pady=2, sticky="w")
 
             # Merits (bold, highlight color)
