@@ -20,7 +20,7 @@ def get_theme_colors():
             'fg': theme.current.get('foreground', '#ff8c00'),
             'highlight': theme.current.get('highlight', '#ff8c00'),
         }
-    except:
+    except Exception:
         return {'bg': '#000000', 'fg': '#ff8c00', 'highlight': '#ff8c00'}
 
 
@@ -56,7 +56,7 @@ class TrackerFrame:
             g = int(fg_g * 0.5 + bg_g * 0.5)
             b = int(fg_b * 0.5 + bg_b * 0.5)
             return f'#{r:02x}{g:02x}{b:02x}'
-        except:
+        except Exception:
             return '#888888'
 
     def load_and_scale_image(self, path: str, scale: float) -> Image:
@@ -131,7 +131,7 @@ class TrackerFrame:
                             arrow = ""
                         self.widgets['netLabel']['text'] = f"Cycle NET {net_value:+.2f}% {arrow}"
                         self.widgets['netLabel']['fg'] = net_color
-                    except:
+                    except (ValueError, IndexError):
                         self.widgets['netLabel']['text'] = f"Cycle {cycle_status}"
                         self.widgets['netLabel']['fg'] = colors['fg']
                 else:

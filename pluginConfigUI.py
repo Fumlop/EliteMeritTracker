@@ -124,7 +124,7 @@ def scan_for_duplicates(days, result_text_widget):
                                                     time_diff = abs((dt1 - dt2).total_seconds())
                                                     if time_diff <= 3.0:
                                                         is_duplicate = True
-                                                except:
+                                                except (ValueError, TypeError):
                                                     pass
                                         
                                         if is_duplicate:
@@ -177,7 +177,7 @@ def scan_for_duplicates(days, result_text_widget):
                 try:
                     with open(debug_file_path, 'a', encoding='utf-8') as debug_file:
                         debug_file.write(f"ERROR: {str(e)}\n")
-                except:
+                except (IOError, OSError):
                     pass
         
         # Start scan in thread

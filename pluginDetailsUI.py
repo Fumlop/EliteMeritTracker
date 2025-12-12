@@ -100,7 +100,7 @@ def save_window_size(window):
             h = window.winfo_height()
             config.set("power_info_width", str(w))
             config.set("power_info_height", str(h))
-    except:
+    except tk.TclError:
         pass  # Window already destroyed
 
 
@@ -181,7 +181,7 @@ def get_theme_colors():
             'highlight': theme.current.get('highlight', '#ff8c00'),
             'button_bg': get_button_bg(bg),
         }
-    except:
+    except Exception:
         return {
             'bg': '#000000',
             'fg': '#ff8c00',
@@ -422,7 +422,7 @@ def sort_treeview(tree, col, reverse):
     # Try numeric sort first
     try:
         data.sort(key=lambda t: float(t[0].replace(',', '').replace('%', '').split('(')[-1].split(')')[0]) if t[0] else 0, reverse=reverse)
-    except:
+    except (ValueError, IndexError, AttributeError):
         data.sort(key=lambda t: t[0].lower() if t[0] else '', reverse=reverse)
 
     for index, (val, child) in enumerate(data):
@@ -486,7 +486,7 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
         # Use clam theme as base for better customization on Windows
         try:
             style.theme_use('clam')
-        except:
+        except tk.TclError:
             pass
 
         style.configure("Spaced.Treeview",

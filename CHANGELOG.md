@@ -2,6 +2,15 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.008] - 2025-12-12
+
+### Fixed
+- **Error Handling Standardization (Phase 4)**
+  - Replace bare `except:` clauses with specific exception types across multiple files
+  - `pluginUI.py`: Use `Exception`, `ValueError`, `IndexError` for theme/parsing errors
+  - `pluginDetailsUI.py`: Use `tk.TclError` for destroyed windows, specific types for parsing
+  - `pluginConfigUI.py`: Use `ValueError`, `TypeError`, `IOError`, `OSError` for date/file errors
+
 ## [v0.4.300.1.007] - 2025-12-12
 
 ### Added
