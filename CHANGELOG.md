@@ -2,6 +2,13 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.010] - 2025-12-15
+
+### Changed
+- **Reset Button Behavior**: Trash icon now clears all cached systems except current system (merits reset to 0)
+- **System Column Width**: Increased default view System column width from 20 to 28 characters for long system names
+- **Detailed View System Column**: Fixed column width to 300px with no shrinking to prevent truncation
+
 ## [v0.4.300.1.009] - 2025-12-12
 
 ### Changed

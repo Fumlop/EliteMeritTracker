@@ -297,9 +297,22 @@ def reset():
     # Reset session merits for the pledged power
     pledgedPower.MeritsSession = 0
 
-    # Reset merits for all systems but keep the systems themselves
-    for system in systems.values():
-        system.Merits = 0
+    # Get current system name to preserve it
+    current_system_name = state.current_system
+
+    # Store current system data if it exists
+    current_system_data = systems.get(current_system_name) if current_system_name else None
+
+    # Clear all systems from cache
+    systems.clear()
+
+    # Restore current system with its data but reset merits
+    if current_system_data:
+        current_system_data.Merits = 0
+        systems[current_system_name] = current_system_data
+
+    # Save the cleared systems to disk
+    dumpSystems()
 
     # Update the display with current system
     trackerFrame.update_display(state.current_system)
