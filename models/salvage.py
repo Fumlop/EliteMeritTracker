@@ -1,7 +1,7 @@
-from merit_log import logger
-from storage import load_json, save_json
-from system import StarSystem
-from ppcargo import Cargo
+from core.logging import logger
+from core.storage import load_json, save_json
+from .system import StarSystem
+from .ppcargo import Cargo
 
 # Valid cargo types that can be salvaged
 VALID_POWERPLAY_SALVAGE_TYPES = {

@@ -1,8 +1,11 @@
-# storage.py - JSON file I/O utilities with error handling and backup
+# core/storage.py - JSON file I/O utilities with error handling and backup
 import json
 import os
 import shutil
-from merit_log import logger
+from core.logging import logger
+
+# Data directory for JSON files
+DATA_DIR = "data"
 
 
 def get_plugin_dir():
@@ -10,9 +13,44 @@ def get_plugin_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 
+def get_data_dir():
+    """Get the data directory path, creating it if needed"""
+    data_path = os.path.join(get_plugin_dir(), DATA_DIR)
+    if not os.path.exists(data_path):
+        os.makedirs(data_path)
+    return data_path
+
+
+def _migrate_legacy_file(filename: str) -> bool:
+    """Check for legacy file in plugin root and migrate to data/ folder.
+
+    Returns:
+        True if file was migrated, False otherwise
+    """
+    plugin_dir = get_plugin_dir()
+    legacy_path = os.path.join(plugin_dir, filename)
+
+    if os.path.exists(legacy_path):
+        data_path = os.path.join(get_data_dir(), filename)
+        # Only migrate if not already in data/
+        if not os.path.exists(data_path):
+            try:
+                shutil.move(legacy_path, data_path)
+                logger.info(f"Migrated {filename} to data/ folder")
+                return True
+            except Exception as e:
+                logger.error(f"Failed to migrate {filename}: {e}")
+    return False
+
+
 def get_file_path(filename: str) -> str:
-    """Get full path to a file in the plugin directory"""
-    return os.path.join(get_plugin_dir(), filename)
+    """Get full path to a JSON file in the data directory.
+
+    Automatically migrates legacy files from plugin root to data/ folder.
+    """
+    # Check for and migrate legacy files from plugin root
+    _migrate_legacy_file(filename)
+    return os.path.join(get_data_dir(), filename)
 
 
 def load_json(filename: str, default=None):

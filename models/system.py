@@ -1,6 +1,6 @@
 import json
-from merit_log import logger
-from storage import load_json, save_json, get_file_path
+from core.logging import logger
+from core.storage import load_json, save_json, get_file_path
 
 class StarSystem:
     def __init__(self, eventEntry=None, commander: str = ""):

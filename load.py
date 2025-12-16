@@ -7,21 +7,21 @@ import io
 import re
 from typing import Dict, Any
 
-from report import report
-from system import systems, StarSystem, loadSystems, dumpSystems
-from salvage import Salvage, salvageInventory, save_salvage, load_salvage, VALID_POWERPLAY_SALVAGE_TYPES
-from power import pledgedPower
-from pluginUI import TrackerFrame
-from duplicate import track_journal_event, process_powerplay_event, reset_duplicate_tracking
-from pluginConfig import configPlugin
-from merit_log import logger
+from core.report import report
+from models.system import systems, StarSystem, loadSystems, dumpSystems
+from models.salvage import Salvage, salvageInventory, save_salvage, load_salvage, VALID_POWERPLAY_SALVAGE_TYPES
+from models.power import pledgedPower
+from ui.main import TrackerFrame
+from core.duplicate import track_journal_event, process_powerplay_event, reset_duplicate_tracking
+from core.config import configPlugin
+from core.logging import logger
 from config import config, appname
-from pluginConfigUI import create_config_frame
-from backpack import playerBackpack, save_backpack, load_backpack
-from umdata import is_valid_um_data
-from reinfdata import is_valid_reinf_data
-from acqdata import is_valid_acq_data
-from plugin_state import state
+from ui.config import create_config_frame
+from models.backpack import playerBackpack, save_backpack, load_backpack
+from ppdata.undermining import is_valid_um_data
+from ppdata.reinforcement import is_valid_reinf_data
+from ppdata.acquisition import is_valid_acq_data
+from core.state import state
 
 # Module globals
 trackerFrame = None

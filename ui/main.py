@@ -1,15 +1,15 @@
-# trackerUI.py
+# ui/main.py - Main tracker UI
 
 import tkinter as tk
 from PIL import Image, ImageTk
-from power import pledgedPower
-from system import systems
+from models.power import pledgedPower
+from models.system import systems
 import os
 from config import config
 from theme import theme
-from merit_log import logger
-from pluginDetailsUI import show_power_info
-from plugin_state import state
+from core.logging import logger
+from ui.details import show_power_info
+from core.state import state
 
 
 def get_theme_colors():
@@ -29,8 +29,8 @@ class TrackerFrame:
         self.parent = parent
         self.newest = newest
         self.icondelete = None
-        self.plugin_dir = os.path.dirname(os.path.abspath(__file__))
-        self.assetspath = f"{self.plugin_dir}/assets"
+        self.plugin_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.assetspath = os.path.join(self.plugin_dir, "assets")
 
         # Initialize all frame and widget references
         self.frame = None

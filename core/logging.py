@@ -1,9 +1,10 @@
-# log.py
+# core/logging.py
 import logging
 import os
 from config import appname
 
-plugin_name = os.path.basename(os.path.dirname(__file__))
+# Get plugin name from parent directory (EliteMeritTracker), not current directory (core)
+plugin_name = os.path.basename(os.path.dirname(os.path.dirname(__file__)))
 
 logger = logging.getLogger(f'{appname}.{plugin_name}')
 

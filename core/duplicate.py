@@ -8,7 +8,7 @@ handle duplicate events including retroactive correction.
 
 from datetime import datetime
 from typing import Dict, Any, Optional, Tuple
-from merit_log import logger
+from core.logging import logger
 
 
 class DuplicateDetector:

@@ -1,6 +1,6 @@
 import json
-from merit_log import logger
-from storage import load_json, save_json
+from core.logging import logger
+from core.storage import load_json, save_json
 
 class PledgedPower:
     def __init__(self, eventEntry: dict = {}, commander: str = ""):

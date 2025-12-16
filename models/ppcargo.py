@@ -1,4 +1,4 @@
-from merit_log import logger
+from core.logging import logger
 
 class Cargo:
     def __init__(self, name: str, count: int = 1):

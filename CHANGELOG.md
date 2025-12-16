@@ -2,6 +2,18 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.012] - 2025-12-16
+
+### Changed
+- **Project Restructure**: Reorganized codebase into logical packages
+  - `ui/` - UI components (main, details, config)
+  - `models/` - Data models (system, power, backpack, salvage, ppcargo)
+  - `ppdata/` - Powerplay data validators (undermining, reinforcement, acquisition)
+  - `core/` - Core utilities (config, state, storage, logging, duplicate, report)
+  - `tests/` - Test files
+  - `data/` - JSON data storage with auto-migration from legacy location
+  - `docs/` - Documentation files
+
 ## [v0.4.300.1.011] - 2025-12-16
 
 ### Fixed

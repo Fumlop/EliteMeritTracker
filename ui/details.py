@@ -4,11 +4,11 @@ import csv
 
 from config import config, appname
 from theme import theme
-from report import Report, report
-from system import systems
-from power import pledgedPower
-from pluginConfig import configPlugin
-from merit_log import logger, plugin_name
+from core.report import Report, report
+from models.system import systems
+from models.power import pledgedPower
+from core.config import configPlugin
+from core.logging import logger, plugin_name
 from typing import Dict, Any, List, Optional
 
 # Global GUI variables

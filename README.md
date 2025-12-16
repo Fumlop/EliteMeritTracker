@@ -1,24 +1,60 @@
 # EliteMeritTracker
-EDMC-Plugin to track Powerplay Merits
 
-Installing:
+EDMC Plugin to track Powerplay Merits in Elite Dangerous.
 
-Download the latest release https://github.com/Fumlop/EliteMeritTracker/releases<br>
-Unzip the zipfile into the %LOCALAPPDATA%\EDMarketConnector\plugins\
+![Main UI](https://github.com/user-attachments/assets/5a09ef25-42d3-427c-acb6-5f4a6d0c5cea)
+![Detailed View](https://github.com/user-attachments/assets/82bbfbdd-5d0f-4082-a0ee-fe83f8fbd145)
+![Settings](https://github.com/user-attachments/assets/b068658f-af1e-464e-bf60-95dcf886e8d0)
 
-After installing plugin will provide a update feature on new releases.
+## Features
 
-Currently automatic tracking of merits when in a system. Features for reediting will be added. 
-No data will be exported, all held locally as long as EDMC is running.
+- Automatic merit tracking per system
+- Session and total merit counters
+- Detailed Powerplay system view with filters
+- Discord webhook integration for reporting
+- CSV export functionality
+- Auto-update from GitHub releases
 
-Tracking Session Merits for EDMC
+## Installation
 
-![grafik](https://github.com/user-attachments/assets/5a09ef25-42d3-427c-acb6-5f4a6d0c5cea)
-![grafik](https://github.com/user-attachments/assets/82bbfbdd-5d0f-4082-a0ee-fe83f8fbd145)
-![grafik](https://github.com/user-attachments/assets/b068658f-af1e-464e-bf60-95dcf886e8d0)
+### First-Time Install
 
+1. Download the latest release from [Releases](https://github.com/Fumlop/EliteMeritTracker/releases)
+2. Extract the ZIP contents to:
+   ```
+   %LOCALAPPDATA%\EDMarketConnector\plugins\EliteMeritTracker
+   ```
+3. Restart EDMC
 
+### Updating
 
-Credits
+The plugin includes auto-update functionality. When a new version is available:
+- A notification will appear in the plugin
+- Click to update automatically
 
-This plugin was developed on GitHub with contributions from Fumlop
+For manual updates:
+1. Close EDMC completely
+2. Delete all files in the plugin folder (keeps your data)
+3. Extract new release to the same folder
+4. Restart EDMC
+
+## Usage
+
+- **Merit Tracking**: Merits are tracked automatically when you're in a system
+- **Detailed View**: Click the info button to see all tracked systems
+- **Reset**: Trash icon clears cached systems (keeps current system)
+- **Copy/Report**: Copy merit reports to clipboard or send to Discord
+
+## Data Storage
+
+All data is stored locally:
+- `%LOCALAPPDATA%\EDMarketConnector\plugins\EliteMeritTracker\systems.json`
+- No external data transmission (except optional Discord webhooks)
+
+## Credits
+
+Developed by [Fumlop](https://github.com/Fumlop)
+
+## License
+
+See [LICENSE](LICENSE) for details.

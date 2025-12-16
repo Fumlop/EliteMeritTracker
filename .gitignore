@@ -12,6 +12,10 @@
 
 # Claude Instructions (AI optimization notes)
 claude-instruction.md
+.claude/
+
+# User data (JSON files stored locally)
+data/
 
 #Visual Studio
 .vs/*

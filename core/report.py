@@ -1,6 +1,6 @@
 import requests
-from merit_log import logger
-from pluginConfig import configPlugin
+from core.logging import logger
+from core.config import configPlugin
 
 class Report:
     def send_to_discord(self, message: str) -> bool:
