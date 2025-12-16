@@ -9,8 +9,8 @@ DATA_DIR = "data"
 
 
 def get_plugin_dir():
-    """Get the plugin directory path"""
-    return os.path.dirname(os.path.abspath(__file__))
+    """Get the plugin directory path (parent of core/)"""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def get_data_dir():

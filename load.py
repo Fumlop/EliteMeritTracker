@@ -53,6 +53,45 @@ def _get_github_prerelease_data():
         return None
 
 
+# Legacy files that have been moved to subfolders and should be cleaned up
+# JSON files are migrated to data/ by storage.py before this cleanup runs
+LEGACY_FILES_TO_REMOVE = [
+    "pluginUI.py", "pluginDetailsUI.py", "pluginConfigUI.py",  # moved to ui/
+    "system.py", "power.py", "backpack.py", "salvage.py", "ppcargo.py",  # moved to models/
+    "umdata.py", "reinfdata.py", "acqdata.py",  # moved to ppdata/
+    "pluginConfig.py", "plugin_state.py", "storage.py", "merit_log.py",  # moved to core/
+    "duplicate.py", "report.py",  # moved to core/
+    "test_backpack.py",  # moved to tests/
+    "INSTALLATION_GUIDE.md", "CODE_OF_CONDUCT.md", "SECURITY.md",  # moved to docs/
+    "systems.json", "power.json", "backpack.json", "salvage.json",  # migrated to data/
+]
+
+
+def _cleanup_legacy_files(plugin_dir):
+    """Backup and remove legacy files that have been moved to subfolders.
+
+    JSON files are already migrated to data/ by storage.py before this runs.
+    """
+    backup_dir = os.path.join(plugin_dir, "backup_legacy")
+    files_backed_up = False
+
+    for filename in LEGACY_FILES_TO_REMOVE:
+        filepath = os.path.join(plugin_dir, filename)
+        if os.path.exists(filepath):
+            try:
+                # Create backup directory if needed
+                if not files_backed_up:
+                    os.makedirs(backup_dir, exist_ok=True)
+                    files_backed_up = True
+
+                # Move to backup instead of deleting
+                backup_path = os.path.join(backup_dir, filename)
+                shutil.move(filepath, backup_path)
+                logger.info(f"Backed up legacy file: {filename}")
+            except Exception as e:
+                logger.warning(f"Failed to backup legacy file {filename}: {e}")
+
+
 def _download_and_extract_update(zip_url):
     """Download and extract update ZIP"""
     try:
@@ -63,6 +102,9 @@ def _download_and_extract_update(zip_url):
 
         plugin_dir = os.path.dirname(os.path.abspath(__file__))
         temp_dir = os.path.join(plugin_dir, "temp_update")
+
+        # Clean up legacy files before extracting new structure
+        _cleanup_legacy_files(plugin_dir)
         
         # Clean previous temp directory
         if os.path.exists(temp_dir):

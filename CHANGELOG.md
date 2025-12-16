@@ -2,7 +2,11 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
-## [v0.4.300.1.012] - 2025-12-16
+## [v0.4.300.1.013] - 2025-12-16
+
+### Fixed
+- **Path Resolution**: Fixed plugin directory path resolution for files in subfolders (storage, logging, assets, debug)
+- **Auto-Update**: Added legacy file cleanup with backup to `backup_legacy/` folder during updates
 
 ### Changed
 - **Project Restructure**: Reorganized codebase into logical packages

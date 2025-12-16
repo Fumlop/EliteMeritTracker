@@ -21,8 +21,9 @@ def scan_for_duplicates(days, result_text_widget):
             try:
                 update_result("🔍 Scanning...")
                 
-                # Open debug file
-                debug_file_path = os.path.join(os.path.dirname(__file__), "debug_scan.txt")
+                # Open debug file in plugin root
+                plugin_dir = os.path.dirname(os.path.dirname(__file__))
+                debug_file_path = os.path.join(plugin_dir, "debug_scan.txt")
                 with open(debug_file_path, 'w', encoding='utf-8') as debug_file:
                     debug_file.write("=== Duplicate Scanner Debug Log ===\n")
                     debug_file.write(f"Scan started: {datetime.now()}\n")
