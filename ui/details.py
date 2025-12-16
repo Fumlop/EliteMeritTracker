@@ -333,9 +333,9 @@ def show_power_info(parent, pp, sy, tracker_frame=None):
     csv_button.grid(row=0, column=1, padx=5, pady=3)
     csv_button.grid_forget()
 
-    # Show Backpack button (placed before Copy All Systems)
-    backpack_button = RoundedButton(button_frame, "Show Backpack", lambda: show_backpack_view(info_window), colors, width=120, height=28, radius=6)
-    backpack_button.grid(row=0, column=2, padx=5, pady=3)
+    # Show Shiplocker button (placed before Copy All Systems)
+    shiplocker_button = RoundedButton(button_frame, "Show Shiplocker", lambda: show_backpack_view(info_window), colors, width=120, height=28, radius=6)
+    shiplocker_button.grid(row=0, column=2, padx=5, pady=3)
 
     copy_all_button = RoundedButton(button_frame, "Copy All Systems", copy_all_systems_to_clipboard_or_report, colors, width=130, height=28, radius=6)
     copy_all_button.grid(row=0, column=3, padx=5, pady=3)
@@ -812,7 +812,7 @@ def show_backpack_view(parent):
     colors = get_theme_colors()
 
     backpack_window = tk.Toplevel(parent)
-    backpack_window.title("Backpack View - Elite Merit Tracker")
+    backpack_window.title("Shiplocker - Elite Merit Tracker")
     backpack_window.geometry("1200x800")
     backpack_window.configure(background=colors['bg'])
 
