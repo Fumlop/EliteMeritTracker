@@ -30,6 +30,7 @@ info_window = None
 treeview = None
 sort_column = None
 sort_reverse = False
+outer_scrollbar = None  # Outer scrollbar for default view
 
 
 def copy_to_clipboard_or_report(text, name, table_frame, update_scrollregion):
@@ -322,12 +323,13 @@ def show_power_info(parent, pp, sy, tracker_frame=None):
     copy_all_button.grid(row=0, column=2, padx=5, pady=3)
 
     # Scrollable content area
+    global outer_scrollbar
     canvas = tk.Canvas(main_frame, highlightthickness=0, background=colors['bg'])
     canvas.pack(side="left", fill="both", expand=True)
 
-    v_scrollbar = ttk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
-    v_scrollbar.pack(side="right", fill="y")
-    canvas.configure(yscrollcommand=v_scrollbar.set)
+    outer_scrollbar = ttk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
+    outer_scrollbar.pack(side="right", fill="y")
+    canvas.configure(yscrollcommand=outer_scrollbar.set)
     canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(-1*(event.delta//120), "units"))
 
     def on_close():
@@ -442,7 +444,7 @@ def sort_treeview(tree, col, reverse):
 
 
 def populate_table(table_frame, update_scrollregion, show_filters_only=False):
-    global detailed_view, data_frame_default, systems, pledgedPower, treeview
+    global detailed_view, data_frame_default, systems, pledgedPower, treeview, outer_scrollbar
 
     colors = get_theme_colors()
     lbl_opts = {'background': colors['bg'], 'foreground': colors['fg']}
@@ -458,6 +460,9 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
 
     # ----- DETAILED VIEW with Treeview -----
     if detailed_view:
+        # Hide outer scrollbar - treeview has its own
+        if outer_scrollbar:
+            outer_scrollbar.pack_forget()
         # Reset all column weights first
         for i in range(7):
             table_frame.columnconfigure(i, weight=0)
@@ -573,6 +578,10 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
         return
 
     # ----- DEFAULT VIEW -----
+    # Show outer scrollbar for default view
+    if outer_scrollbar:
+        outer_scrollbar.pack(side="right", fill="y")
+
     # Reset row weights from detailed view - no row expansion needed for default view
     table_frame.rowconfigure(0, weight=0)
     table_frame.rowconfigure(1, weight=0)

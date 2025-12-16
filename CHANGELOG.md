@@ -2,6 +2,14 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.014] - 2025-12-16
+
+### Fixed
+- **Detailed View Scrollbar**: Hide redundant outer scrollbar when in detailed view (treeview has its own)
+
+### Changed
+- **README**: Enhanced with detailed plugin description and updated data storage paths
+
 ## [v0.4.300.1.013] - 2025-12-16
 
 ### Fixed

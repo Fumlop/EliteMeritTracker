@@ -6,15 +6,28 @@ EDMC Plugin to track Powerplay Merits in Elite Dangerous.
 <img width="1724" height="621" alt="grafik" src="https://github.com/user-attachments/assets/44ced819-57b1-4dac-8195-f3b46f0214ed" />
 <img width="1723" height="630" alt="grafik" src="https://github.com/user-attachments/assets/78e42e11-a9c8-4390-abc4-acfc055d1db9" />
 
+## About
+
+EliteMeritTracker is a comprehensive Powerplay 2.0 merit tracking plugin for Elite Dangerous Market Connector (EDMC). It automatically monitors your gameplay and tracks merit-earning activities across all star systems you visit.
+
+The plugin reads Elite Dangerous journal events in real-time to capture:
+- **Combat merits**: Ship kills, on-foot combat, and other hostile activities
+- **Cargo deliveries**: PowerPlay cargo hand-ins with accurate merit calculations
+- **Data collection**: Tracks PowerPlay micro-resources in your backpack (undermining, reinforcement, acquisition data)
+- **System state**: Monitors reinforcement vs undermining percentages with NET status calculations
+
+All tracking happens locally - your data never leaves your computer unless you choose to share via Discord webhooks.
 
 ## Features
 
-- Automatic merit tracking per system
-- Session and total merit counters
-- Detailed Powerplay system view with filters
-- Discord webhook integration for reporting
-- CSV export functionality
-- Auto-update from GitHub releases
+- **Automatic Merit Tracking**: Merits tracked per system from journal events
+- **Session & Total Counters**: See merits earned this session and all-time totals
+- **Detailed System View**: Sortable table with filters for System, State, and Power
+- **PowerPlay Backpack**: Tracks collected data items with per-system attribution
+- **NET Status**: Color-coded reinforcement vs undermining balance per system
+- **Discord Integration**: Send merit reports to your Discord server via webhooks
+- **CSV Export**: Export all tracked data for external analysis
+- **Auto-Update**: One-click updates from GitHub releases (stable and beta channels)
 
 ## Installation
 
@@ -48,9 +61,15 @@ For manual updates:
 
 ## Data Storage
 
-All data is stored locally:
-- `%LOCALAPPDATA%\EDMarketConnector\plugins\EliteMeritTracker\systems.json`
-- No external data transmission (except optional Discord webhooks)
+All data is stored locally in the `data/` subfolder:
+- `data/systems.json` - Tracked star systems and merit counts
+- `data/power.json` - Power allegiance data
+- `data/backpack.json` - PowerPlay micro-resources in your backpack
+- `data/salvage.json` - Salvage tracking data
+
+Legacy files from older versions are automatically migrated to `data/` on first run.
+
+No external data transmission occurs (except optional Discord webhooks you configure).
 
 ## Credits
 
