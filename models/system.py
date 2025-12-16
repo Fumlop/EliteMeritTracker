@@ -83,12 +83,12 @@ class StarSystem:
         self.reported = bool(value)
 
     def getSystemProgressNumber(self):
-        """Get system progress as percentage"""
+        """Get system progress as percentage (already in percentage from game)"""
         if self.PowerplayState in ['Stronghold', 'Fortified', 'Exploited']:
-            return self.PowerplayStateControlProgress * 100
-        
+            return self.PowerplayStateControlProgress
+
         if self.PowerplayConflictProgress:
-            return self.PowerplayConflictProgress[0].progress * 100
+            return self.PowerplayConflictProgress[0].progress
         return 0
 
     def to_dict(self):
@@ -148,8 +148,8 @@ class StarSystem:
         if self.PowerplayState == 'Unoccupied':
             if not self.PowerplayConflictProgress:
                 return 'Unoccupied'
-                
-            progress = self.PowerplayConflictProgress[0].progress * 100
+
+            progress = self.PowerplayConflictProgress[0].progress
             if progress > 100.00:
                 return 'Controlled'
             elif progress < 30.00 and progress > 0.00:

@@ -2,6 +2,11 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.017] - 2025-12-16
+
+### Fixed
+- **Progress Display**: Fixed progress percentage showing 660761% instead of 6607% - removed incorrect *100 multiplication since game already provides percentage values
+
 ## [v0.4.300.1.016] - 2025-12-16
 
 ### Added
