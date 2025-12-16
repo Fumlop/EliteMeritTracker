@@ -18,6 +18,7 @@ detailed_view = False
 toggle_button = None
 csv_button = None
 copy_all_button = None
+shiplocker_button = None
 csv_border = None
 copy_all_border = None
 table_frame = None
@@ -69,7 +70,7 @@ def delete_entry(system_name, table_frame, update_scrollregion):
 
 
 def toggle_view():
-    global detailed_view, csv_button, copy_all_button, systems, pledgedPower
+    global detailed_view, csv_button, copy_all_button, shiplocker_button, systems, pledgedPower
 
     # Check if window still exists
     if info_window is None or not info_window.winfo_exists():
@@ -84,10 +85,12 @@ def toggle_view():
 
     if detailed_view:
         csv_button.grid(row=0, column=1, padx=5)
+        shiplocker_button.grid_forget()
         copy_all_button.grid_forget()
     else:
         csv_button.grid_forget()
-        copy_all_button.grid(row=0, column=2, padx=5)
+        shiplocker_button.grid(row=0, column=2, padx=5)
+        copy_all_button.grid(row=0, column=3, padx=5)
         add_power_info_headers()
 
     colors = get_theme_colors()
@@ -300,7 +303,7 @@ def create_bordered_button(parent, text, command, colors, width=None):
 
 
 def show_power_info(parent, pp, sy, tracker_frame=None):
-    global table_frame, toggle_button, csv_button, copy_all_button, detailed_view, filter_frame
+    global table_frame, toggle_button, csv_button, copy_all_button, shiplocker_button, detailed_view, filter_frame
     global systems, pledgedPower, update_scrollregion, main_tracker_frame, info_window
 
     pledgedPower = pp
