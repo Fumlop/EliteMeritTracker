@@ -174,13 +174,25 @@ def get_theme_colors():
     """Get EDMC theme colors, with sensible fallbacks"""
     try:
         bg = theme.current.get('background', '#000000')
+        button_bg = get_button_bg(bg)
+
+        # Determine if dark theme based on background luminance
+        hex_color = bg.lstrip('#')
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        is_dark = luminance < 0.5
+
         return {
             'bg': bg,
             'fg': theme.current.get('foreground', '#ff8c00'),
             'active_bg': theme.current.get('activebackground', '#000000'),
             'active_fg': theme.current.get('activeforeground', '#ff8c00'),
             'highlight': theme.current.get('highlight', '#ff8c00'),
-            'button_bg': get_button_bg(bg),
+            'button_bg': button_bg,
+            'table_row_even': adjust_color_brightness(bg, 1.2 if is_dark else 0.95),
+            'table_row_odd': adjust_color_brightness(bg, 1.4 if is_dark else 0.9),
         }
     except Exception:
         return {
@@ -190,6 +202,8 @@ def get_theme_colors():
             'active_fg': '#ff8c00',
             'highlight': '#ff8c00',
             'button_bg': '#1a1a1a',
+            'table_row_even': '#1a1a1a',
+            'table_row_odd': '#2a2a2a',
         }
 
 
@@ -319,8 +333,12 @@ def show_power_info(parent, pp, sy, tracker_frame=None):
     csv_button.grid(row=0, column=1, padx=5, pady=3)
     csv_button.grid_forget()
 
+    # Show Backpack button (placed before Copy All Systems)
+    backpack_button = RoundedButton(button_frame, "Show Backpack", lambda: show_backpack_view(info_window), colors, width=120, height=28, radius=6)
+    backpack_button.grid(row=0, column=2, padx=5, pady=3)
+
     copy_all_button = RoundedButton(button_frame, "Copy All Systems", copy_all_systems_to_clipboard_or_report, colors, width=130, height=28, radius=6)
-    copy_all_button.grid(row=0, column=2, padx=5, pady=3)
+    copy_all_button.grid(row=0, column=3, padx=5, pady=3)
 
     # Scrollable content area
     global outer_scrollbar
@@ -769,3 +787,368 @@ def populate_treeview(tree, data):
             opposition
         ), tags=(tag,))
         row_index += 1
+
+
+# ============================================================
+# Backpack View Window
+# ============================================================
+
+backpack_window = None
+
+
+def show_backpack_view(parent):
+    """Show backpack contents in a new window with three tables for UM, ACQ, and Reinforcement"""
+    global backpack_window
+    from models.backpack import playerBackpack
+    from ppdata.undermining import get_um_display_name
+    from ppdata.reinforcement import get_reinf_display_name
+    from ppdata.acquisition import get_acq_display_name
+
+    # Close existing window if open
+    if backpack_window and backpack_window.winfo_exists():
+        backpack_window.lift()
+        return
+
+    colors = get_theme_colors()
+
+    backpack_window = tk.Toplevel(parent)
+    backpack_window.title("Backpack View - Elite Merit Tracker")
+    backpack_window.geometry("1200x800")
+    backpack_window.configure(background=colors['bg'])
+
+    # Main container
+    main_frame = tk.Frame(backpack_window, background=colors['bg'])
+    main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+    # Top button frame
+    button_frame = tk.Frame(main_frame, background=colors['bg'])
+    button_frame.pack(side="top", fill="x", pady=(0, 10))
+
+    # Return to Overview button
+    return_button = RoundedButton(button_frame, "Return to Overview",
+                                   lambda: backpack_window.destroy() if backpack_window else None,
+                                   colors, width=140, height=28, radius=6)
+    return_button.pack(side="left", padx=5)
+
+    def on_close():
+        global backpack_window
+        if backpack_window and backpack_window.winfo_exists():
+            backpack_window.destroy()
+        backpack_window = None
+
+    backpack_window.protocol("WM_DELETE_WINDOW", on_close)
+
+    # Create scrollable canvas
+    canvas = tk.Canvas(main_frame, highlightthickness=0, background=colors['bg'])
+    canvas.pack(side="left", fill="both", expand=True)
+
+    scrollbar = ttk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
+    scrollbar.pack(side="right", fill="y")
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    # Content frame inside canvas
+    content_frame = tk.Frame(canvas, background=colors['bg'])
+    canvas_window = canvas.create_window((0, 0), window=content_frame, anchor="nw")
+
+    def update_scrollregion(event=None):
+        canvas.configure(scrollregion=canvas.bbox("all"))
+
+    def resize_content_frame(event):
+        canvas.itemconfig(canvas_window, width=event.width)
+
+    content_frame.bind("<Configure>", update_scrollregion)
+    canvas.bind("<Configure>", resize_content_frame)
+    canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(-1*(event.delta//120), "units"))
+
+    # Helper function to create a table
+    def create_backpack_table(parent_frame, title, bag, display_name_func):
+        """Create a treeview table for a bag type"""
+        frame = tk.Frame(parent_frame, background=colors['bg'])
+        frame.pack(fill="both", expand=True, pady=10)
+
+        # Title
+        title_label = tk.Label(frame, text=title, font=("Helvetica", 14, "bold"),
+                               background=colors['bg'], foreground=colors['fg'])
+        title_label.pack(anchor="w", pady=(0, 5))
+
+        # Treeview
+        tree_frame = tk.Frame(frame, background=colors['bg'])
+        tree_frame.pack(fill="both", expand=True)
+
+        tree = ttk.Treeview(tree_frame, columns=("System", "Count", "Data Type"),
+                           show="headings", height=8)
+
+        # Sorting state for this tree
+        tree.sort_column = None
+        tree.sort_reverse = False
+
+        def sort_by_column(col, col_index):
+            """Sort tree contents when a column header is clicked"""
+            # Toggle sort direction if clicking same column
+            if tree.sort_column == col:
+                tree.sort_reverse = not tree.sort_reverse
+            else:
+                tree.sort_reverse = False
+            tree.sort_column = col
+
+            # Get all items with their values
+            items = [(tree.item(item)["values"], item) for item in tree.get_children("")]
+
+            # Sort based on column
+            if col_index == 1:  # Count - numeric sort
+                items.sort(key=lambda x: int(x[0][col_index]) if x[0][col_index] and str(x[0][col_index]).strip() else 0,
+                          reverse=tree.sort_reverse)
+            else:  # System and Data Type - string sort
+                items.sort(key=lambda x: str(x[0][col_index]).lower(), reverse=tree.sort_reverse)
+
+            # Rearrange items in sorted order
+            for index, (values, item) in enumerate(items):
+                tree.move(item, "", index)
+
+                # Update alternating row colors
+                tag = "even" if index % 2 == 0 else "odd"
+                tree.item(item, tags=(tag,))
+
+        # Configure columns with sorting
+        tree.heading("System", text="System", anchor="w",
+                    command=lambda: sort_by_column("System", 0))
+        tree.heading("Count", text="Count (double-click to edit)", anchor="center",
+                    command=lambda: sort_by_column("Count", 1))
+        tree.heading("Data Type", text="Data Type", anchor="w",
+                    command=lambda: sort_by_column("Data Type", 2))
+
+        tree.column("System", width=300, anchor="w")
+        tree.column("Count", width=100, anchor="center")
+        tree.column("Data Type", width=250, anchor="w")
+
+        # Scrollbar for table
+        tree_scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=tree_scrollbar.set)
+
+        tree.pack(side="left", fill="both", expand=True)
+        tree_scrollbar.pack(side="right", fill="y")
+
+        # Populate table
+        row_index = 0
+        for data_type, systems_dict in sorted(bag.items.items()):
+            for system_name, count in sorted(systems_dict.items()):
+                display_name = display_name_func(data_type)
+                tag = "even" if row_index % 2 == 0 else "odd"
+                tree.insert("", "end", values=(system_name, count, display_name),
+                           tags=(tag,))
+                row_index += 1
+
+        # Configure row tags for alternating colors with better contrast
+        tree.tag_configure("even", background=colors['table_row_even'], foreground=colors['fg'])
+        tree.tag_configure("odd", background=colors['table_row_odd'], foreground=colors['fg'])
+
+        # Change cursor to indicate editable Count column
+        def on_motion(event):
+            region = tree.identify_region(event.x, event.y)
+            column = tree.identify_column(event.x)
+            if region == "cell" and column == "#2":  # Count column
+                tree.config(cursor="hand2")
+            else:
+                tree.config(cursor="")
+
+        tree.bind("<Motion>", on_motion)
+
+        # Add double-click to edit Count
+        def on_double_click(event):
+            item = tree.selection()
+            if not item:
+                return
+
+            # Get the clicked column
+            column = tree.identify_column(event.x)
+            if column != "#2":  # Only allow editing Count column
+                return
+
+            # Get item values
+            values = tree.item(item[0], "values")
+            system_name = values[0]
+            data_type_display = values[2]
+
+            # Find the actual data_type key from display name
+            data_type_key = None
+            for dt_key, systems_dict in bag.items.items():
+                if system_name in systems_dict and display_name_func(dt_key) == data_type_display:
+                    data_type_key = dt_key
+                    break
+
+            if not data_type_key:
+                return
+
+            # Create entry widget for editing
+            bbox = tree.bbox(item[0], column)
+            if not bbox:
+                return
+
+            entry = tk.Entry(tree, justify="center")
+            entry.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
+
+            # Get current count value
+            current_value = bag.items[data_type_key].get(system_name, 0)
+            entry.insert(0, str(current_value) if current_value > 0 else "")
+            entry.focus()
+            entry.select_range(0, tk.END)
+
+            def save_edit(event=None):
+                try:
+                    new_value = entry.get().strip()
+                    int_value = int(new_value) if new_value else 0
+
+                    # Update count
+                    if int_value > 0:
+                        bag.items[data_type_key][system_name] = int_value
+                        # Update tree display
+                        tree.item(item[0], values=(system_name, int_value, data_type_display))
+                    else:
+                        # Remove entry if count is 0
+                        if system_name in bag.items[data_type_key]:
+                            del bag.items[data_type_key][system_name]
+                        # If no systems left, remove the data type
+                        if not bag.items[data_type_key]:
+                            del bag.items[data_type_key]
+                        # Remove the row
+                        tree.delete(item[0])
+
+                    # Update total
+                    total = bag.get_total()
+                    total_label.config(text=f"Total: {total} items")
+
+                    # Save to JSON
+                    from models.backpack import save_backpack
+                    save_backpack()
+                except ValueError:
+                    pass  # Invalid input, ignore
+                finally:
+                    entry.destroy()
+
+            def cancel_edit(event=None):
+                entry.destroy()
+
+            entry.bind("<Return>", save_edit)
+            entry.bind("<FocusOut>", save_edit)
+            entry.bind("<Escape>", cancel_edit)
+
+        tree.bind("<Double-Button-1>", on_double_click)
+
+        # Add "Add New Entry" button below table
+        add_button_frame = tk.Frame(frame, background=colors['bg'])
+        add_button_frame.pack(fill="x", pady=(5, 0))
+
+        def add_new_entry():
+            """Add a new entry to the backpack"""
+            # Create a dialog to get system name and data type
+            dialog = tk.Toplevel(backpack_window)
+            dialog.title("Add New Entry")
+            dialog.geometry("400x250")
+            dialog.configure(background=colors['bg'])
+            dialog.transient(backpack_window)
+            dialog.grab_set()
+
+            # Center the dialog
+            dialog.update_idletasks()
+            x = backpack_window.winfo_x() + (backpack_window.winfo_width() // 2) - (dialog.winfo_width() // 2)
+            y = backpack_window.winfo_y() + (backpack_window.winfo_height() // 2) - (dialog.winfo_height() // 2)
+            dialog.geometry(f"+{x}+{y}")
+
+            tk.Label(dialog, text="System Name:", background=colors['bg'], foreground=colors['fg']).pack(pady=(10, 5))
+            system_entry = tk.Entry(dialog, width=40)
+            system_entry.pack(pady=5)
+            system_entry.focus()
+
+            tk.Label(dialog, text="Data Type:", background=colors['bg'], foreground=colors['fg']).pack(pady=(10, 5))
+
+            # Get available data types for this bag
+            if bag.name == "undermining":
+                from ppdata.undermining import VALID_UNDERMINING_DATA_TYPES
+                data_types = VALID_UNDERMINING_DATA_TYPES
+            elif bag.name == "reinforcement":
+                from ppdata.reinforcement import VALID_REINFORCEMENT_DATA_TYPES
+                data_types = VALID_REINFORCEMENT_DATA_TYPES
+            else:  # acquisition
+                from ppdata.acquisition import VALID_ACQUISITION_DATA_TYPES
+                data_types = VALID_ACQUISITION_DATA_TYPES
+
+            data_type_var = tk.StringVar(dialog)
+            data_type_var.set(list(data_types.keys())[0])  # Default to first option
+            data_type_dropdown = ttk.Combobox(dialog, textvariable=data_type_var,
+                                             values=list(data_types.keys()), width=37, state="readonly")
+            data_type_dropdown.pack(pady=5)
+
+            tk.Label(dialog, text="Count:", background=colors['bg'], foreground=colors['fg']).pack(pady=(10, 5))
+            count_entry = tk.Entry(dialog, width=40)
+            count_entry.insert(0, "1")
+            count_entry.pack(pady=5)
+
+            def save_new_entry():
+                system_name = system_entry.get().strip()
+                data_type = data_type_var.get()
+                try:
+                    count = int(count_entry.get().strip())
+                    if system_name and count > 0:
+                        # Add to bag
+                        bag.add_item(data_type, count, system_name)
+
+                        # Add to tree
+                        display_name = display_name_func(data_type)
+                        row_index = len(tree.get_children(""))
+                        tag = "even" if row_index % 2 == 0 else "odd"
+                        tree.insert("", "end", values=(system_name, count, display_name),
+                                   tags=(tag,))
+
+                        # Update total
+                        total = bag.get_total()
+                        total_label.config(text=f"Total: {total} items")
+
+                        # Save to JSON
+                        from models.backpack import save_backpack
+                        save_backpack()
+
+                        dialog.destroy()
+                except ValueError:
+                    pass  # Invalid count
+
+            def cancel_new_entry():
+                dialog.destroy()
+
+            button_frame = tk.Frame(dialog, background=colors['bg'])
+            button_frame.pack(pady=20)
+
+            save_btn = RoundedButton(button_frame, "Add", save_new_entry, colors, width=80, height=28, radius=6)
+            save_btn.pack(side="left", padx=5)
+
+            cancel_btn = RoundedButton(button_frame, "Cancel", cancel_new_entry, colors, width=80, height=28, radius=6)
+            cancel_btn.pack(side="left", padx=5)
+
+            # Bind Enter to save
+            system_entry.bind("<Return>", lambda e: count_entry.focus())
+            count_entry.bind("<Return>", lambda e: save_new_entry())
+            dialog.bind("<Escape>", lambda e: cancel_new_entry())
+
+        add_button = RoundedButton(add_button_frame, "+ Add New Entry", add_new_entry, colors, width=120, height=28, radius=6)
+        add_button.pack(side="left", pady=5)
+
+        # Total label
+        total = bag.get_total()
+        total_label = tk.Label(add_button_frame, text=f"Total: {total} items",
+                              font=("Helvetica", 10, "bold"),
+                              background=colors['bg'], foreground=colors['fg'])
+        total_label.pack(side="right", pady=5)
+
+        return tree
+
+    # Create three tables
+    create_backpack_table(content_frame, "Undermining Data (UM)",
+                         playerBackpack.umbag, get_um_display_name)
+
+    create_backpack_table(content_frame, "Acquisition Data (ACQ)",
+                         playerBackpack.acqbag, get_acq_display_name)
+
+    create_backpack_table(content_frame, "Reinforcement Data",
+                         playerBackpack.reinfbag, get_reinf_display_name)
+
+    # Apply theme
+    apply_theme_to_widget(backpack_window, colors)

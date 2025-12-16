@@ -101,17 +101,25 @@ class Bag:
     def from_dict(self, data: dict):
         """Deserialize from dict"""
         self.items.clear()
-        for name, systems_data in data.items():
-            if isinstance(systems_data, dict):
-                # New format: {item: {system: count}}
-                self.items[name] = dict(systems_data)
+
+        # Handle both old and new formats
+        if isinstance(data, dict):
+            if "items" in data:
+                # New format (ignore cp_values if present)
+                for name, systems_data in data.get("items", {}).items():
+                    if isinstance(systems_data, dict):
+                        self.items[name] = dict(systems_data)
             else:
-                # Legacy format: {item: BackpackItem.to_dict()}
-                # Convert to new format
-                legacy_system = systems_data.get("system", "unknown")
-                legacy_count = systems_data.get("count", 0)
-                if legacy_count > 0:
-                    self.items[name] = {legacy_system: legacy_count}
+                # Old format: {item: {system: count}}
+                for name, systems_data in data.items():
+                    if isinstance(systems_data, dict):
+                        self.items[name] = dict(systems_data)
+                    else:
+                        # Legacy format: {item: BackpackItem.to_dict()}
+                        legacy_system = systems_data.get("system", "unknown")
+                        legacy_count = systems_data.get("count", 0)
+                        if legacy_count > 0:
+                            self.items[name] = {legacy_system: legacy_count}
 
 
 class Backpack:
