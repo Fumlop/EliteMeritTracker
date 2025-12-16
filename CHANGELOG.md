@@ -2,10 +2,19 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.018] - 2025-12-16
+
+### Fixed
+- **Progress Percentage Calculation**: Properly calculate progress percentages using CP thresholds
+  - Stronghold: Progress CP / 120000 * 100
+  - Fortified: Progress CP / 120000 * 100
+  - Exploited: Progress CP / 60000 * 100
+  - Now correctly shows 5.51% instead of 660761% for 6607 CP in Fortified system
+
 ## [v0.4.300.1.017] - 2025-12-16
 
 ### Fixed
-- **Progress Display**: Fixed progress percentage showing 660761% instead of 6607% - removed incorrect *100 multiplication since game already provides percentage values
+- **Progress Display**: Fixed progress percentage calculation (partial fix)
 
 ## [v0.4.300.1.016] - 2025-12-16
 

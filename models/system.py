@@ -2,6 +2,11 @@ import json
 from core.logging import logger
 from core.storage import load_json, save_json, get_file_path
 
+# PowerPlay CP thresholds for calculating progress percentages
+STRONGHOLD_CP_THRESHOLD = 120000
+FORTIFIED_CP_THRESHOLD = 120000
+EXPLOITED_CP_THRESHOLD = 60000
+
 class StarSystem:
     def __init__(self, eventEntry=None, commander: str = ""):
         if eventEntry is None:
@@ -83,11 +88,16 @@ class StarSystem:
         self.reported = bool(value)
 
     def getSystemProgressNumber(self):
-        """Get system progress as percentage (already in percentage from game)"""
-        if self.PowerplayState in ['Stronghold', 'Fortified', 'Exploited']:
-            return self.PowerplayStateControlProgress
+        """Get system progress as percentage"""
+        if self.PowerplayState == 'Stronghold':
+            return (self.PowerplayStateControlProgress / STRONGHOLD_CP_THRESHOLD) * 100
+        elif self.PowerplayState == 'Fortified':
+            return (self.PowerplayStateControlProgress / FORTIFIED_CP_THRESHOLD) * 100
+        elif self.PowerplayState == 'Exploited':
+            return (self.PowerplayStateControlProgress / EXPLOITED_CP_THRESHOLD) * 100
 
         if self.PowerplayConflictProgress:
+            # Conflict progress is already a percentage
             return self.PowerplayConflictProgress[0].progress
         return 0
 
