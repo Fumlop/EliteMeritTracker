@@ -12,6 +12,7 @@
 
 # Claude Instructions (AI optimization notes)
 claude-instruction.md
+who-am-i.md
 .claude/
 
 # User data (JSON files stored locally)
