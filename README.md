@@ -2,7 +2,7 @@
 
 EDMC Plugin to track Powerplay Merits in Elite Dangerous.
 
-![Main UI](https://github.com/user-attachments/assets/5a09ef25-42d3-427c-acb6-5f4a6d0c5cea)
+![Main UI](<img width="257" height="141" alt="grafik" src="https://github.com/user-attachments/assets/08e50d62-2a01-486b-b023-7c9257fed202" />)
 ![Detailed View](https://github.com/user-attachments/assets/82bbfbdd-5d0f-4082-a0ee-fe83f8fbd145)
 ![Settings](https://github.com/user-attachments/assets/b068658f-af1e-464e-bf60-95dcf886e8d0)
 
