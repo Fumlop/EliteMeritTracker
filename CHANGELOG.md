@@ -2,6 +2,20 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.016] - 2025-12-16
+
+### Added
+- **Backpack View Window**: New "Show Backpack" button on overview
+  - Three separate tables for Undermining, Acquisition, and Reinforcement data
+  - Displays System, Count, and Data Type columns
+  - Editable Count column (double-click to edit)
+  - Sortable columns (click headers to sort)
+  - Add New Entry button for manual data entry
+  - Auto-saves all changes to backpack.json
+
+### Changed
+- **Backpack Data Structure**: Simplified JSON format (removed CP values tracking)
+
 ## [v0.4.300.1.014] - 2025-12-16
 
 ### Fixed
