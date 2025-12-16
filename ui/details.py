@@ -1143,15 +1143,15 @@ def show_backpack_view(parent):
 
         return tree
 
-    # Create three tables
-    create_backpack_table(content_frame, "Undermining Data (UM)",
-                         playerBackpack.umbag, get_um_display_name)
+    # Create three tables (Reinforcement, Acquisition, Undermining)
+    create_backpack_table(content_frame, "Reinforcement Data",
+                         playerBackpack.reinfbag, get_reinf_display_name)
 
     create_backpack_table(content_frame, "Acquisition Data (ACQ)",
                          playerBackpack.acqbag, get_acq_display_name)
 
-    create_backpack_table(content_frame, "Reinforcement Data",
-                         playerBackpack.reinfbag, get_reinf_display_name)
+    create_backpack_table(content_frame, "Undermining Data (UM)",
+                         playerBackpack.umbag, get_um_display_name)
 
     # Apply theme
     apply_theme_to_widget(backpack_window, colors)
