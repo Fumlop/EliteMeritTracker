@@ -63,9 +63,9 @@ def delete_entry(system_name, table_frame, update_scrollregion):
         populate_table(table_frame, update_scrollregion)
 
         if main_tracker_frame:
-            from load import this
-            if this.currentSystemFlying and this.currentSystemFlying.StarSystem == system_name:
-                main_tracker_frame.update_display(this.currentSystemFlying)
+            from core.state import state
+            if state.current_system and state.current_system.StarSystem == system_name:
+                main_tracker_frame.update_display(state.current_system)
 
 
 def toggle_view():
@@ -334,8 +334,9 @@ def show_power_info(parent, pp, sy, tracker_frame=None):
 
     def on_close():
         global info_window
-        save_window_size(info_window)
-        info_window.destroy()
+        if info_window and info_window.winfo_exists():
+            save_window_size(info_window)
+            info_window.destroy()
         info_window = None
 
     info_window.protocol("WM_DELETE_WINDOW", on_close)
