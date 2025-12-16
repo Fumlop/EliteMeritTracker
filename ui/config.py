@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 import myNotebook as nb
 from core.config import configPlugin
 from core.logging import logger, plugin_name
@@ -191,7 +192,6 @@ def scan_for_duplicates(days, result_text_widget):
 def create_config_frame(parent, nb):
     config_frame = nb.Frame(parent)
     config_frame.columnconfigure(1, weight=1)
-    config_frame.grid(sticky=tk.EW)
 
     row = 0
     def next_config_row():
@@ -209,7 +209,7 @@ def create_config_frame(parent, nb):
         text="@MeritsValue, @System, @CPOpposition, @CPControlling"
     ).grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
     #logger.warning(f"config {configPlugin.copyText}")
-    nb.Entry(
+    ttk.Entry(
         config_frame,
         textvariable=configPlugin.copyText,
         width=50
@@ -219,7 +219,7 @@ def create_config_frame(parent, nb):
 
     nb.Label(config_frame, text="Discord webhook URL").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
 
-    nb.Entry(
+    ttk.Entry(
         config_frame,
         textvariable=configPlugin.discordHook,
         width=50
