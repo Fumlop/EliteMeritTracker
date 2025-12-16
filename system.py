@@ -118,20 +118,24 @@ class StarSystem:
         self.Opposition = self._safe_list(data.get("Opposition", []))
 
     def getPowerPlayCycleNetStatusText(self):
-        """Get formatted net status text"""
+        """Get formatted net status text showing difference between reinforcement and undermining"""
         if self.PowerplayStateReinforcement == 0 and self.PowerplayStateUndermining == 0:
             return "Neutral"
-            
+
         total = self.PowerplayStateReinforcement + self.PowerplayStateUndermining
         if total == 0:
             return "Neutral"
-            
-        if self.PowerplayStateReinforcement > self.PowerplayStateUndermining:
-            percentage = (self.PowerplayStateReinforcement / total) * 100
+
+        # NET is the difference between reinforcement and undermining as percentage of total
+        net_difference = self.PowerplayStateReinforcement - self.PowerplayStateUndermining
+        percentage = (net_difference / total) * 100
+
+        if net_difference > 0:
             return f"NET +{percentage:.2f}%"
+        elif net_difference < 0:
+            return f"NET {percentage:.2f}%"
         else:
-            percentage = (self.PowerplayStateUndermining / total) * 100
-            return f"NET -{percentage:.2f}%"
+            return "NET 0%"
 
     def getSystemStateText(self):
         """Get readable system state"""

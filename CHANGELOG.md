@@ -2,6 +2,11 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.011] - 2025-12-16
+
+### Fixed
+- **NET Calculation**: Fixed incorrect NET percentage in detailed view - now shows actual difference between reinforcement and undermining as percentage of total
+
 ## [v0.4.300.1.010] - 2025-12-15
 
 ### Changed
