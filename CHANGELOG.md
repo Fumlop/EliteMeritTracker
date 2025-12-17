@@ -2,6 +2,13 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.021] - 2025-12-17
+
+### Fixed
+- **Stronghold Progress Display**: Fixed bug where Stronghold/Fortified/Exploited systems showed 0.0% when PowerplayStateControlProgress was provided as a decimal percentage (0.0-1.0) instead of raw CP values
+  - Added logic to detect decimal percentage format (0 < x <= 1) and convert properly
+  - Systems now correctly display percentages regardless of data format from game journal
+
 ## [v0.4.300.1.020] - 2025-12-17
 
 ### Fixed

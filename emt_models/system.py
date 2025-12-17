@@ -90,10 +90,19 @@ class StarSystem:
     def getSystemProgressNumber(self):
         """Get system progress as percentage"""
         if self.PowerplayState == 'Stronghold':
+            # If value is already a decimal percentage (0 < x <= 1), convert to percentage
+            if 0 < self.PowerplayStateControlProgress <= 1:
+                return self.PowerplayStateControlProgress * 100
             return (self.PowerplayStateControlProgress / STRONGHOLD_CP_THRESHOLD) * 100
         elif self.PowerplayState == 'Fortified':
+            # If value is already a decimal percentage (0 < x <= 1), convert to percentage
+            if 0 < self.PowerplayStateControlProgress <= 1:
+                return self.PowerplayStateControlProgress * 100
             return (self.PowerplayStateControlProgress / FORTIFIED_CP_THRESHOLD) * 100
         elif self.PowerplayState == 'Exploited':
+            # If value is already a decimal percentage (0 < x <= 1), convert to percentage
+            if 0 < self.PowerplayStateControlProgress <= 1:
+                return self.PowerplayStateControlProgress * 100
             return (self.PowerplayStateControlProgress / EXPLOITED_CP_THRESHOLD) * 100
 
         if self.PowerplayConflictProgress:
