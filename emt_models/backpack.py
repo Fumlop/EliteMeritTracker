@@ -1,9 +1,9 @@
 # models/backpack.py - Player Backpack for tracking PowerPlay data collection
-from core.logging import logger
-from core.storage import load_json, save_json
-from ppdata.undermining import is_valid_um_data, get_um_display_name
-from ppdata.reinforcement import is_valid_reinf_data, get_reinf_display_name
-from ppdata.acquisition import is_valid_acq_data, get_acq_display_name
+from emt_core.logging import logger
+from emt_core.storage import load_json, save_json
+from emt_ppdata.undermining import is_valid_um_data, get_um_display_name
+from emt_ppdata.reinforcement import is_valid_reinf_data, get_reinf_display_name
+from emt_ppdata.acquisition import is_valid_acq_data, get_acq_display_name
 
 
 class Bag:

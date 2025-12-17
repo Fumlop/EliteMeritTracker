@@ -1,4 +1,4 @@
-from core.logging import logger
+from emt_core.logging import logger
 
 class Cargo:
     def __init__(self, name: str, count: int = 1):

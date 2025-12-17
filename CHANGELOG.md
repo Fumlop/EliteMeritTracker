@@ -2,6 +2,17 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.019] - 2025-12-17
+
+### Changed
+- **Plugin Structure**: Renamed folders to avoid EDMC plugin loading conflicts
+  - `ui/` → `emt_ui/`
+  - `core/` → `emt_core/`
+  - `models/` → `emt_models/`
+  - `ppdata/` → `emt_ppdata/`
+  - Auto-cleanup of old folders on startup (backed up to `backup_legacy/`)
+  - Fixes import conflicts when other plugins use generic folder names
+
 ## [v0.4.300.1.018] - 2025-12-16
 
 ### Fixed

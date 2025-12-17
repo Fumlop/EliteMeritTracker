@@ -1,8 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 import myNotebook as nb
-from core.config import configPlugin
-from core.logging import logger, plugin_name
+from emt_core.config import configPlugin
+from emt_core.logging import logger, plugin_name
 
 # Simple duplicate scanner that shows results in config window
 def scan_for_duplicates(days, result_text_widget):

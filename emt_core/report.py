@@ -1,6 +1,6 @@
 import requests
-from core.logging import logger
-from core.config import configPlugin
+from emt_core.logging import logger
+from emt_core.config import configPlugin
 
 class Report:
     def send_to_discord(self, message: str) -> bool:

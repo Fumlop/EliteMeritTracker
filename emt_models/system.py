@@ -1,6 +1,6 @@
 import json
-from core.logging import logger
-from core.storage import load_json, save_json, get_file_path
+from emt_core.logging import logger
+from emt_core.storage import load_json, save_json, get_file_path
 
 # PowerPlay CP thresholds for calculating progress percentages
 STRONGHOLD_CP_THRESHOLD = 120000

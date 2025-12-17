@@ -2,7 +2,7 @@
 import json
 import os
 import shutil
-from core.logging import logger
+from emt_core.logging import logger
 
 # Data directory for JSON files
 DATA_DIR = "data"

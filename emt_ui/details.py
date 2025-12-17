@@ -4,11 +4,11 @@ import csv
 
 from config import config, appname
 from theme import theme
-from core.report import Report, report
-from models.system import systems
-from models.power import pledgedPower
-from core.config import configPlugin
-from core.logging import logger, plugin_name
+from emt_core.report import Report, report
+from emt_models.system import systems
+from emt_models.power import pledgedPower
+from emt_core.config import configPlugin
+from emt_core.logging import logger, plugin_name
 from typing import Dict, Any, List, Optional
 
 # Global GUI variables
@@ -64,7 +64,7 @@ def delete_entry(system_name, table_frame, update_scrollregion):
         populate_table(table_frame, update_scrollregion)
 
         if main_tracker_frame:
-            from core.state import state
+            from emt_core.state import state
             if state.current_system and state.current_system.StarSystem == system_name:
                 main_tracker_frame.update_display(state.current_system)
 
@@ -802,10 +802,10 @@ backpack_window = None
 def show_backpack_view(parent):
     """Show backpack contents in a new window with three tables for UM, ACQ, and Reinforcement"""
     global backpack_window
-    from models.backpack import playerBackpack
-    from ppdata.undermining import get_um_display_name
-    from ppdata.reinforcement import get_reinf_display_name
-    from ppdata.acquisition import get_acq_display_name
+    from emt_models.backpack import playerBackpack
+    from emt_ppdata.undermining import get_um_display_name
+    from emt_ppdata.reinforcement import get_reinf_display_name
+    from emt_ppdata.acquisition import get_acq_display_name
 
     # Close existing window if open
     if backpack_window and backpack_window.winfo_exists():
@@ -1021,7 +1021,7 @@ def show_backpack_view(parent):
                     total_label.config(text=f"Total: {total} items")
 
                     # Save to JSON
-                    from models.backpack import save_backpack
+                    from emt_models.backpack import save_backpack
                     save_backpack()
                 except ValueError:
                     pass  # Invalid input, ignore
@@ -1066,13 +1066,13 @@ def show_backpack_view(parent):
 
             # Get available data types for this bag
             if bag.name == "undermining":
-                from ppdata.undermining import VALID_UNDERMINING_DATA_TYPES
+                from emt_ppdata.undermining import VALID_UNDERMINING_DATA_TYPES
                 data_types = VALID_UNDERMINING_DATA_TYPES
             elif bag.name == "reinforcement":
-                from ppdata.reinforcement import VALID_REINFORCEMENT_DATA_TYPES
+                from emt_ppdata.reinforcement import VALID_REINFORCEMENT_DATA_TYPES
                 data_types = VALID_REINFORCEMENT_DATA_TYPES
             else:  # acquisition
-                from ppdata.acquisition import VALID_ACQUISITION_DATA_TYPES
+                from emt_ppdata.acquisition import VALID_ACQUISITION_DATA_TYPES
                 data_types = VALID_ACQUISITION_DATA_TYPES
 
             data_type_var = tk.StringVar(dialog)
@@ -1107,7 +1107,7 @@ def show_backpack_view(parent):
                         total_label.config(text=f"Total: {total} items")
 
                         # Save to JSON
-                        from models.backpack import save_backpack
+                        from emt_models.backpack import save_backpack
                         save_backpack()
 
                         dialog.destroy()

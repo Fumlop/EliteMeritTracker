@@ -7,21 +7,21 @@ import io
 import re
 from typing import Dict, Any
 
-from core.report import report
-from models.system import systems, StarSystem, loadSystems, dumpSystems
-from models.salvage import Salvage, salvageInventory, save_salvage, load_salvage, VALID_POWERPLAY_SALVAGE_TYPES
-from models.power import pledgedPower
-from ui.main import TrackerFrame
-from core.duplicate import track_journal_event, process_powerplay_event, reset_duplicate_tracking
-from core.config import configPlugin
-from core.logging import logger
+from emt_core.report import report
+from emt_models.system import systems, StarSystem, loadSystems, dumpSystems
+from emt_models.salvage import Salvage, salvageInventory, save_salvage, load_salvage, VALID_POWERPLAY_SALVAGE_TYPES
+from emt_models.power import pledgedPower
+from emt_ui.main import TrackerFrame
+from emt_core.duplicate import track_journal_event, process_powerplay_event, reset_duplicate_tracking
+from emt_core.config import configPlugin
+from emt_core.logging import logger
 from config import config, appname
-from ui.config import create_config_frame
-from models.backpack import playerBackpack, save_backpack, load_backpack
-from ppdata.undermining import is_valid_um_data
-from ppdata.reinforcement import is_valid_reinf_data
-from ppdata.acquisition import is_valid_acq_data
-from core.state import state
+from emt_ui.config import create_config_frame
+from emt_models.backpack import playerBackpack, save_backpack, load_backpack
+from emt_ppdata.undermining import is_valid_um_data
+from emt_ppdata.reinforcement import is_valid_reinf_data
+from emt_ppdata.acquisition import is_valid_acq_data
+from emt_core.state import state
 
 # Module globals
 trackerFrame = None
@@ -66,15 +66,24 @@ LEGACY_FILES_TO_REMOVE = [
     "systems.json", "power.json", "backpack.json", "salvage.json",  # migrated to data/
 ]
 
+# Legacy folders that have been renamed to avoid EDMC plugin loading conflicts
+LEGACY_FOLDERS_TO_REMOVE = [
+    "ui",      # renamed to emt_ui
+    "core",    # renamed to emt_core
+    "models",  # renamed to emt_models
+    "ppdata",  # renamed to emt_ppdata
+]
+
 
 def _cleanup_legacy_files(plugin_dir):
-    """Backup and remove legacy files that have been moved to subfolders.
+    """Backup and remove legacy files/folders that have been moved or renamed.
 
     JSON files are already migrated to data/ by storage.py before this runs.
     """
     backup_dir = os.path.join(plugin_dir, "backup_legacy")
     files_backed_up = False
 
+    # Clean up legacy files
     for filename in LEGACY_FILES_TO_REMOVE:
         filepath = os.path.join(plugin_dir, filename)
         if os.path.exists(filepath):
@@ -90,6 +99,25 @@ def _cleanup_legacy_files(plugin_dir):
                 logger.info(f"Backed up legacy file: {filename}")
             except Exception as e:
                 logger.warning(f"Failed to backup legacy file {filename}: {e}")
+
+    # Clean up legacy folders (renamed to avoid EDMC conflicts)
+    for foldername in LEGACY_FOLDERS_TO_REMOVE:
+        folderpath = os.path.join(plugin_dir, foldername)
+        if os.path.exists(folderpath) and os.path.isdir(folderpath):
+            try:
+                # Create backup directory if needed
+                if not files_backed_up:
+                    os.makedirs(backup_dir, exist_ok=True)
+                    files_backed_up = True
+
+                # Move folder to backup
+                backup_path = os.path.join(backup_dir, foldername)
+                if os.path.exists(backup_path):
+                    shutil.rmtree(backup_path)
+                shutil.move(folderpath, backup_path)
+                logger.info(f"Backed up legacy folder: {foldername}")
+            except Exception as e:
+                logger.warning(f"Failed to backup legacy folder {foldername}: {e}")
 
 
 def _download_and_extract_update(zip_url):
@@ -289,6 +317,10 @@ def checkVersion():
 
 def plugin_start3(plugin_dir):
     logger.info("EliteMeritTracker plugin starting")
+
+    # Clean up legacy folders/files from older versions
+    _cleanup_legacy_files(plugin_dir)
+
     configPlugin.loadConfig()
     state.newest = checkVersion()
     loadSystems()

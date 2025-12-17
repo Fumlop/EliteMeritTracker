@@ -1,5 +1,5 @@
-from core.logging import logger
-from core.storage import load_json, save_json
+from emt_core.logging import logger
+from emt_core.storage import load_json, save_json
 from .system import StarSystem
 from .ppcargo import Cargo
 

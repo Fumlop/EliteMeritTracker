@@ -2,14 +2,14 @@
 
 import tkinter as tk
 from PIL import Image, ImageTk
-from models.power import pledgedPower
-from models.system import systems
+from emt_models.power import pledgedPower
+from emt_models.system import systems
 import os
 from config import config
 from theme import theme
-from core.logging import logger
-from ui.details import show_power_info
-from core.state import state
+from emt_core.logging import logger
+from emt_ui.details import show_power_info
+from emt_core.state import state
 
 
 def get_theme_colors():
