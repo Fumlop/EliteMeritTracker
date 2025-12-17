@@ -2,6 +2,11 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.020] - 2025-12-17
+
+### Fixed
+- **Unoccupied System Display**: Systems with progress below 30% now correctly show as "Unoccupied X% by Power" instead of "Exploited X% by Power"
+
 ## [v0.4.300.1.019] - 2025-12-17
 
 ### Changed

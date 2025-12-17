@@ -162,10 +162,11 @@ class StarSystem:
             progress = self.PowerplayConflictProgress[0].progress
             if progress > 100.00:
                 return 'Controlled'
-            elif progress < 30.00 and progress > 0.00:
-                return 'Exploited'
-            else:
+            elif progress >= 30.00:
                 return 'Contested'
+            else:
+                # Below contested threshold, still unoccupied
+                return 'Unoccupied'
                 
         return self.PowerplayState
 
