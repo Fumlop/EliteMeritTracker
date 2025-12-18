@@ -11,6 +11,7 @@ class PluginState:
         # System state
         self.current_system = None  # Currently flying StarSystem object
         self.commander = ""
+        self.need_location_validation = False  # True after restart, cleared after first Location/FSDJump
 
         # UI state
         self.parent = None

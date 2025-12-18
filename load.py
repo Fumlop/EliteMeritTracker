@@ -154,8 +154,13 @@ def _download_and_extract_update(zip_url):
             logger.error("Extracted directory not found")
             return False
 
-        # Copy files to plugin directory
+        # Copy files to plugin directory (but protect data/ directory)
         for item in os.listdir(extracted_subdir):
+            # Skip data/ directory to preserve user data
+            if item == "data":
+                logger.info("Skipping data/ directory during update to preserve user data")
+                continue
+
             src_path = os.path.join(extracted_subdir, item)
             dest_path = os.path.join(plugin_dir, item)
 
@@ -329,6 +334,10 @@ def plugin_start3(plugin_dir):
     for system in systems.values():
         if system.Active:
             state.current_system = system
+            # Mark that we need to validate location on first journal event
+            # (player may have moved while EDMC was down)
+            state.need_location_validation = True
+            logger.info(f"Restored active system: {system.StarSystem} (will validate on first location event)")
     pledgedPower.loadPower()
     logger.info(f"Plugin initialized - Systems: {len(systems)}, Power: {pledgedPower.Power}")
         
@@ -594,6 +603,18 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
     if entry['event'] in ['FSDJump', 'Location'] or (entry['event'] in ['CarrierJump'] and entry['Docked'] == True):
         nameSystem = entry.get('StarSystem', "Nomansland")
+
+        # Validate restored current_system after EDMC restart
+        if state.need_location_validation:
+            state.need_location_validation = False
+            if state.current_system and state.current_system.StarSystem != nameSystem:
+                logger.warning(
+                    f"Location mismatch after restart: restored '{state.current_system.StarSystem}' "
+                    f"but player is actually in '{nameSystem}'. Correcting."
+                )
+                # Mark old system as inactive
+                systems[state.current_system.StarSystem].Active = False
+
         if not systems or len(systems) == 0 or nameSystem not in systems:
             new_system = StarSystem(eventEntry=entry)
             new_system.setReported(False)

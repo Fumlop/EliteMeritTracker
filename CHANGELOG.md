@@ -2,6 +2,21 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.022] - 2025-12-18
+
+### Fixed
+- **Data Corruption Prevention**: Implemented atomic JSON writes to prevent data loss if EDMC crashes during save
+  - Uses temp file + rename pattern for atomic operations
+  - Creates backup files before overwriting
+  - Ensures original data remains intact if write fails
+- **Location Validation**: Added validation after EDMC restart to prevent merit misattribution
+  - Detects when player moved systems while EDMC was down
+  - Logs warning and corrects system mismatch automatically
+  - Prevents merits being attributed to wrong system
+- **Autoupdate Data Protection**: Protected data/ directory from being overwritten during plugin autoupdate
+  - Explicitly skips data/ directory when copying update files
+  - Prevents accidental user data loss during updates
+
 ## [v0.4.300.1.021] - 2025-12-17
 
 ### Fixed

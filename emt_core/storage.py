@@ -86,7 +86,10 @@ def load_json(filename: str, default=None):
 
 
 def save_json(filename: str, data, encoder=None, indent=4) -> bool:
-    """Save data to JSON file.
+    """Save data to JSON file with atomic write to prevent corruption.
+
+    Uses temp file + rename pattern to ensure atomicity. If save fails mid-write,
+    the original file remains intact. Creates backup before overwriting.
 
     Args:
         filename: Name of the JSON file in plugin directory
@@ -98,14 +101,36 @@ def save_json(filename: str, data, encoder=None, indent=4) -> bool:
         True if save succeeded, False otherwise
     """
     filepath = get_file_path(filename)
+    temp_path = filepath + ".tmp"
+    backup_path = filepath + ".backup"
 
     try:
-        with open(filepath, "w", encoding="utf-8") as f:
+        # Write to temporary file first
+        with open(temp_path, "w", encoding="utf-8") as f:
             if encoder:
                 json.dump(data, f, cls=encoder, indent=indent)
             else:
                 json.dump(data, f, indent=indent)
+
+        # Create backup of existing file before overwriting
+        if os.path.exists(filepath):
+            try:
+                shutil.copy2(filepath, backup_path)
+            except Exception as backup_error:
+                logger.warning(f"Failed to create backup of {filename}: {backup_error}")
+                # Continue anyway - temp file write succeeded
+
+        # Atomic rename (replaces existing file)
+        # On Windows, os.replace() is atomic if temp and target are on same drive
+        os.replace(temp_path, filepath)
         return True
+
     except Exception as e:
         logger.error(f"Failed to save {filename}: {e}", exc_info=True)
+        # Clean up temp file if it exists
+        try:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+        except Exception:
+            pass
         return False
