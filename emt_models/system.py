@@ -69,9 +69,10 @@ class StarSystem:
         if self.PowerplayState in ['Stronghold', 'Fortified', 'Exploited']:
             undermining = self.PowerplayStateUndermining if len(self.Powers) > 1 else 0
             return [self.PowerplayStateReinforcement, undermining]
-        
+
         if self.PowerplayConflictProgress:
-            return [self.PowerplayConflictProgress[0].progress, 0]
+            # Convert decimal to percentage
+            return [self.PowerplayConflictProgress[0].progress * 100, 0]
         return [0, 0]
 
     def updateSystem(self, eventEntry: dict = {}):
@@ -106,8 +107,8 @@ class StarSystem:
             return (self.PowerplayStateControlProgress / EXPLOITED_CP_THRESHOLD) * 100
 
         if self.PowerplayConflictProgress:
-            # Conflict progress is already a percentage
-            return self.PowerplayConflictProgress[0].progress
+            # Conflict progress is provided as decimal (0.0-1.0), convert to percentage
+            return self.PowerplayConflictProgress[0].progress * 100
         return 0
 
     def to_dict(self):
@@ -168,7 +169,8 @@ class StarSystem:
             if not self.PowerplayConflictProgress:
                 return 'Unoccupied'
 
-            progress = self.PowerplayConflictProgress[0].progress
+            # Convert decimal (0.0-1.0) to percentage for threshold comparison
+            progress = self.PowerplayConflictProgress[0].progress * 100
             if progress > 100.00:
                 return 'Controlled'
             elif progress >= 30.00:

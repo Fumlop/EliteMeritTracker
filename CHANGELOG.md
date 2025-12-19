@@ -2,6 +2,15 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.023] - 2025-12-19
+
+### Fixed
+- **Unoccupied System Progress Display**: Fixed bug where PowerplayConflictProgress was treated as percentage instead of decimal
+  - Journal provides ConflictProgress as decimal (0.0-1.0), now correctly converted to percentage
+  - Systems now show correct progress: "Unoccupied 19.82%" instead of "Unoccupied 0.02%"
+  - Fixed threshold comparisons for Contested (30%) and Controlled (100%) states
+  - Affects all three usages: display percentage, state classification, and cycle net value
+
 ## [v0.4.300.1.022] - 2025-12-18
 
 ### Fixed
