@@ -2,6 +2,23 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.024] - 2025-12-21
+
+### Added
+- **System Information Display**: Added Row 7 showing system allegiance, government, and population
+  - Format: "Federation (Democracy) - Pop: 4.1M"
+  - Population formatting: Shows complete numbers <100K, then uses K/M/B suffixes
+  - All data extracted from FSDJump events (no external file dependencies)
+  - Added SystemAllegiance, SystemGovernment, and Population fields to StarSystem model
+  - Data persists through to_dict/from_dict serialization
+
+### Added
+- **Data Analysis Documentation**: Created DATA_CHECK.md analyzing all available journal data
+  - Documents currently used vs. available data in FSDJump events
+  - Identifies PowerPlay-relevant data vs. irrelevant data (mining, market prices)
+  - Provides recommendations for future enhancements
+  - Confirms economy/security data comes from journal events (no external lookup needed)
+
 ## [v0.4.300.1.023] - 2025-12-19
 
 ### Fixed

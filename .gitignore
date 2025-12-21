@@ -17,6 +17,10 @@ who-am-i.md
 
 # User data (JSON files stored locally)
 
+# System game data (too large for git, distributed via releases)
+system_data/systems-game-data.json
+system_data/systems-game-data.json.gz
+
 #Visual Studio
 .vs/*
 

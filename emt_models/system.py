@@ -34,7 +34,13 @@ class StarSystem:
             'PowerplayStateControlProgress': 0.0,
             'PowerplayStateReinforcement': 0,
             'PowerplayStateUndermining': 0,
-            'reported': False
+            'reported': False,
+            'PrimaryEconomy': None,
+            'SecondaryEconomy': None,
+            'SystemSecurity': None,
+            'SystemAllegiance': None,
+            'SystemGovernment': None,
+            'Population': None
         }
         for key, value in defaults.items():
             setattr(self, key, value)
@@ -45,12 +51,35 @@ class StarSystem:
         self.ControllingPower = str(eventEntry.get("ControllingPower", "no power"))
         self.Powers = self._safe_list(eventEntry.get("Powers", []))
         self.Opposition = [p for p in self.Powers if p != self.ControllingPower]
-        
+
         conflict_data = eventEntry.get("PowerplayConflictProgress", [])
         self.PowerplayConflictProgress = self._process_conflict_data(conflict_data)
         self.PowerplayStateControlProgress = float(eventEntry.get("PowerplayStateControlProgress", 0.0))
         self.PowerplayStateReinforcement = int(eventEntry.get("PowerplayStateReinforcement", 0))
         self.PowerplayStateUndermining = int(eventEntry.get("PowerplayStateUndermining", 0))
+
+        # Extract economy and security from FSDJump/Location events
+        self.PrimaryEconomy = eventEntry.get("SystemEconomy_Localised")
+        self.SecondaryEconomy = eventEntry.get("SystemSecondEconomy_Localised")
+
+        # Extract security level (parse from "$SYSTEM_SECURITY_low;" format)
+        system_security = eventEntry.get("SystemSecurity", "")
+        if system_security:
+            # Extract just the security level (e.g., "low", "medium", "high")
+            self.SystemSecurity = self._parse_security_level(system_security)
+
+        # Extract allegiance, government, and population
+        self.SystemAllegiance = eventEntry.get("SystemAllegiance")
+        self.SystemGovernment = eventEntry.get("SystemGovernment_Localised")
+        self.Population = eventEntry.get("Population")
+
+    def _parse_security_level(self, security_string):
+        """Parse security level from game format like '$SYSTEM_SECURITY_low;'"""
+        if not security_string:
+            return None
+        # Remove prefix and suffix, capitalize first letter
+        security = security_string.replace("$SYSTEM_SECURITY_", "").replace(";", "").strip()
+        return security.capitalize() if security else None
 
     def _process_conflict_data(self, conflict_data):
         """Process and sort conflict progress data"""
@@ -113,7 +142,7 @@ class StarSystem:
 
     def to_dict(self):
         """Convert to dictionary for JSON serialization"""
-        return {
+        result = {
             "StarSystem": self.StarSystem,
             "Merits": self.Merits,
             "Active": self.Active,
@@ -127,6 +156,20 @@ class StarSystem:
             "PowerplayStateUndermining": self.PowerplayStateUndermining,
             "reported": self.reported
         }
+        # Include economy, security, allegiance, government, and population if they exist
+        if hasattr(self, 'PrimaryEconomy') and self.PrimaryEconomy:
+            result["PrimaryEconomy"] = self.PrimaryEconomy
+        if hasattr(self, 'SecondaryEconomy') and self.SecondaryEconomy:
+            result["SecondaryEconomy"] = self.SecondaryEconomy
+        if hasattr(self, 'SystemSecurity') and self.SystemSecurity:
+            result["SystemSecurity"] = self.SystemSecurity
+        if hasattr(self, 'SystemAllegiance') and self.SystemAllegiance:
+            result["SystemAllegiance"] = self.SystemAllegiance
+        if hasattr(self, 'SystemGovernment') and self.SystemGovernment:
+            result["SystemGovernment"] = self.SystemGovernment
+        if hasattr(self, 'Population') and self.Population:
+            result["Population"] = self.Population
+        return result
 
     def from_dict(self, data: dict = {}):
         """Load from dictionary"""
@@ -136,6 +179,13 @@ class StarSystem:
         self.reported = bool(data.get("reported", False))
         self._update_from_entry(data)
         self.Opposition = self._safe_list(data.get("Opposition", []))
+        # Load economy, security, allegiance, government, and population if they were saved
+        self.PrimaryEconomy = data.get("PrimaryEconomy", None)
+        self.SecondaryEconomy = data.get("SecondaryEconomy", None)
+        self.SystemSecurity = data.get("SystemSecurity", None)
+        self.SystemAllegiance = data.get("SystemAllegiance", None)
+        self.SystemGovernment = data.get("SystemGovernment", None)
+        self.Population = data.get("Population", None)
 
     def getPowerPlayCycleNetStatusText(self):
         """Get formatted net status text showing difference between reinforcement and undermining"""
@@ -200,8 +250,9 @@ class StarSystem:
                     return [arr[0], arr[1]]
                 elif len(arr) == 1:
                     return [arr[0], ""]
-                    
+
         return ["NoPower", ""]
+
 
 
 class PowerConflictEntry:

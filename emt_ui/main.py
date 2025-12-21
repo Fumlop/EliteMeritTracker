@@ -140,6 +140,65 @@ class TrackerFrame:
                 self.widgets['netLabel']['text'] = "Conflict in progress"
                 self.widgets['netLabel']['fg'] = '#ffaa00'  # Orange for conflict
 
+            # Show economy and security if available
+            primary = getattr(currentSystemFlying, 'PrimaryEconomy', None)
+            secondary = getattr(currentSystemFlying, 'SecondaryEconomy', None)
+            security = getattr(currentSystemFlying, 'SystemSecurity', None)
+
+            if 'economySecurityLabel' in self.widgets:
+                parts = []
+
+                # Build economy part
+                if primary:
+                    if secondary and secondary != "None":
+                        parts.append(f"{primary} / {secondary}")
+                    else:
+                        parts.append(f"{primary}")
+
+                # Add security part
+                if security:
+                    parts.append(f"Security: {security}")
+
+                # Combine parts with " - " separator
+                if parts:
+                    self.widgets['economySecurityLabel']['text'] = " - ".join(parts)
+                    self.widgets['economySecurityLabel']['fg'] = colors['fg']
+                else:
+                    self.widgets['economySecurityLabel']['text'] = ""
+
+            # Show allegiance, government, and population if available
+            allegiance = getattr(currentSystemFlying, 'SystemAllegiance', None)
+            government = getattr(currentSystemFlying, 'SystemGovernment', None)
+            population = getattr(currentSystemFlying, 'Population', None)
+
+            if 'allegianceGovPopLabel' in self.widgets:
+                parts = []
+
+                # Format: Federation (Democracy) - Pop: 4.1M
+                if allegiance:
+                    if government:
+                        parts.append(f"{allegiance} ({government})")
+                    else:
+                        parts.append(f"{allegiance}")
+
+                # Format population
+                if population and population > 0:
+                    if population >= 1_000_000_000:  # Billions
+                        pop_str = f"Pop: {population / 1_000_000_000:.1f}B"
+                    elif population >= 1_000_000:  # Millions
+                        pop_str = f"Pop: {population / 1_000_000:.1f}M"
+                    elif population >= 100_000:  # 100K+
+                        pop_str = f"Pop: {population / 1_000:.1f}K"
+                    else:  # < 100K: show complete number
+                        pop_str = f"Pop: {population:,}"
+                    parts.append(pop_str)
+
+                if parts:
+                    self.widgets['allegianceGovPopLabel']['text'] = " - ".join(parts)
+                    self.widgets['allegianceGovPopLabel']['fg'] = colors['fg']
+                else:
+                    self.widgets['allegianceGovPopLabel']['text'] = ""
+
         except KeyError as e:
             logger.debug(f"KeyError for current system '{currentSystemFlying}': {e}")
 
@@ -155,8 +214,8 @@ class TrackerFrame:
         # Create main frame
         self.frame = tk.Frame(self.parent, name="eliteMeritTrackerComponentframe")
 
-        # Create row frames
-        for i in range(1, 8):
+        # Create row frames (now with 2 extra rows for economy and reserve level)
+        for i in range(1, 10):
             frame_name = f"frame_row{i}"
             self.frames[frame_name] = tk.Frame(self.frame, name=f"eliteMeritTrackerComponentframe_row{i}")
             sticky = "we" if i == 6 else "w"
@@ -246,6 +305,18 @@ class TrackerFrame:
             anchor="w", justify="left", name="eliteMeritTrackerComponentsystemPowerStatusLabel"
         )
 
+        # Row 6: Economy types and Security (Primary / Secondary - Security: Level)
+        self.widgets['economySecurityLabel'] = tk.Label(
+            self.frames['frame_row6'], text="", fg=colors['fg'],
+            anchor="w", justify="left", name="eliteMeritTrackerComponenteconomySecurityLabel"
+        )
+
+        # Row 7: Allegiance, Government, and Population
+        self.widgets['allegianceGovPopLabel'] = tk.Label(
+            self.frames['frame_row7'], text="", fg=dim_color,
+            anchor="w", justify="left", name="eliteMeritTrackerComponentallegianceGovPopLabel"
+        )
+
         # Load and scale icon
         scale = self.get_scale_factor(self.parent.winfo_toplevel().winfo_screenwidth(),
                                       self.parent.winfo_toplevel().winfo_screenheight())
@@ -264,16 +335,18 @@ class TrackerFrame:
         self.widgets['totalLabel'].grid(row=0, column=2, sticky='w', padx=0, pady=0)
         self.widgets['totalValue'].grid(row=0, column=3, sticky='w', padx=(2, 0), pady=0)
 
-        # Grid Row 3-5
+        # Grid Row 3-7
         self.widgets['currentSystemLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
         self.widgets['meritsGainedLabel'].grid(row=0, column=1, sticky='w', padx=(5, 0), pady=0)
         self.widgets['stateWord'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
         self.widgets['stateDetails'].grid(row=0, column=1, sticky='w', padx=0, pady=0)
         self.widgets['netLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
+        self.widgets['economySecurityLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
+        self.widgets['allegianceGovPopLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
 
-        # Create buttons
+        # Create buttons (moved to row 8)
         self.widgets['resetButton'] = tk.Button(
-            self.frames['frame_row6'], image=self.icondelete, command=reset,
+            self.frames['frame_row8'], image=self.icondelete, command=reset,
             state=stateButton, name="eliteMeritTrackerComponentresetButton"
         )
         self.widgets['resetButton'].pack(side="right", padx=0, pady=2)
@@ -281,7 +354,7 @@ class TrackerFrame:
         # Update button (if needed)
         if self.newest == 1:
             self.widgets['updateButton'] = tk.Button(
-                self.frames['frame_row6'], text="Update Available", command=auto_update,
+                self.frames['frame_row8'], text="Update Available", command=auto_update,
                 fg="red", font=("Arial", 10, "bold"), state=tk.NORMAL,
                 compound="right", name="eliteMeritTrackerComponentupdateButton"
             )
@@ -289,7 +362,7 @@ class TrackerFrame:
 
         # Show button
         self.widgets['showButton'] = tk.Button(
-            self.frames['frame_row6'], text="Overview",
+            self.frames['frame_row8'], text="Overview",
             command=lambda: show_power_info(self.parent, pledgedPower, systems, self),
             state=stateButton, compound="center", name="eliteMeritTrackerComponentshowButton"
         )
