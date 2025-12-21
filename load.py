@@ -5,6 +5,7 @@ import zipfile
 import myNotebook as nb
 import io
 import re
+import gzip
 from typing import Dict, Any
 
 from emt_core.report import report
@@ -120,7 +121,58 @@ def _cleanup_legacy_files(plugin_dir):
                 logger.warning(f"Failed to backup legacy folder {foldername}: {e}")
 
 
-def _download_and_extract_update(zip_url):
+def _download_system_game_data(release_data):
+    """Download systems-game-data.json.gz from release assets and decompress"""
+    try:
+        assets = release_data.get('assets', [])
+        game_data_asset = None
+
+        # Find systems-game-data.json.gz in release assets
+        for asset in assets:
+            if asset.get('name') == 'systems-game-data.json.gz':
+                game_data_asset = asset
+                break
+
+        if not game_data_asset:
+            logger.warning("systems-game-data.json.gz not found in release assets, skipping")
+            return False
+
+        download_url = game_data_asset.get('browser_download_url')
+        if not download_url:
+            logger.error("No download URL for systems-game-data.json.gz")
+            return False
+
+        file_size_mb = game_data_asset.get('size', 0) / (1024*1024)
+        logger.info(f"Downloading systems-game-data.json.gz ({file_size_mb:.1f}MB)...")
+
+        # Download the compressed file
+        response = requests.get(download_url, timeout=60)
+        if response.status_code != 200:
+            logger.error(f"Failed to download systems-game-data.json.gz: HTTP {response.status_code}")
+            return False
+
+        # Decompress and save to system_data folder
+        plugin_dir = os.path.dirname(os.path.abspath(__file__))
+        system_data_dir = os.path.join(plugin_dir, "system_data")
+        os.makedirs(system_data_dir, exist_ok=True)
+
+        dest_file = os.path.join(system_data_dir, "systems-game-data.json")
+
+        logger.info("Decompressing systems-game-data.json.gz...")
+        decompressed_data = gzip.decompress(response.content)
+
+        with open(dest_file, 'wb') as f:
+            f.write(decompressed_data)
+
+        logger.info(f"systems-game-data.json updated successfully ({len(decompressed_data) // (1024*1024)}MB decompressed)")
+        return True
+
+    except Exception as e:
+        logger.exception("Error downloading systems-game-data.json.gz")
+        return False
+
+
+def _download_and_extract_update(zip_url, release_data=None):
     """Download and extract update ZIP"""
     try:
         zip_response = requests.get(zip_url, timeout=30)
@@ -133,7 +185,7 @@ def _download_and_extract_update(zip_url):
 
         # Clean up legacy files before extracting new structure
         _cleanup_legacy_files(plugin_dir)
-        
+
         # Clean previous temp directory
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
@@ -177,6 +229,11 @@ def _download_and_extract_update(zip_url):
         except Exception as e:
             logger.warning(f"Failed to delete temp_update folder: {e}")
 
+        # Download systems-game-data.json from release assets if available
+        # DISABLED: Economy/security now comes from FSDJump events
+        # if release_data:
+        #     _download_system_game_data(release_data)
+
         return True
     except Exception as e:
         logger.exception("Error during update download/extraction")
@@ -199,7 +256,7 @@ def auto_update():
 
     logger.info(f"Downloading update from {zip_url}")
 
-    if _download_and_extract_update(zip_url):
+    if _download_and_extract_update(zip_url, release_data=data):
         logger.info("Update successfully installed. Restart required.")
         trackerFrame.updateButtonText()
     else:
@@ -223,7 +280,7 @@ def update_to_prerelease():
     version = data.get('tag_name', 'unknown')
     logger.info(f"Downloading pre-release {version} from {zip_url}")
 
-    if _download_and_extract_update(zip_url):
+    if _download_and_extract_update(zip_url, release_data=data):
         configPlugin.beta = True
         configPlugin.dumpConfig()
         logger.info(f"Pre-release {version} installed. Restart required.")
@@ -250,7 +307,7 @@ def revert_to_release():
     version = data.get('tag_name', 'unknown')
     logger.info(f"Reverting to stable release {version} from {zip_url}")
 
-    if _download_and_extract_update(zip_url):
+    if _download_and_extract_update(zip_url, release_data=data):
         configPlugin.beta = False
         configPlugin.dumpConfig()
         logger.info(f"Reverted to stable release {version}. Restart required.")
