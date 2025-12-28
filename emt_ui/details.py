@@ -396,7 +396,12 @@ def copy_all_systems_to_clipboard_or_report():
             if '@CPOpposition' in dcText:
                 dcText = dcText.replace('@CPOpposition', f"Opposition {str(system_data.PowerplayStateUndermining)}")
             if '@CPControlling' in dcText:
-                dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {str(system_data.PowerplayStateReinforcement)}")
+                # For acquisition systems, show progress percentage instead of reinforcement
+                if system_data.PowerplayConflictProgress and len(system_data.PowerplayConflictProgress) > 0:
+                    progress = system_data.getProgressPercentage()
+                    dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {progress:.2f}%")
+                else:
+                    dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {str(system_data.PowerplayStateReinforcement)}")
             all_texts.append(dcText)
     combined_text = "\n".join(all_texts)
     copy_to_clipboard_or_report(combined_text, "Systems worked on", table_frame, update_scrollregion)
@@ -636,7 +641,12 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
             if '@CPOpposition' in dcText:
                 dcText = dcText.replace('@CPOpposition', f"Opposition {str(system_data.PowerplayStateUndermining)}")
             if '@CPControlling' in dcText:
-                dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {str(system_data.PowerplayStateReinforcement)}")
+                # For acquisition systems, show progress percentage instead of reinforcement
+                if system_data.PowerplayConflictProgress and len(system_data.PowerplayConflictProgress) > 0:
+                    progress = system_data.getProgressPercentage()
+                    dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {progress:.2f}%")
+                else:
+                    dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {str(system_data.PowerplayStateReinforcement)}")
 
             # System name
             tk.Label(data_frame_default, text=system_name, width=28, anchor="w", **lbl_opts).grid(
