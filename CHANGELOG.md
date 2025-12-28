@@ -2,6 +2,15 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.025] - 2025-12-21
+
+### Fixed
+- **Copy Text Variable for Acquisition Systems**: Fixed `@CPControlling` to show progress percentage instead of 0 for acquisition systems
+  - Acquisition systems (Unoccupied with progress) now show: "Felicia Winters 45.23%" instead of "Felicia Winters 0"
+  - Reinforcement/Undermining systems continue to show: "Felicia Winters 8500" (reinforcement value)
+  - Progress correctly calculated from decimal (0.0-1.0) to percentage
+  - Applied to both Overview copy button and detailed view copy buttons
+
 ## [v0.4.300.1.024] - 2025-12-21
 
 ### Added
