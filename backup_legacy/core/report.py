@@ -5,10 +5,10 @@ from emt_core.config import configPlugin
 class Report:
     def send_to_discord(self, message: str) -> bool:
         """Send message to Discord webhook"""
-        webhook_url = getattr(configPlugin, "discordHook", None)
+        webhook_url = configPlugin.discordHook.get() if configPlugin.discordHook else None
         if not webhook_url:
             return False
-            
+
         # Validate webhook URL format
         if not isinstance(webhook_url, str) or not webhook_url.strip():
             return False
