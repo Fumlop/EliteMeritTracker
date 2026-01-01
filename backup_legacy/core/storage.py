@@ -85,7 +85,7 @@ def load_json(filename: str, default=None):
         return default if default is not None else {}
 
 
-def save_json(filename: str, data, encoder=None, indent=4) -> bool:
+def save_json(filename: str, data, encoder=None, indent=4, create_backup=False) -> bool:
     """Save data to JSON file.
 
     Args:
@@ -93,6 +93,8 @@ def save_json(filename: str, data, encoder=None, indent=4) -> bool:
         data: Data to save (must be JSON serializable)
         encoder: Optional custom JSON encoder class
         indent: JSON indentation level (default 4)
+        create_backup: If True, creates .backup file before overwriting (default False)
+                      Only used during plugin updates for safety
 
     Returns:
         True if save succeeded, False otherwise

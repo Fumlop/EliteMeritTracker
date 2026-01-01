@@ -74,10 +74,14 @@ class Salvage:
         salvageInventory[system_name].add_cargo(cargo_type, cargo_count)
         logger.debug(f"Added {cargo_count} {cargo_type} to {system_name}")
 
-def save_salvage():
-    """Save salvage inventory to JSON file"""
+def save_salvage(create_backup=False):
+    """Save salvage inventory to JSON file
+
+    Args:
+        create_backup: If True, creates .backup file (only during updates)
+    """
     data = {name: salvage.to_dict() for name, salvage in salvageInventory.items()}
-    save_json("salvage.json", data)
+    save_json("salvage.json", data, create_backup=create_backup)
 
 
 def load_salvage():

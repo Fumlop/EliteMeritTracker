@@ -29,9 +29,13 @@ class PledgedPower:
         self.Commander = str(data.get("Commander", ""))
         self._update_time_pledged_str()
 
-    def dumpJson(self):
-        """Save power data to JSON file"""
-        save_json("power.json", self, encoder=PowerEncoder)
+    def dumpJson(self, create_backup=False):
+        """Save power data to JSON file
+
+        Args:
+            create_backup: If True, creates .backup file (only during updates)
+        """
+        save_json("power.json", self, encoder=PowerEncoder, create_backup=create_backup)
 
     def loadPower(self):
         """Load power data from JSON file"""

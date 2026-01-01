@@ -172,9 +172,36 @@ def _download_system_game_data(release_data):
         return False
 
 
+def _backup_data_files():
+    """Create backup of all data files before update"""
+    try:
+        logger.info("Creating data backups before update...")
+
+        # Save current state with backups enabled
+        from emt_models.system import dumpSystems
+        from emt_models.salvage import save_salvage
+        from emt_models.backpack import save_backpack
+        from emt_models.power import pledgedPower
+
+        # Save all data files with backup flag
+        pledgedPower.dumpJson(create_backup=True)
+        dumpSystems(create_backup=True)
+        save_salvage(create_backup=True)
+        save_backpack(create_backup=True)
+
+        logger.info("Data backups created successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to create data backups: {e}")
+        return False
+
+
 def _download_and_extract_update(zip_url, release_data=None):
     """Download and extract update ZIP"""
     try:
+        # Create backups of data files before updating
+        _backup_data_files()
+
         zip_response = requests.get(zip_url, timeout=30)
         if zip_response.status_code != 200:
             logger.error("Failed to download update ZIP")

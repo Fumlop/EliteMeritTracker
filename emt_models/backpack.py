@@ -250,9 +250,13 @@ class Backpack:
 playerBackpack = Backpack()
 
 
-def save_backpack():
-    """Save backpack to JSON file"""
-    save_json("backpack.json", playerBackpack.to_dict())
+def save_backpack(create_backup=False):
+    """Save backpack to JSON file
+
+    Args:
+        create_backup: If True, creates .backup file (only during updates)
+    """
+    save_json("backpack.json", playerBackpack.to_dict(), create_backup=create_backup)
 
 
 def load_backpack():

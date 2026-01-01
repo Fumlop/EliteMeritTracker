@@ -282,14 +282,18 @@ class SystemEncoder(json.JSONEncoder):
         return super().default(o)
 
 
-def dumpSystems():
-    """Save systems to JSON file"""
+def dumpSystems(create_backup=False):
+    """Save systems to JSON file
+
+    Args:
+        create_backup: If True, creates .backup file (only during updates)
+    """
     filtered_systems = {
         name: data.to_dict()
         for name, data in systems.items()
         if (not data.reported and data.Merits > 0) or data.Active
     }
-    save_json("systems.json", filtered_systems, encoder=SystemEncoder)
+    save_json("systems.json", filtered_systems, encoder=SystemEncoder, create_backup=create_backup)
 
 
 def loadSystems():

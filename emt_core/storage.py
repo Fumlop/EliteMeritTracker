@@ -85,17 +85,19 @@ def load_json(filename: str, default=None):
         return default if default is not None else {}
 
 
-def save_json(filename: str, data, encoder=None, indent=4) -> bool:
+def save_json(filename: str, data, encoder=None, indent=4, create_backup=False) -> bool:
     """Save data to JSON file with atomic write to prevent corruption.
 
     Uses temp file + rename pattern to ensure atomicity. If save fails mid-write,
-    the original file remains intact. Creates backup before overwriting.
+    the original file remains intact.
 
     Args:
         filename: Name of the JSON file in plugin directory
         data: Data to save (must be JSON serializable)
         encoder: Optional custom JSON encoder class
         indent: JSON indentation level (default 4)
+        create_backup: If True, creates .backup file before overwriting (default False)
+                      Only used during plugin updates for safety
 
     Returns:
         True if save succeeded, False otherwise
@@ -112,10 +114,11 @@ def save_json(filename: str, data, encoder=None, indent=4) -> bool:
             else:
                 json.dump(data, f, indent=indent)
 
-        # Create backup of existing file before overwriting
-        if os.path.exists(filepath):
+        # Create backup of existing file before overwriting (only if requested)
+        if create_backup and os.path.exists(filepath):
             try:
                 shutil.copy2(filepath, backup_path)
+                logger.info(f"Created backup: {backup_path}")
             except Exception as backup_error:
                 logger.warning(f"Failed to create backup of {filename}: {backup_error}")
                 # Continue anyway - temp file write succeeded
