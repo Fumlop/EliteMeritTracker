@@ -2,6 +2,15 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.026] - 2025-12-29
+
+### Fixed
+- **Plugin Loading with Versioned Directory**: Fixed plugin loading failure when directory has version suffix
+  - Plugin now strips version suffix from directory name (e.g., "EliteMeritTracker-0.4.300.1.025" → "EliteMeritTracker")
+  - Fixes `ModuleNotFoundError: No module named 'EliteMeritTracker-0'` error
+  - Works with any semantic version suffix pattern
+  - No user action required - plugin auto-detects and works correctly
+
 ## [v0.4.300.1.025] - 2025-12-21
 
 ### Fixed
