@@ -2,6 +2,21 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.027] - 2025-12-29
+
+### Fixed
+- **Logging Formatter Error**: Fixed `KeyError: 'osthreadid'` logging errors
+  - Removed custom logging formatter that was incompatible with EDMC's logging system
+  - Plugin now uses EDMC's native logging handlers for proper integration
+  - Fixes spam of "Formatting field not found in record" errors in EDMC logs
+
+### Changed
+- **Backup File Creation**: Changed from every-save to update-only
+  - Backup files (.backup) now only created during plugin auto-updates
+  - Normal plugin shutdown no longer creates backup files
+  - Reduces unnecessary file I/O and clutter in data/ directory
+  - Atomic writes still protect against corruption during normal saves
+
 ## [v0.4.300.1.026] - 2025-12-29
 
 ### Fixed
