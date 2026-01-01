@@ -216,10 +216,10 @@ class StarSystem:
         """Get readable system state"""
         if not self.PowerplayState:
             return "NoState"
-            
+
         if self.PowerplayState in ['Stronghold', 'Fortified', 'Exploited']:
             return self.PowerplayState
-            
+
         if self.PowerplayState == 'Unoccupied':
             if not self.PowerplayConflictProgress:
                 return 'Unoccupied'
@@ -233,8 +233,25 @@ class StarSystem:
             else:
                 # Below contested threshold, still unoccupied
                 return 'Unoccupied'
-                
+
         return self.PowerplayState
+
+    def getSystemStatusShort(self):
+        """Get short abbreviation for system status (for @SystemStatus variable)"""
+        state = self.getSystemStateText()
+
+        # Map full state names to short abbreviations
+        status_map = {
+            'Stronghold': 'Stronghold',
+            'Fortified': 'Fort',
+            'Exploited': 'Exploited',
+            'Controlled': 'ACQ',  # Acquisition completed (>100%)
+            'Contested': 'ACQ',   # Acquisition in progress (30-100%)
+            'Unoccupied': 'ACQ',  # Acquisition in progress (<30%)
+            'NoState': 'None'
+        }
+
+        return status_map.get(state, state)
 
     def getSystemStatePowerPlay(self, pledged):
         """Get powerplay state powers"""

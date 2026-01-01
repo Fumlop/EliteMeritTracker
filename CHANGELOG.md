@@ -2,6 +2,16 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.032] - 2025-01-01
+
+### Added
+- **@SystemStatus Copy Text Variable**: Added new variable showing system type abbreviation
+  - Returns: "Stronghold", "Fort", "Exploited", or "ACQ" for acquisition systems
+  - Works for all acquisition stages: Unoccupied (<30%), Contested (30-100%), Controlled (>100%)
+  - Example usage: "@Leadership earned @MeritsValue merits in @System [@SystemStatus]"
+  - Applied to Overview copy, detailed view copy, and Discord FSD jump reporting
+  - Variable list updated in config UI
+
 ## [v0.4.300.1.031] - 2025-01-01
 
 ### Fixed

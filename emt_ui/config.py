@@ -206,7 +206,7 @@ def create_config_frame(parent, nb):
 
     nb.Label(
         config_frame,
-        text="@MeritsValue, @System, @CPOpposition, @CPControlling"
+        text="@MeritsValue, @System, @SystemStatus, @CPOpposition, @CPControlling"
     ).grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
     #logger.warning(f"config {configPlugin.copyText}")
     ttk.Entry(

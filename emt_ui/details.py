@@ -393,6 +393,8 @@ def copy_all_systems_to_clipboard_or_report():
         merits = str(system_data.Merits)
         if int(merits) > 0:
             dcText = f"{configPlugin.copyText.get().replace('@MeritsValue', merits).replace('@System', system_name)}"
+            if '@SystemStatus' in dcText:
+                dcText = dcText.replace('@SystemStatus', system_data.getSystemStatusShort())
             if '@CPControlling' in dcText:
                 # For acquisition systems, show progress percentage instead of reinforcement
                 if system_data.PowerplayConflictProgress and len(system_data.PowerplayConflictProgress) > 0:
@@ -644,6 +646,8 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
 
         if merits > 0:
             dcText = configPlugin.copyText.get().replace('@MeritsValue', str(merits)).replace('@System', system_name)
+            if '@SystemStatus' in dcText:
+                dcText = dcText.replace('@SystemStatus', system_data.getSystemStatusShort())
             if '@CPControlling' in dcText:
                 # For acquisition systems, show progress percentage instead of reinforcement
                 if system_data.PowerplayConflictProgress and len(system_data.PowerplayConflictProgress) > 0:

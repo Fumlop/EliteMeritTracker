@@ -379,6 +379,9 @@ def report_on_FSD(sourceSystem):
         
     dcText = configPlugin.copyText.get().replace('@MeritsValue', str(sourceSystem.Merits)).replace('@System', sourceSystem.StarSystem)
 
+    if '@SystemStatus' in dcText:
+        dcText = dcText.replace('@SystemStatus', sourceSystem.getSystemStatusShort())
+
     if '@CPControlling' in dcText:
         # For acquisition systems, show progress percentage instead of reinforcement
         if sourceSystem.PowerplayConflictProgress and len(sourceSystem.PowerplayConflictProgress) > 0:
