@@ -2,6 +2,14 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.029] - 2025-01-01
+
+### Fixed
+- **Acquisition Systems Overview Bug**: Fixed `AttributeError: 'StarSystem' object has no attribute 'getProgressPercentage'`
+  - Changed method calls from `getProgressPercentage()` to `getSystemProgressNumber()`
+  - Acquisition systems now display correctly in Overview window without errors
+  - Progress percentage calculation for copy text variables now works properly
+
 ## [v0.4.300.1.028] - 2025-01-01
 
 ### Fixed

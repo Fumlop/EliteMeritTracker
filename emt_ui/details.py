@@ -398,7 +398,7 @@ def copy_all_systems_to_clipboard_or_report():
             if '@CPControlling' in dcText:
                 # For acquisition systems, show progress percentage instead of reinforcement
                 if system_data.PowerplayConflictProgress and len(system_data.PowerplayConflictProgress) > 0:
-                    progress = system_data.getProgressPercentage()
+                    progress = system_data.getSystemProgressNumber()
                     dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {progress:.2f}%")
                 else:
                     dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {str(system_data.PowerplayStateReinforcement)}")
@@ -643,7 +643,7 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
             if '@CPControlling' in dcText:
                 # For acquisition systems, show progress percentage instead of reinforcement
                 if system_data.PowerplayConflictProgress and len(system_data.PowerplayConflictProgress) > 0:
-                    progress = system_data.getProgressPercentage()
+                    progress = system_data.getSystemProgressNumber()
                     dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {progress:.2f}%")
                 else:
                     dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {str(system_data.PowerplayStateReinforcement)}")
