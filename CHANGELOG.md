@@ -2,6 +2,14 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.033] - 2025-01-01
+
+### Fixed
+- **@SystemStatus Variable Replacement Order**: Fixed variable being partially replaced
+  - @SystemStatus must be processed before @System to avoid "Status" remnant
+  - Changed replacement order: @MeritsValue → @SystemStatus → @System → other variables
+  - Fixes output like "3000 Hyades Sector KC-U c3-9Status" → "3000 ACQ Hyades Sector KC-U c3-9"
+
 ## [v0.4.300.1.032] - 2025-01-01
 
 ### Added

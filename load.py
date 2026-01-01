@@ -377,10 +377,12 @@ def report_on_FSD(sourceSystem):
     if not configPlugin.discordHook.get() or not configPlugin.reportOnFSDJump.get():
         return
         
-    dcText = configPlugin.copyText.get().replace('@MeritsValue', str(sourceSystem.Merits)).replace('@System', sourceSystem.StarSystem)
+    dcText = configPlugin.copyText.get().replace('@MeritsValue', str(sourceSystem.Merits))
 
     if '@SystemStatus' in dcText:
         dcText = dcText.replace('@SystemStatus', sourceSystem.getSystemStatusShort())
+
+    dcText = dcText.replace('@System', sourceSystem.StarSystem)
 
     if '@CPControlling' in dcText:
         # For acquisition systems, show progress percentage instead of reinforcement
