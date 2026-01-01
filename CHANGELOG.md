@@ -2,6 +2,15 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.031] - 2025-01-01
+
+### Fixed
+- **ControllingPower Shows "no power" for Acquisition Systems**: Fixed to show leading power name
+  - Unoccupied systems with conflict progress now correctly show the leading power
+  - Example: Changed from "no power 30.69%" to "Felicia Winters 30.69%"
+  - ControllingPower derived from first entry in PowerplayConflictProgress array
+  - Fixes display in main UI, Overview window, and all copy text variables
+
 ## [v0.4.300.1.030] - 2025-01-01
 
 ### Fixed

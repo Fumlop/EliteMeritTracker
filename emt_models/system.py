@@ -50,10 +50,15 @@ class StarSystem:
         self.PowerplayState = str(eventEntry.get("PowerplayState", "no PP connection"))
         self.ControllingPower = str(eventEntry.get("ControllingPower", "no power"))
         self.Powers = self._safe_list(eventEntry.get("Powers", []))
-        self.Opposition = [p for p in self.Powers if p != self.ControllingPower]
 
         conflict_data = eventEntry.get("PowerplayConflictProgress", [])
         self.PowerplayConflictProgress = self._process_conflict_data(conflict_data)
+
+        # For Unoccupied systems with conflict progress, set ControllingPower from leading power
+        if self.PowerplayState == "Unoccupied" and self.PowerplayConflictProgress and len(self.PowerplayConflictProgress) > 0:
+            self.ControllingPower = self.PowerplayConflictProgress[0].power
+
+        self.Opposition = [p for p in self.Powers if p != self.ControllingPower]
         self.PowerplayStateControlProgress = float(eventEntry.get("PowerplayStateControlProgress", 0.0))
         self.PowerplayStateReinforcement = int(eventEntry.get("PowerplayStateReinforcement", 0))
         self.PowerplayStateUndermining = int(eventEntry.get("PowerplayStateUndermining", 0))
