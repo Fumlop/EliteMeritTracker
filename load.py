@@ -378,9 +378,24 @@ def report_on_FSD(sourceSystem):
         return
         
     dcText = configPlugin.copyText.get().replace('@MeritsValue', str(sourceSystem.Merits)).replace('@System', sourceSystem.StarSystem)
-    
+
+    if '@CPControlling' in dcText:
+        # For acquisition systems, show progress percentage instead of reinforcement
+        if sourceSystem.PowerplayConflictProgress and len(sourceSystem.PowerplayConflictProgress) > 0:
+            progress = sourceSystem.getSystemProgressNumber()
+            dcText = dcText.replace('@CPControlling', f"{sourceSystem.ControllingPower} {progress:.2f}%")
+        else:
+            dcText = dcText.replace('@CPControlling', f"{sourceSystem.ControllingPower} {sourceSystem.PowerplayStateReinforcement}")
+
     if '@CPOpposition' in dcText:
-        dcText = dcText.replace('@CPOpposition', f"Opposition {sourceSystem.PowerplayStateUndermining}")
+        # For acquisition systems, show 2nd place power progress percentage
+        if sourceSystem.PowerplayConflictProgress and len(sourceSystem.PowerplayConflictProgress) > 1:
+            second_power = sourceSystem.PowerplayConflictProgress[1]
+            progress = second_power.progress * 100
+            dcText = dcText.replace('@CPOpposition', f"{second_power.power} {progress:.2f}%")
+        else:
+            dcText = dcText.replace('@CPOpposition', f"Opposition {sourceSystem.PowerplayStateUndermining}")
+
     if '@CPPledged' in dcText:
         dcText = dcText.replace('@CPPledged', f"Pledged {sourceSystem.PowerplayStateReinforcement}")
         

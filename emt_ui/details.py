@@ -393,8 +393,6 @@ def copy_all_systems_to_clipboard_or_report():
         merits = str(system_data.Merits)
         if int(merits) > 0:
             dcText = f"{configPlugin.copyText.get().replace('@MeritsValue', merits).replace('@System', system_name)}"
-            if '@CPOpposition' in dcText:
-                dcText = dcText.replace('@CPOpposition', f"Opposition {str(system_data.PowerplayStateUndermining)}")
             if '@CPControlling' in dcText:
                 # For acquisition systems, show progress percentage instead of reinforcement
                 if system_data.PowerplayConflictProgress and len(system_data.PowerplayConflictProgress) > 0:
@@ -402,6 +400,14 @@ def copy_all_systems_to_clipboard_or_report():
                     dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {progress:.2f}%")
                 else:
                     dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {str(system_data.PowerplayStateReinforcement)}")
+            if '@CPOpposition' in dcText:
+                # For acquisition systems, show 2nd place power progress percentage
+                if system_data.PowerplayConflictProgress and len(system_data.PowerplayConflictProgress) > 1:
+                    second_power = system_data.PowerplayConflictProgress[1]
+                    progress = second_power.progress * 100
+                    dcText = dcText.replace('@CPOpposition', f"{second_power.power} {progress:.2f}%")
+                else:
+                    dcText = dcText.replace('@CPOpposition', f"Opposition {str(system_data.PowerplayStateUndermining)}")
             all_texts.append(dcText)
     combined_text = "\n".join(all_texts)
     copy_to_clipboard_or_report(combined_text, "Systems worked on", table_frame, update_scrollregion)
@@ -638,8 +644,6 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
 
         if merits > 0:
             dcText = configPlugin.copyText.get().replace('@MeritsValue', str(merits)).replace('@System', system_name)
-            if '@CPOpposition' in dcText:
-                dcText = dcText.replace('@CPOpposition', f"Opposition {str(system_data.PowerplayStateUndermining)}")
             if '@CPControlling' in dcText:
                 # For acquisition systems, show progress percentage instead of reinforcement
                 if system_data.PowerplayConflictProgress and len(system_data.PowerplayConflictProgress) > 0:
@@ -647,6 +651,14 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
                     dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {progress:.2f}%")
                 else:
                     dcText = dcText.replace('@CPControlling', f"{system_data.ControllingPower} {str(system_data.PowerplayStateReinforcement)}")
+            if '@CPOpposition' in dcText:
+                # For acquisition systems, show 2nd place power progress percentage
+                if system_data.PowerplayConflictProgress and len(system_data.PowerplayConflictProgress) > 1:
+                    second_power = system_data.PowerplayConflictProgress[1]
+                    progress = second_power.progress * 100
+                    dcText = dcText.replace('@CPOpposition', f"{second_power.power} {progress:.2f}%")
+                else:
+                    dcText = dcText.replace('@CPOpposition', f"Opposition {str(system_data.PowerplayStateUndermining)}")
 
             # System name
             tk.Label(data_frame_default, text=system_name, width=28, anchor="w", **lbl_opts).grid(

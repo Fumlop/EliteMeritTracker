@@ -2,6 +2,16 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.030] - 2025-01-01
+
+### Fixed
+- **@CPOpposition Variable for Acquisition Systems**: Fixed to show 2nd place power and progress percentage
+  - Acquisition systems now show both leading power and opposition power with percentages
+  - Example: "@CPControlling" = "Felicia Winters 30.69%", "@CPOpposition" = "Arissa Lavigny-Duval 25.43%"
+  - Previously showed "Opposition 0" for acquisition systems (undermining value is always 0)
+  - Reinforcement/Undermining systems continue to show numeric values as before
+  - Applied to Overview copy, detailed view copy, and Discord FSD jump reporting
+
 ## [v0.4.300.1.029] - 2025-01-01
 
 ### Fixed
