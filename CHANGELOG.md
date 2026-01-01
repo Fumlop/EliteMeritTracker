@@ -2,7 +2,15 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
-## [v0.4.300.1.027] - 2025-12-29
+## [v0.4.300.1.028] - 2025-01-01
+
+### Fixed
+- **Discord Webhook Not Working**: Fixed webhook URL retrieval from Tkinter StringVar
+  - Changed from `getattr(configPlugin, "discordHook", None)` to `configPlugin.discordHook.get()`
+  - Was returning the StringVar object instead of the actual URL string
+  - Discord webhook now works correctly for sending reports
+
+## [v0.4.300.1.027] - 2025-01-01
 
 ### Fixed
 - **Logging Formatter Error**: Fixed `KeyError: 'osthreadid'` logging errors

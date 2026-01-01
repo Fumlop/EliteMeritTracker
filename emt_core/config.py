@@ -4,7 +4,7 @@ from config import config
 
 class ConfigPlugin:
     def __init__(self):
-        self.version = 'v0.4.300.1.027'
+        self.version = 'v0.4.300.1.028'
         self.beta = False  # Will be loaded from config
         self.loadConfig()
 
