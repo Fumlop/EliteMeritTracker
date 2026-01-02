@@ -23,7 +23,7 @@ system_data/systems-game-data.json.gz
 
 #Visual Studio
 .vs/*
-
+htmlcov
 
 # Local History for Visual Studio Code
 .history/
@@ -103,7 +103,7 @@ nul
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-
+*.json.backup
 # Flask stuff:
 instance/
 .webassets-cache
