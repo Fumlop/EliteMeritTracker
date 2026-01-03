@@ -480,18 +480,37 @@ def plugin_app(parent):
     return trackerFrame.frame
 
 def reset():
+    import tkinter as tk
     from tkinter import messagebox
     global trackerFrame
 
     # Add logging
     logger.info("Reset button clicked")
 
+    # Create a temporary toplevel window to position the dialog near EDMC
+    dialog_parent = tk.Toplevel(trackerFrame.parent)
+    dialog_parent.withdraw()  # Hide the window
+
+    # Position near the EDMC window
+    if trackerFrame.parent:
+        try:
+            x = trackerFrame.parent.winfo_rootx() + 50
+            y = trackerFrame.parent.winfo_rooty() + 50
+            dialog_parent.geometry(f"+{x}+{y}")
+        except:
+            pass  # Fall back to default position if positioning fails
+
     # Show confirmation dialog
-    if not messagebox.askyesno(
+    result = messagebox.askyesno(
         "Confirm Reset",
         "This will reset all merit counts to zero. Are you sure?",
-        icon='warning'
-    ):
+        icon='warning',
+        parent=dialog_parent
+    )
+
+    dialog_parent.destroy()  # Clean up the temporary window
+
+    if not result:
         logger.info("Reset cancelled by user")
         return
 

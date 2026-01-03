@@ -2,6 +2,14 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.036] - 2026-01-03
+
+### Improved
+- **Reset Confirmation Dialog Positioning**: Dialog now appears near EDMC window instead of default screen position
+  - Creates temporary toplevel window to control dialog placement
+  - Positions dialog 50 pixels offset from EDMC window location
+  - Falls back to default position if window positioning fails
+
 ## [v0.4.300.1.035] - 2026-01-03
 
 ### Fixed
