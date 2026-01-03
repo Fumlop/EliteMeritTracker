@@ -485,7 +485,7 @@ def reset():
     pledgedPower.MeritsSession = 0
 
     # Get current system name to preserve it
-    current_system_name = state.current_system
+    current_system_name = state.current_system.StarSystem if state.current_system else None
 
     # Store current system data if it exists
     current_system_data = systems.get(current_system_name) if current_system_name else None
