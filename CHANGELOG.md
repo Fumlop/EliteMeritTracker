@@ -2,6 +2,17 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.035] - 2026-01-03
+
+### Fixed
+- **CRITICAL: Reset Button Data Loss**: Fixed complete data loss when reset clicked while game not running
+  - Bug: reset() relied on state.current_system which is None/invalid after game shutdown
+  - Could cause ALL merit tracking data to be permanently lost (systems.json wiped to {})
+  - Fix: Now finds most recently active system from systems dict instead of state
+  - Fix: Added confirmation dialog before clearing data ("Are you sure?")
+  - Fix: Added comprehensive logging to track reset operations
+  - Prevents data loss scenario: game closes → EDMC still running → reset clicked → all data lost
+
 ## [v0.4.300.1.034] - 2026-01-03
 
 ### Added

@@ -480,15 +480,39 @@ def plugin_app(parent):
     return trackerFrame.frame
 
 def reset():
+    from tkinter import messagebox
     global trackerFrame
+
+    # Add logging
+    logger.info("Reset button clicked")
+
+    # Show confirmation dialog
+    if not messagebox.askyesno(
+        "Confirm Reset",
+        "This will reset all merit counts to zero. Are you sure?",
+        icon='warning'
+    ):
+        logger.info("Reset cancelled by user")
+        return
+
     # Reset session merits for the pledged power
     pledgedPower.MeritsSession = 0
 
-    # Get current system name to preserve it
-    current_system_name = state.current_system.StarSystem if state.current_system else None
+    # Find most recently active system from systems dict
+    current_system_name = None
+    for name, system_data in systems.items():
+        if system_data.Active:
+            current_system_name = name
+            break
+
+    # Fallback to state.current_system if available and no active system found
+    if not current_system_name and state.current_system:
+        current_system_name = state.current_system.StarSystem
 
     # Store current system data if it exists
     current_system_data = systems.get(current_system_name) if current_system_name else None
+
+    logger.info(f"Reset preserving current system: {current_system_name}")
 
     # Clear all systems from cache
     systems.clear()
@@ -497,12 +521,16 @@ def reset():
     if current_system_data:
         current_system_data.Merits = 0
         systems[current_system_name] = current_system_data
+        logger.info(f"Restored current system with 0 merits: {current_system_name}")
+    else:
+        logger.warning("No current system found to preserve during reset")
 
     # Save the cleared systems to disk
     dumpSystems()
 
     # Update the display with current system
     trackerFrame.update_display(state.current_system)
+    logger.info("Reset completed successfully")
 
 def plugin_prefs(parent, cmdr, is_beta):
     return create_config_frame(parent, nb)
