@@ -245,9 +245,9 @@ class StarSystem:
             'Stronghold': 'Stronghold',
             'Fortified': 'Fort',
             'Exploited': 'Exploited',
-            'Controlled': 'ACQ',  # Acquisition completed (>100%)
-            'Contested': 'ACQ',   # Acquisition in progress (30-100%)
-            'Unoccupied': 'ACQ',  # Acquisition in progress (<30%)
+            'Controlled': 'Controlled',  # Acquisition completed (>100%)
+            'Contested': 'Contested',   # Acquisition in progress (30-100%)
+            'Unoccupied': 'Unoccupied',  # Acquisition in progress (<30%)
             'NoState': 'None'
         }
 
