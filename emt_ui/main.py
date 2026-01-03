@@ -109,7 +109,7 @@ class TrackerFrame:
 
             # State text - use theme color for all states
             self.widgets['stateWord']['text'] = f"{state_text}"
-            self.widgets['stateDetails']['text'] = f" ({powerprogress_percent}) by {power}"
+            self.widgets['stateDetails']['text'] = f"({powerprogress_percent}) {power}"
 
             # Handle power cycle information with color coding
             if not currentSystemFlying.PowerplayConflictProgress:
