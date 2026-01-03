@@ -2,6 +2,31 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.034] - 2026-01-03
+
+### Added
+- **Comprehensive Test Suite**: Added standalone test suite with 99% coverage target
+  - 90 tests total (64 for system model, 17 for copy text variables, 9 edge cases)
+  - **100% code coverage** achieved for emt_models/system.py (188/188 lines)
+  - Tests use real journal data from actual gameplay
+  - Standalone execution with EDMC dependency mocking
+  - pytest configuration with HTML coverage reports
+  - Run tests: `python emt_tests/run_tests.py`
+
+### Fixed
+- **Reset Button Loses Current System**: Fixed current system disappearing after clicking trash bin
+  - Current system now properly preserved with 0 merits after reset
+  - Bug: Was using StarSystem object as dict key instead of system name string
+  - Fixed: Changed `state.current_system` → `state.current_system.StarSystem`
+  - System remains visible in UI after reset instead of disappearing completely
+
+### Documentation
+- Updated structure.md to reflect current project state
+  - Added emt_tests/ documentation with coverage status
+  - Added PowerPlay 2.0 mechanics section
+  - Documented all copy text variables with critical replacement order notes
+  - Updated all module paths to use emt_* prefix
+
 ## [v0.4.300.1.033] - 2025-01-01
 
 ### Fixed
