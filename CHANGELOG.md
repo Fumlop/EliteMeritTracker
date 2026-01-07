@@ -2,6 +2,42 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.037] - 2026-01-07
+
+### Added
+- **PowerPlay Item-Type Materials Tracking**: Added support for 9 missing PowerPlay salvage items
+  - New items: Inventory Record, Extraction Sample, Experiment Prototype, Electronics Package, Computer Parts, Personal Protective Equipment, Data Storage Device, Security Logs, Research Notes
+  - Items now tracked in salvage system alongside legacy Black Box and Wreckage Components
+  - Full merit calculation support when delivered to Search & Rescue or Power contacts
+
+- **Shiplocker UI Enhancement**: Added fourth table to display PowerPlay Item-type materials
+  - New "PowerPlay Items (Salvage)" table shows system, item type, and count
+  - Sortable columns (click headers to sort by system, item type, or count)
+  - Double-click count column to edit inventory amounts
+  - Add new entries via "+ Add New Entry" button
+  - Real-time total count display
+  - Changes auto-save to salvage.json
+
+- **Auto-Save Feature**: Implemented 5-minute periodic auto-save to prevent data loss
+  - Automatic background save every 300 seconds
+  - Protects against data loss from game crashes or EDMC termination
+  - Daemon thread implementation (doesn't block shutdown)
+  - Graceful cancellation on plugin stop
+  - Reduces max data loss from full session to 5 minutes
+
+- **Comprehensive Test Suite**: Added test_powerplay_items.py with 95%+ coverage
+  - Tests for all Data-type items (Undermining, Reinforcement, Acquisition)
+  - Tests for all Item-type materials (9 new PowerPlay items)
+  - Real-world scenario tests based on actual journal events
+  - Merit calculation and distribution tests
+  - Edge case and error handling tests
+
+### Technical
+- Updated `emt_models/salvage.py`: Added 9 PowerPlay items to VALID_POWERPLAY_SALVAGE_TYPES
+- Updated `emt_ui/details.py`: Added create_salvage_table() function for UI display
+- Updated `load.py`: Added threading support for auto-save timer
+- All changes maintain backward compatibility with existing salvage tracking
+
 ## [v0.4.300.1.036] - 2026-01-03
 
 ### Improved

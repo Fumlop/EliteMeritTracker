@@ -6,6 +6,7 @@ import myNotebook as nb
 import io
 import re
 import gzip
+import threading
 from typing import Dict, Any
 
 from emt_core.report import report
@@ -26,6 +27,7 @@ from emt_core.state import state
 
 # Module globals
 trackerFrame = None
+autosave_timer = None
 
 def _get_github_release_data():
     """Fetch latest GitHub release data"""
@@ -424,6 +426,38 @@ def checkVersion():
         return -1
 
 
+def _autosave_data():
+    """Periodic auto-save function called by timer"""
+    try:
+        logger.info("Auto-saving data (5-minute interval)")
+        update_json_file()
+    except Exception as e:
+        logger.error(f"Auto-save failed: {e}")
+    finally:
+        # Schedule next auto-save
+        _schedule_autosave()
+
+
+def _schedule_autosave():
+    """Schedule the next auto-save in 5 minutes"""
+    global autosave_timer
+    # Cancel existing timer if any
+    if autosave_timer:
+        autosave_timer.cancel()
+    # Schedule new timer for 5 minutes (300 seconds)
+    autosave_timer = threading.Timer(300.0, _autosave_data)
+    autosave_timer.daemon = True  # Don't prevent program exit
+    autosave_timer.start()
+
+
+def _cancel_autosave():
+    """Cancel the auto-save timer"""
+    global autosave_timer
+    if autosave_timer:
+        autosave_timer.cancel()
+        autosave_timer = None
+
+
 def plugin_start3(plugin_dir):
     logger.info("EliteMeritTracker plugin starting")
 
@@ -444,6 +478,10 @@ def plugin_start3(plugin_dir):
             logger.info(f"Restored active system: {system.StarSystem} (will validate on first location event)")
     pledgedPower.loadPower()
     logger.info(f"Plugin initialized - Systems: {len(systems)}, Power: {pledgedPower.Power}")
+
+    # Start auto-save timer
+    _schedule_autosave()
+    logger.info("Auto-save scheduled for every 5 minutes")
         
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     global trackerFrame
@@ -453,6 +491,11 @@ def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
 def plugin_stop():
     global report, systems, pledgedPower, configPlugin, trackerFrame
 
+    # Cancel auto-save timer
+    _cancel_autosave()
+    logger.info("Auto-save timer cancelled")
+
+    # Final save on shutdown
     update_json_file()
     if trackerFrame:
         logger.warning("Destroying tracker frame.")

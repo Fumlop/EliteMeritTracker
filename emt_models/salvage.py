@@ -3,10 +3,20 @@ from emt_core.storage import load_json, save_json
 from .system import StarSystem
 from .ppcargo import Cargo
 
-# Valid cargo types that can be salvaged
+# Valid cargo types that can be salvaged (including PowerPlay items)
 VALID_POWERPLAY_SALVAGE_TYPES = {
     "usscargoblackbox": "Black Box",
-    "wreckagecomponents": "Wreckage Components"
+    "wreckagecomponents": "Wreckage Components",
+    # PowerPlay Item-type materials
+    "powerinventory": "Inventory Record",
+    "powerextraction": "Extraction Sample",
+    "powerexperiment": "Experiment Prototype",
+    "powerelectronics": "Electronics Package",
+    "powercomputer": "Computer Parts",
+    "powerequipment": "Personal Protective Equipment",
+    "powermisccomputer": "Data Storage Device",
+    "powersecurity": "Security Logs",
+    "powerresearch": "Research Notes"
 }
 
 class Salvage:

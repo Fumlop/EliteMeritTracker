@@ -1171,6 +1171,302 @@ def show_backpack_view(parent):
 
         return tree
 
+    def create_salvage_table(parent_frame, title, colors):
+        """Create a treeview table for salvage items (PowerPlay Item-type materials)"""
+        from emt_models.salvage import salvageInventory, VALID_POWERPLAY_SALVAGE_TYPES, save_salvage
+
+        frame = tk.Frame(parent_frame, background=colors['bg'])
+        frame.pack(fill="both", expand=True, pady=10)
+
+        # Title
+        title_label = tk.Label(frame, text=title, font=("Helvetica", 14, "bold"),
+                               background=colors['bg'], foreground=colors['fg'])
+        title_label.pack(anchor="w", pady=(0, 5))
+
+        # Treeview
+        tree_frame = tk.Frame(frame, background=colors['bg'])
+        tree_frame.pack(fill="both", expand=True)
+
+        tree = ttk.Treeview(tree_frame, columns=("System", "Item Type", "Count"),
+                           show="headings", height=8)
+
+        # Sorting state for this tree
+        tree.sort_column = None
+        tree.sort_reverse = False
+
+        def sort_by_column(col, col_index):
+            """Sort tree contents when a column header is clicked"""
+            # Toggle sort direction if clicking same column
+            if tree.sort_column == col:
+                tree.sort_reverse = not tree.sort_reverse
+            else:
+                tree.sort_reverse = False
+            tree.sort_column = col
+
+            # Get all items with their values
+            items = [(tree.item(item)["values"], item) for item in tree.get_children("")]
+
+            # Sort based on column
+            if col_index == 2:  # Count - numeric sort
+                items.sort(key=lambda x: int(x[0][col_index]) if x[0][col_index] and str(x[0][col_index]).strip() else 0,
+                          reverse=tree.sort_reverse)
+            else:  # System and Item Type - string sort
+                items.sort(key=lambda x: str(x[0][col_index]).lower(), reverse=tree.sort_reverse)
+
+            # Rearrange items in sorted order
+            for index, (values, item) in enumerate(items):
+                tree.move(item, "", index)
+
+                # Update alternating row colors
+                tag = "even" if index % 2 == 0 else "odd"
+                tree.item(item, tags=(tag,))
+
+        # Configure columns with sorting
+        tree.heading("System", text="System", anchor="w",
+                    command=lambda: sort_by_column("System", 0))
+        tree.heading("Item Type", text="Item Type", anchor="w",
+                    command=lambda: sort_by_column("Item Type", 1))
+        tree.heading("Count", text="Count (double-click to edit)", anchor="center",
+                    command=lambda: sort_by_column("Count", 2))
+
+        tree.column("System", width=300, anchor="w")
+        tree.column("Item Type", width=300, anchor="w")
+        tree.column("Count", width=100, anchor="center")
+
+        # Scrollbar for table
+        tree_scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=tree_scrollbar.set)
+
+        tree.pack(side="left", fill="both", expand=True)
+        tree_scrollbar.pack(side="right", fill="y")
+
+        # Populate table
+        row_index = 0
+        total_items = 0
+        for system_name, salvage in sorted(salvageInventory.items()):
+            for item_type, cargo in sorted(salvage.inventory.items()):
+                count = cargo.count
+                if count > 0:
+                    display_name = VALID_POWERPLAY_SALVAGE_TYPES.get(item_type, item_type)
+                    tag = "even" if row_index % 2 == 0 else "odd"
+                    tree.insert("", "end", values=(system_name, display_name, count),
+                               tags=(tag,))
+                    total_items += count
+                    row_index += 1
+
+        # Configure row tags for alternating colors
+        tree.tag_configure("even", background=colors['table_row_even'], foreground=colors['fg'])
+        tree.tag_configure("odd", background=colors['table_row_odd'], foreground=colors['fg'])
+
+        # Change cursor to indicate editable Count column
+        def on_motion(event):
+            region = tree.identify_region(event.x, event.y)
+            column = tree.identify_column(event.x)
+            if region == "cell" and column == "#3":  # Count column
+                tree.config(cursor="hand2")
+            else:
+                tree.config(cursor="")
+
+        tree.bind("<Motion>", on_motion)
+
+        # Add double-click to edit Count
+        def on_double_click(event):
+            item = tree.selection()
+            if not item:
+                return
+
+            # Get the clicked column
+            column = tree.identify_column(event.x)
+            if column != "#3":  # Only allow editing Count column
+                return
+
+            # Get item values
+            values = tree.item(item[0], "values")
+            system_name = values[0]
+            item_type_display = values[1]
+
+            # Find the actual item_type key from display name
+            item_type_key = None
+            for salvage in salvageInventory.values():
+                for it_key, cargo in salvage.inventory.items():
+                    if VALID_POWERPLAY_SALVAGE_TYPES.get(it_key) == item_type_display:
+                        item_type_key = it_key
+                        break
+                if item_type_key:
+                    break
+
+            if not item_type_key or system_name not in salvageInventory:
+                return
+
+            # Create entry widget for editing
+            bbox = tree.bbox(item[0], column)
+            if not bbox:
+                return
+
+            entry = tk.Entry(tree, justify="center")
+            entry.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
+
+            # Get current count value
+            current_value = salvageInventory[system_name].inventory.get(item_type_key)
+            count = current_value.count if current_value else 0
+            entry.insert(0, str(count) if count > 0 else "")
+            entry.focus()
+            entry.select_range(0, tk.END)
+
+            def save_edit(event=None):
+                try:
+                    new_value = entry.get().strip()
+                    int_value = int(new_value) if new_value else 0
+
+                    # Update count
+                    if int_value > 0:
+                        if item_type_key in salvageInventory[system_name].inventory:
+                            salvageInventory[system_name].inventory[item_type_key].count = int_value
+                        else:
+                            from emt_models.ppcargo import Cargo
+                            salvageInventory[system_name].inventory[item_type_key] = Cargo(item_type_key)
+                            salvageInventory[system_name].inventory[item_type_key].count = int_value
+                        # Update tree display
+                        tree.item(item[0], values=(system_name, item_type_display, int_value))
+                    else:
+                        # Remove entry if count is 0
+                        if item_type_key in salvageInventory[system_name].inventory:
+                            del salvageInventory[system_name].inventory[item_type_key]
+                        # If no items left in system, remove the system
+                        if not salvageInventory[system_name].inventory:
+                            del salvageInventory[system_name]
+                        # Remove the row
+                        tree.delete(item[0])
+
+                    # Update total
+                    new_total = sum(
+                        cargo.count
+                        for salvage in salvageInventory.values()
+                        for cargo in salvage.inventory.values()
+                    )
+                    total_label.config(text=f"Total: {new_total} items")
+
+                    # Save to JSON
+                    save_salvage()
+                except ValueError:
+                    pass  # Invalid input, ignore
+                finally:
+                    entry.destroy()
+
+            def cancel_edit(event=None):
+                entry.destroy()
+
+            entry.bind("<Return>", save_edit)
+            entry.bind("<FocusOut>", save_edit)
+            entry.bind("<Escape>", cancel_edit)
+
+        tree.bind("<Double-Button-1>", on_double_click)
+
+        # Add "Add New Entry" button below table
+        add_button_frame = tk.Frame(frame, background=colors['bg'])
+        add_button_frame.pack(fill="x", pady=(5, 0))
+
+        def add_new_entry():
+            """Add a new salvage entry"""
+            # Create a dialog to get system name and item type
+            dialog = tk.Toplevel(backpack_window)
+            dialog.title("Add New Salvage Entry")
+            dialog.geometry("400x250")
+            dialog.configure(background=colors['bg'])
+            dialog.transient(backpack_window)
+            dialog.grab_set()
+
+            # Center the dialog
+            dialog.update_idletasks()
+            x = backpack_window.winfo_x() + (backpack_window.winfo_width() // 2) - (dialog.winfo_width() // 2)
+            y = backpack_window.winfo_y() + (backpack_window.winfo_height() // 2) - (dialog.winfo_height() // 2)
+            dialog.geometry(f"+{x}+{y}")
+
+            tk.Label(dialog, text="System Name:", background=colors['bg'], foreground=colors['fg']).pack(pady=(10, 5))
+            system_entry = tk.Entry(dialog, width=40)
+            system_entry.pack(pady=5)
+            system_entry.focus()
+
+            tk.Label(dialog, text="Item Type:", background=colors['bg'], foreground=colors['fg']).pack(pady=(10, 5))
+
+            # Get PowerPlay salvage types (filter out legacy salvage types)
+            power_salvage_types = {k: v for k, v in VALID_POWERPLAY_SALVAGE_TYPES.items()
+                                  if k.startswith('power')}
+
+            item_type_var = tk.StringVar(dialog)
+            item_type_var.set(list(power_salvage_types.keys())[0])  # Default to first option
+            item_type_dropdown = ttk.Combobox(dialog, textvariable=item_type_var,
+                                             values=list(power_salvage_types.keys()), width=37, state="readonly")
+            item_type_dropdown.pack(pady=5)
+
+            tk.Label(dialog, text="Count:", background=colors['bg'], foreground=colors['fg']).pack(pady=(10, 5))
+            count_entry = tk.Entry(dialog, width=40)
+            count_entry.insert(0, "1")
+            count_entry.pack(pady=5)
+
+            def save_new_entry():
+                system_name = system_entry.get().strip()
+                item_type = item_type_var.get()
+                try:
+                    count = int(count_entry.get().strip())
+                    if system_name and count > 0:
+                        # Add to salvage inventory
+                        from emt_models.salvage import Salvage
+                        if system_name not in salvageInventory:
+                            salvageInventory[system_name] = Salvage(system_name)
+
+                        salvageInventory[system_name].add_cargo(item_type, count)
+
+                        # Add to tree
+                        display_name = VALID_POWERPLAY_SALVAGE_TYPES.get(item_type, item_type)
+                        row_index = len(tree.get_children(""))
+                        tag = "even" if row_index % 2 == 0 else "odd"
+                        tree.insert("", "end", values=(system_name, display_name, count),
+                                   tags=(tag,))
+
+                        # Update total
+                        new_total = sum(
+                            cargo.count
+                            for salvage in salvageInventory.values()
+                            for cargo in salvage.inventory.values()
+                        )
+                        total_label.config(text=f"Total: {new_total} items")
+
+                        # Save to JSON
+                        save_salvage()
+
+                        dialog.destroy()
+                except ValueError:
+                    pass  # Invalid count
+
+            def cancel_new_entry():
+                dialog.destroy()
+
+            button_frame = tk.Frame(dialog, background=colors['bg'])
+            button_frame.pack(pady=20)
+
+            save_btn = RoundedButton(button_frame, "Add", save_new_entry, colors, width=80, height=28, radius=6)
+            save_btn.pack(side="left", padx=5)
+
+            cancel_btn = RoundedButton(button_frame, "Cancel", cancel_new_entry, colors, width=80, height=28, radius=6)
+            cancel_btn.pack(side="left", padx=5)
+
+            # Bind Enter to save
+            system_entry.bind("<Return>", lambda e: count_entry.focus())
+            count_entry.bind("<Return>", lambda e: save_new_entry())
+            dialog.bind("<Escape>", lambda e: cancel_new_entry())
+
+        add_button = RoundedButton(add_button_frame, "+ Add New Entry", add_new_entry, colors, width=120, height=28, radius=6)
+        add_button.pack(side="left", pady=5)
+
+        # Total label
+        total_label = tk.Label(add_button_frame, text=f"Total: {total_items} items",
+                              font=("Helvetica", 10, "bold"),
+                              background=colors['bg'], foreground=colors['fg'])
+        total_label.pack(side="right", pady=5)
+
+        return tree
+
     # Create three tables (Reinforcement, Acquisition, Undermining)
     create_backpack_table(content_frame, "Reinforcement Data",
                          playerBackpack.reinfbag, get_reinf_display_name)
@@ -1180,6 +1476,9 @@ def show_backpack_view(parent):
 
     create_backpack_table(content_frame, "Undermining Data (UM)",
                          playerBackpack.umbag, get_um_display_name)
+
+    # Create salvage table for PowerPlay Item-type materials
+    create_salvage_table(content_frame, "PowerPlay Items (Salvage)", colors)
 
     # Apply theme
     apply_theme_to_widget(backpack_window, colors)
