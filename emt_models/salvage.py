@@ -7,16 +7,22 @@ from .ppcargo import Cargo
 VALID_POWERPLAY_SALVAGE_TYPES = {
     "usscargoblackbox": "Black Box",
     "wreckagecomponents": "Wreckage Components",
-    # PowerPlay Item-type materials
-    "powerinventory": "Inventory Record",
-    "powerextraction": "Extraction Sample",
-    "powerexperiment": "Experiment Prototype",
-    "powerelectronics": "Electronics Package",
+    # PowerPlay Goods (Item-type materials)
+    "poweragriculture": "Agricultural Sample",
     "powercomputer": "Computer Parts",
-    "powerequipment": "Personal Protective Equipment",
     "powermisccomputer": "Data Storage Device",
-    "powersecurity": "Security Logs",
-    "powerresearch": "Research Notes"
+    "powerelectronics": "Electronics Package",
+    "powerpower": "Energy Regulator",
+    "powerexperiment": "Experiment Prototype",
+    "powerextraction": "Extraction Sample",
+    "powerindustrial": "Industrial Component",
+    "powermiscindust": "Industrial Machinery",
+    "powerinventory": "Inventory Record",
+    "powermedical": "Medical Sample",
+    "powerplaymilitary": "Military Schematic",
+    "powerequipment": "Personal Protective Equipment",
+    "powerresearch": "Research Notes",
+    "powersecurity": "Security Logs"
 }
 
 class Salvage:

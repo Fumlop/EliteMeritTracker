@@ -5,10 +5,11 @@ All notable changes to EliteMeritTracker will be documented in this file.
 ## [v0.4.300.1.037] - 2026-01-07
 
 ### Added
-- **PowerPlay Item-Type Materials Tracking**: Added support for 9 missing PowerPlay salvage items
-  - New items: Inventory Record, Extraction Sample, Experiment Prototype, Electronics Package, Computer Parts, Personal Protective Equipment, Data Storage Device, Security Logs, Research Notes
+- **PowerPlay Item-Type Materials Tracking**: Added support for 15 PowerPlay salvage items (PowerPlay Goods)
+  - New items: Agricultural Sample, Computer Parts, Data Storage Device, Electronics Package, Energy Regulator, Experiment Prototype, Extraction Sample, Industrial Component, Industrial Machinery, Inventory Record, Medical Sample, Military Schematic, Personal Protective Equipment, Research Notes, Security Logs
   - Items now tracked in salvage system alongside legacy Black Box and Wreckage Components
   - Full merit calculation support when delivered to Search & Rescue or Power contacts
+  - Complete coverage of all PowerPlay Item-type materials from game
 
 - **Shiplocker UI Enhancement**: Added fourth table to display PowerPlay Item-type materials
   - New "PowerPlay Items (Salvage)" table shows system, item type, and count
@@ -27,13 +28,16 @@ All notable changes to EliteMeritTracker will be documented in this file.
 
 - **Comprehensive Test Suite**: Added test_powerplay_items.py with 95%+ coverage
   - Tests for all Data-type items (Undermining, Reinforcement, Acquisition)
-  - Tests for all Item-type materials (9 new PowerPlay items)
+  - Tests for all Item-type materials (15 PowerPlay Goods)
   - Real-world scenario tests based on actual journal events
   - Merit calculation and distribution tests
   - Edge case and error handling tests
 
 ### Technical
-- Updated `emt_models/salvage.py`: Added 9 PowerPlay items to VALID_POWERPLAY_SALVAGE_TYPES
+- Updated `emt_models/salvage.py`: Added 15 PowerPlay Goods to VALID_POWERPLAY_SALVAGE_TYPES
+  - poweragriculture, powercomputer, powermisccomputer, powerelectronics, powerpower
+  - powerexperiment, powerextraction, powerindustrial, powermiscindust, powerinventory
+  - powermedical, powerplaymilitary, powerequipment, powerresearch, powersecurity
 - Updated `emt_ui/details.py`: Added create_salvage_table() function for UI display
 - Updated `load.py`: Added threading support for auto-save timer
 - All changes maintain backward compatibility with existing salvage tracking
