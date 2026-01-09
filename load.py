@@ -673,6 +673,36 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
     if current_timestamp and entry['event'] != 'PowerplayMerits':
         track_journal_event(current_timestamp)
 
+    # Validate and correct current system using EDMC's system parameter
+    # This handles the case where user traveled via Fleet Carrier while EDMC was closed
+    if state.need_location_validation and system:
+        state.need_location_validation = False
+        if state.current_system and state.current_system.StarSystem != system:
+            logger.warning(
+                f"System validation: restored '{state.current_system.StarSystem}' "
+                f"but EDMC reports current system as '{system}'. Correcting to EDMC state."
+            )
+            # Mark old system as inactive
+            if state.current_system.StarSystem in systems:
+                systems[state.current_system.StarSystem].Active = False
+
+            # Update to correct system from EDMC
+            if system in systems:
+                systems[system].Active = True
+                state.current_system = systems[system]
+                trackerFrame.update_display(state.current_system)
+                logger.info(f"Current system corrected to: {system}")
+            else:
+                # System not in our database - create new object to track merits
+                logger.info(f"Current system '{system}' not in database, creating new StarSystem object for merit tracking")
+                # Create minimal StarSystem with just the name - will be updated with full data on next location event
+                new_system = StarSystem(systemName=system)
+                new_system.Active = True
+                systems[system] = new_system
+                state.current_system = new_system
+                trackerFrame.update_display(state.current_system)
+                logger.info(f"Created new system object for: {system}")
+
     if entry['event'] in ['LoadGame']:
         state.commander = entry.get('Commander', "")
     if entry['event'] == 'BackpackChange':
@@ -797,17 +827,6 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
     if entry['event'] in ['FSDJump', 'Location'] or (entry['event'] in ['CarrierJump'] and entry['Docked'] == True):
         nameSystem = entry.get('StarSystem', "Nomansland")
-
-        # Validate restored current_system after EDMC restart
-        if state.need_location_validation:
-            state.need_location_validation = False
-            if state.current_system and state.current_system.StarSystem != nameSystem:
-                logger.warning(
-                    f"Location mismatch after restart: restored '{state.current_system.StarSystem}' "
-                    f"but player is actually in '{nameSystem}'. Correcting."
-                )
-                # Mark old system as inactive
-                systems[state.current_system.StarSystem].Active = False
 
         if not systems or len(systems) == 0 or nameSystem not in systems:
             new_system = StarSystem(eventEntry=entry)

@@ -24,7 +24,7 @@ system_data/systems-game-data.json.gz
 #Visual Studio
 .vs/*
 htmlcov
-
+/debug
 # Local History for Visual Studio Code
 .history/
 

@@ -2,6 +2,16 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.038] - 2026-01-09
+
+### Fixed
+- **Fleet Carrier System Tracking**: Fixed system tracking when EDMC is started after traveling via Fleet Carrier
+  - Added validation using EDMC's system parameter on first journal entry
+  - Automatically detects and corrects system mismatch after plugin restart
+  - Creates new StarSystem object if correct system not in database to ensure merit tracking works immediately
+  - Prevents merit tracking issues when user travels while EDMC is closed
+  - Improves reliability of current system detection across all scenarios
+
 ## [v0.4.300.1.037] - 2026-01-07
 
 ### Added
