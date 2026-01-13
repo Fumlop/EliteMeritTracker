@@ -25,6 +25,10 @@ system_data/systems-game-data.json.gz
 .vs/*
 htmlcov
 /debug
+
+# Claude Code temporary directories
+tmpclaude-*
+
 # Local History for Visual Studio Code
 .history/
 
