@@ -472,10 +472,9 @@ def plugin_start3(plugin_dir):
     for system in systems.values():
         if system.Active:
             state.current_system = system
-            # Mark that we need to validate location on first journal event
-            # (player may have moved while EDMC was down)
-            state.need_location_validation = True
-            logger.info(f"Restored active system: {system.StarSystem} (will validate on first location event)")
+            # DISABLED: Validation feature disabled to prevent data loss
+            # state.need_location_validation = True
+            logger.info(f"Restored active system: {system.StarSystem}")
     pledgedPower.loadPower()
     logger.info(f"Plugin initialized - Systems: {len(systems)}, Power: {pledgedPower.Power}")
 
@@ -673,37 +672,11 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
     if current_timestamp and entry['event'] != 'PowerplayMerits':
         track_journal_event(current_timestamp)
 
-    # Validate system location only on StartUp or first Location/FSDJump event
-    # This handles the case where user traveled via Fleet Carrier while EDMC was closed
-    if entry['event'] in ['StartUp', 'Location', 'FSDJump']:
-        if state.need_location_validation and system:
-            logger.info(f"Validating system location: event='{entry['event']}', EDMC system='{system}', restored='{state.current_system.StarSystem if state.current_system else None}'")
-            state.need_location_validation = False
-            if state.current_system and state.current_system.StarSystem != system:
-                logger.warning(
-                    f"System validation: restored '{state.current_system.StarSystem}' "
-                    f"but EDMC reports current system as '{system}'. Correcting to EDMC state."
-                )
-                # Mark old system as inactive
-                if state.current_system.StarSystem in systems:
-                    systems[state.current_system.StarSystem].Active = False
-
-                # Update to correct system from EDMC
-                if system in systems:
-                    systems[system].Active = True
-                    state.current_system = systems[system]
-                    trackerFrame.update_display(state.current_system)
-                    logger.info(f"Current system corrected to: {system}")
-                else:
-                    # System not in our database - create new object to track merits
-                    logger.info(f"Current system '{system}' not in database, creating new StarSystem object for merit tracking")
-                    # Create minimal StarSystem with just the name - will be updated with full data on next location event
-                    new_system = StarSystem(systemName=system)
-                    new_system.Active = True
-                    systems[system] = new_system
-                    state.current_system = new_system
-                    trackerFrame.update_display(state.current_system)
-                    logger.info(f"Created new system object for: {system}")
+    # DISABLED: System validation feature temporarily disabled
+    # Issue: Causes TypeError and data loss risk
+    # Workaround: Jump to another system or dock to trigger system update
+    # TODO: Implement safe validation that doesn't risk data loss
+    pass
 
     if entry['event'] in ['LoadGame']:
         state.commander = entry.get('Commander', "")
