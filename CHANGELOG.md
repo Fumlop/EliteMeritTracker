@@ -2,6 +2,21 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.039] - 2026-01-13
+
+### Fixed
+- **UI Refresh After Salvage Hand-In**: Fixed main UI not updating after salvage hand-in at Search and Rescue
+  - Added UI refresh calls after SAR merit distribution across systems
+  - Added UI refresh calls after DeliverPowerMicroResources merit distribution
+  - Merit counts now display immediately after hand-in instead of waiting for system jump
+
+### Improved
+- **System Validation Optimization**: Improved efficiency of system location validation
+  - Validation now only runs on StartUp, Location, and FSDJump events (not every event)
+  - Added logging to show which event triggered validation and system status
+  - Handles EDMC StartUp event properly when started with Elite already running
+  - More targeted event filtering for better performance
+
 ## [v0.4.300.1.038] - 2026-01-09
 
 ### Fixed

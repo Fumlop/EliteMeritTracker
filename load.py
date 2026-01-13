@@ -673,35 +673,37 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
     if current_timestamp and entry['event'] != 'PowerplayMerits':
         track_journal_event(current_timestamp)
 
-    # Validate and correct current system using EDMC's system parameter
+    # Validate system location only on StartUp or first Location/FSDJump event
     # This handles the case where user traveled via Fleet Carrier while EDMC was closed
-    if state.need_location_validation and system:
-        state.need_location_validation = False
-        if state.current_system and state.current_system.StarSystem != system:
-            logger.warning(
-                f"System validation: restored '{state.current_system.StarSystem}' "
-                f"but EDMC reports current system as '{system}'. Correcting to EDMC state."
-            )
-            # Mark old system as inactive
-            if state.current_system.StarSystem in systems:
-                systems[state.current_system.StarSystem].Active = False
+    if entry['event'] in ['StartUp', 'Location', 'FSDJump']:
+        if state.need_location_validation and system:
+            logger.info(f"Validating system location: event='{entry['event']}', EDMC system='{system}', restored='{state.current_system.StarSystem if state.current_system else None}'")
+            state.need_location_validation = False
+            if state.current_system and state.current_system.StarSystem != system:
+                logger.warning(
+                    f"System validation: restored '{state.current_system.StarSystem}' "
+                    f"but EDMC reports current system as '{system}'. Correcting to EDMC state."
+                )
+                # Mark old system as inactive
+                if state.current_system.StarSystem in systems:
+                    systems[state.current_system.StarSystem].Active = False
 
-            # Update to correct system from EDMC
-            if system in systems:
-                systems[system].Active = True
-                state.current_system = systems[system]
-                trackerFrame.update_display(state.current_system)
-                logger.info(f"Current system corrected to: {system}")
-            else:
-                # System not in our database - create new object to track merits
-                logger.info(f"Current system '{system}' not in database, creating new StarSystem object for merit tracking")
-                # Create minimal StarSystem with just the name - will be updated with full data on next location event
-                new_system = StarSystem(systemName=system)
-                new_system.Active = True
-                systems[system] = new_system
-                state.current_system = new_system
-                trackerFrame.update_display(state.current_system)
-                logger.info(f"Created new system object for: {system}")
+                # Update to correct system from EDMC
+                if system in systems:
+                    systems[system].Active = True
+                    state.current_system = systems[system]
+                    trackerFrame.update_display(state.current_system)
+                    logger.info(f"Current system corrected to: {system}")
+                else:
+                    # System not in our database - create new object to track merits
+                    logger.info(f"Current system '{system}' not in database, creating new StarSystem object for merit tracking")
+                    # Create minimal StarSystem with just the name - will be updated with full data on next location event
+                    new_system = StarSystem(systemName=system)
+                    new_system.Active = True
+                    systems[system] = new_system
+                    state.current_system = new_system
+                    trackerFrame.update_display(state.current_system)
+                    logger.info(f"Created new system object for: {system}")
 
     if entry['event'] in ['LoadGame']:
         state.commander = entry.get('Commander', "")
@@ -812,6 +814,8 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
                     system_merits = int(merits_per_item * item_count)
                     update_system_merits(system_merits, system_name=system_name)
             state.reset_delivery_tracking()
+            # Update UI after distributing merits across systems
+            trackerFrame.update_display(state.current_system)
         elif state.last_sar_counts is not None and state.last_sar_systems:
             total_items = sum(state.last_sar_counts.values())
             if total_items > 0:
@@ -820,6 +824,8 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
                     system_merits = int(merits_per_item * item_count)
                     update_system_merits(system_merits, system_name=system_name)
             state.reset_sar_tracking()
+            # Update UI after distributing merits across systems
+            trackerFrame.update_display(state.current_system)
         else:
             update_system_merits(merits_gained, update_ui=True)
 
