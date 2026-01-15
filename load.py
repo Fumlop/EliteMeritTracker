@@ -716,8 +716,10 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
         if data_items:
             playerBackpack.sync_from_shiplocker(data_items)
     if entry['event'] in ['CollectCargo']:
-        # Process cargo collection with new Salvage system
-        Salvage.process_collect_cargo(entry, state.current_system)
+        # Only track PowerPlay salvage cargo, not mining commodities
+        cargo_type = entry.get("Type", "Unknown").lower()
+        if cargo_type in VALID_POWERPLAY_SALVAGE_TYPES:
+            Salvage.process_collect_cargo(entry, state.current_system)
     if entry['event'] in ['SearchAndRescue']:
         # Remove cargo when delivered to Search and Rescue - from any system
         cargo_type = entry.get("Name", "Unknown").lower()
@@ -804,7 +806,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
 
         pledgedPower.Merits = entry.get('TotalMerits', pledgedPower.Merits)
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
-    if entry['event'] in ['FSDJump', 'Location'] or (entry['event'] in ['CarrierJump'] and entry['Docked'] == True):
+    if entry['event'] in ['FSDJump', 'Location', 'Docked'] or (entry['event'] in ['CarrierJump'] and entry['Docked'] == True):
         nameSystem = entry.get('StarSystem', "Nomansland")
 
         if not systems or len(systems) == 0 or nameSystem not in systems:
