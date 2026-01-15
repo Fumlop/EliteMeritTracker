@@ -2,6 +2,22 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.040] - 2026-01-15
+
+### Fixed
+- **Merit Attribution Bugs**: Fixed critical bugs causing merits to be attributed to wrong systems
+  - Mining commodities (Osmium, Platinum, etc.) were incorrectly tracked as PowerPlay salvage cargo
+  - CollectCargo handler now only tracks PowerPlay salvage types (black boxes, wreckage, etc.)
+  - Added Docked event to system tracking so current system updates when docking
+  - Merits from mining/trading now correctly attributed to the system where goods are sold
+  - Example: Mining in System A and selling in System B now gives merits to System B (not A)
+
+### Changed
+- **System Validation**: Temporarily disabled system validation feature to prevent data loss
+  - Feature caused TypeError and risk of losing merit data
+  - Will be re-implemented safely in future update
+  - Workaround: Jump to another system or dock to trigger system update if needed
+
 ## [v0.4.300.1.039] - 2026-01-13
 
 ### Fixed
