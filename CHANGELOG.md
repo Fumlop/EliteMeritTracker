@@ -2,6 +2,15 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.041] - 2026-01-15
+
+### Fixed
+- **PowerPlay Data Loss on Docking**: Fixed system PowerPlay data disappearing when docking at stations
+  - Docked events don't contain PowerPlay data (Status, Progress, Power, Cycle, Reinf)
+  - Docked event handler now only updates current system tracking without overwriting PowerPlay data
+  - Only FSDJump and Location events update PowerPlay data (they contain full system info)
+  - Prevents "no PP connection" status appearing after docking in PowerPlay systems
+
 ## [v0.4.300.1.040] - 2026-01-15
 
 ### Fixed

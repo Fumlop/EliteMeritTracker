@@ -806,7 +806,8 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
 
         pledgedPower.Merits = entry.get('TotalMerits', pledgedPower.Merits)
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
-    if entry['event'] in ['FSDJump', 'Location', 'Docked'] or (entry['event'] in ['CarrierJump'] and entry['Docked'] == True):
+    if entry['event'] in ['FSDJump', 'Location'] or (entry['event'] in ['CarrierJump'] and entry['Docked'] == True):
+        # FSDJump and Location events contain full PowerPlay data
         nameSystem = entry.get('StarSystem', "Nomansland")
 
         if not systems or len(systems) == 0 or nameSystem not in systems:
@@ -817,6 +818,21 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
             systems[nameSystem].updateSystem(eventEntry=entry)
         updateSystemTracker(state.current_system, systems[nameSystem])
         trackerFrame.update_display(state.current_system)
+    elif entry['event'] == 'Docked':
+        # Docked event doesn't have PowerPlay data - only update current system tracking
+        nameSystem = entry.get('StarSystem', "Nomansland")
+
+        if nameSystem in systems:
+            # System already exists, just switch to it (don't update PowerPlay data)
+            updateSystemTracker(state.current_system, systems[nameSystem])
+            trackerFrame.update_display(state.current_system)
+        else:
+            # New system discovered via docking - create minimal entry, will get full data on next Location
+            new_system = StarSystem(eventEntry={'StarSystem': nameSystem})
+            new_system.setReported(False)
+            systems[nameSystem] = new_system
+            updateSystemTracker(state.current_system, systems[nameSystem])
+            trackerFrame.update_display(state.current_system)
 
 
 def updateSystemTracker(oldSystem, newSystem):
