@@ -4,7 +4,7 @@ from config import config
 
 class ConfigPlugin:
     def __init__(self):
-        self.version = 'v0.4.300.1.041'
+        self.version = 'v0.4.300.1.042'
         self.beta = False  # Will be loaded from config
         self.loadConfig()
 
@@ -27,6 +27,7 @@ class ConfigPlugin:
         self.reportSave = config.get_bool("reportSave") or True
         self.never = config.get_bool("never") or False
         self.beta = config.get_bool("beta") or False
+        self.hide_stats = tk.BooleanVar(value=config.get_bool("hide_stats") or False)
 
     def dumpConfig(self):
         config.set("power_info_width", str(self.power_info_width))
@@ -38,6 +39,7 @@ class ConfigPlugin:
         config.set("reportSave", bool(self.reportSave))
         config.set("never", bool(self.never))
         config.set("beta", bool(self.beta))
+        config.set("hide_stats", bool(self.hide_stats.get()))
 
 class ConfigEncoder(json.JSONEncoder):
     def default(self, o):

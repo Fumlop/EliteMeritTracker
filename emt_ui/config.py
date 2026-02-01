@@ -231,6 +231,12 @@ def create_config_frame(parent, nb):
         variable=configPlugin.reportOnFSDJump
     ).grid(row=next_config_row(), columnspan=2, sticky=tk.W)
 
+    nb.Checkbutton(
+        config_frame,
+        text="Hide PowerPlay stats (Power, Rank, Total Merits) from main UI",
+        variable=configPlugin.hide_stats
+    ).grid(row=next_config_row(), columnspan=2, sticky=tk.W)
+
     nb.Label(config_frame, text="").grid(row=next_config_row(), column=0, sticky="w", padx=5, pady=5)
 
     # Duplicate Scanner Section

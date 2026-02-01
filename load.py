@@ -657,6 +657,9 @@ def update_system_merits(merits_value, system_name: str = None, apply_cargo_form
 
 def prefs_changed(cmdr, is_beta):
     configPlugin.dumpConfig()
+    # Refresh UI to apply hide_stats setting
+    if trackerFrame and state.current_system:
+        trackerFrame.update_display(state.current_system)
            
 def update_json_file():
     pledgedPower.dumpJson()

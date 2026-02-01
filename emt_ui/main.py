@@ -8,6 +8,7 @@ import os
 from config import config
 from theme import theme
 from emt_core.logging import logger
+from emt_core.config import configPlugin
 from emt_ui.details import show_power_info
 from emt_core.state import state
 
@@ -79,6 +80,24 @@ class TrackerFrame:
         self.widgets['rankValue']['text'] = f"{pledgedPower.Rank}"
         self.widgets['sessionValue']['text'] = f"{pledgedPower.MeritsSession:,}"
         self.widgets['totalValue']['text'] = f"{pledgedPower.Merits:,}"
+
+        # Update visibility based on hide_stats config
+        if not configPlugin.hide_stats.get():
+            # Show stats
+            self.widgets['pledgedLabel'].grid()
+            self.widgets['powerValue'].grid()
+            self.widgets['rankLabel'].grid()
+            self.widgets['rankValue'].grid()
+            self.widgets['totalLabel'].grid()
+            self.widgets['totalValue'].grid()
+        else:
+            # Hide stats
+            self.widgets['pledgedLabel'].grid_remove()
+            self.widgets['powerValue'].grid_remove()
+            self.widgets['rankLabel'].grid_remove()
+            self.widgets['rankValue'].grid_remove()
+            self.widgets['totalLabel'].grid_remove()
+            self.widgets['totalValue'].grid_remove()
 
         # Enable buttons if system is available
         if currentSystemFlying and currentSystemFlying.StarSystem:
@@ -323,17 +342,27 @@ class TrackerFrame:
         imagedelete = self.load_and_scale_image(f"{self.assetspath}/delete.png", scale)
         self.icondelete = ImageTk.PhotoImage(imagedelete)
 
-        # Grid Row 1: Pledged + Power + Rank
-        self.widgets['pledgedLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
-        self.widgets['powerValue'].grid(row=0, column=1, sticky='w', padx=(2, 8), pady=0)
-        self.widgets['rankLabel'].grid(row=0, column=2, sticky='w', padx=0, pady=0)
-        self.widgets['rankValue'].grid(row=0, column=3, sticky='w', padx=(2, 0), pady=0)
+        # Grid Row 1: Pledged + Power + Rank (conditionally hide based on config)
+        if not configPlugin.hide_stats.get():
+            self.widgets['pledgedLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
+            self.widgets['powerValue'].grid(row=0, column=1, sticky='w', padx=(2, 8), pady=0)
+            self.widgets['rankLabel'].grid(row=0, column=2, sticky='w', padx=0, pady=0)
+            self.widgets['rankValue'].grid(row=0, column=3, sticky='w', padx=(2, 0), pady=0)
+        else:
+            self.widgets['pledgedLabel'].grid_remove()
+            self.widgets['powerValue'].grid_remove()
+            self.widgets['rankLabel'].grid_remove()
+            self.widgets['rankValue'].grid_remove()
 
-        # Grid Row 2: Session + Total
+        # Grid Row 2: Session + Total (conditionally hide Total based on config)
         self.widgets['sessionLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
         self.widgets['sessionValue'].grid(row=0, column=1, sticky='w', padx=(2, 8), pady=0)
-        self.widgets['totalLabel'].grid(row=0, column=2, sticky='w', padx=0, pady=0)
-        self.widgets['totalValue'].grid(row=0, column=3, sticky='w', padx=(2, 0), pady=0)
+        if not configPlugin.hide_stats.get():
+            self.widgets['totalLabel'].grid(row=0, column=2, sticky='w', padx=0, pady=0)
+            self.widgets['totalValue'].grid(row=0, column=3, sticky='w', padx=(2, 0), pady=0)
+        else:
+            self.widgets['totalLabel'].grid_remove()
+            self.widgets['totalValue'].grid_remove()
 
         # Grid Row 3-7
         self.widgets['currentSystemLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
