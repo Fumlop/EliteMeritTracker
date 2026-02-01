@@ -90,6 +90,7 @@ class TrackerFrame:
             self.widgets['rankValue'].grid()
             self.widgets['totalLabel'].grid()
             self.widgets['totalValue'].grid()
+            self.widgets['netLabel'].grid()
         else:
             # Hide stats
             self.widgets['pledgedLabel'].grid_remove()
@@ -98,6 +99,7 @@ class TrackerFrame:
             self.widgets['rankValue'].grid_remove()
             self.widgets['totalLabel'].grid_remove()
             self.widgets['totalValue'].grid_remove()
+            self.widgets['netLabel'].grid_remove()
 
         # Enable buttons if system is available
         if currentSystemFlying and currentSystemFlying.StarSystem:
@@ -369,7 +371,13 @@ class TrackerFrame:
         self.widgets['meritsGainedLabel'].grid(row=0, column=1, sticky='w', padx=(5, 0), pady=0)
         self.widgets['stateWord'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
         self.widgets['stateDetails'].grid(row=0, column=1, sticky='w', padx=0, pady=0)
-        self.widgets['netLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
+
+        # Grid netLabel conditionally based on hide_stats
+        if not configPlugin.hide_stats.get():
+            self.widgets['netLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
+        else:
+            self.widgets['netLabel'].grid_remove()
+
         self.widgets['economySecurityLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
         self.widgets['allegianceGovPopLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
 

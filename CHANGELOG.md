@@ -5,9 +5,10 @@ All notable changes to EliteMeritTracker will be documented in this file.
 ## [v0.4.300.1.042] - 2026-01-30
 
 ### Added
-- **Hide PowerPlay Stats Option**: Added option to hide Power, Rank, and Total Merits from main UI
+- **Hide PowerPlay Stats Option**: Added option to hide Power, Rank, Total Merits, and Cycle NET from main UI
   - New checkbox in preferences: "Hide PowerPlay stats (Power, Rank, Total Merits) from main UI"
   - Default: unchecked (stats visible)
+  - When enabled, hides: Pledged Power, Rank, Total Merits, and Cycle NET stat
   - When enabled, only Session Merits and current system info are shown
   - Settings apply immediately when saved in preferences
 
