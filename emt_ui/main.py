@@ -91,6 +91,7 @@ class TrackerFrame:
             self.widgets['totalLabel'].grid()
             self.widgets['totalValue'].grid()
             self.widgets['economySecurityLabel'].grid()
+            self.widgets['allegianceGovPopLabel'].grid()
         else:
             # Hide stats
             self.widgets['pledgedLabel'].grid_remove()
@@ -100,6 +101,9 @@ class TrackerFrame:
             self.widgets['totalLabel'].grid_remove()
             self.widgets['totalValue'].grid_remove()
             self.widgets['economySecurityLabel'].grid_remove()
+            self.widgets['allegianceGovPopLabel'].grid_remove()
+            
+            
 
         # Enable buttons if system is available
         if currentSystemFlying and currentSystemFlying.StarSystem:
@@ -378,9 +382,12 @@ class TrackerFrame:
         # Grid economySecurityLabel conditionally based on hide_stats
         if not configPlugin.hide_stats.get():
             self.widgets['economySecurityLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
+            self.widgets['allegianceGovPopLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
+            
         else:
             self.widgets['economySecurityLabel'].grid_remove()
-        self.widgets['allegianceGovPopLabel'].grid(row=0, column=0, sticky='w', padx=0, pady=0)
+            self.widgets['allegianceGovPopLabel'].grid_remove()
+        
 
         # Create buttons (moved to row 8)
         self.widgets['resetButton'] = tk.Button(
