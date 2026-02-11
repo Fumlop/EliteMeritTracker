@@ -151,24 +151,32 @@ class DuplicateDetector:
             self.last_powerplay_event['timestamp']
         ))
         
+        # Check TotalMerits progression first - this is the most reliable indicator
+        expected_total = self.last_powerplay_event['total_merits'] + current_event['merits_gained']
+        total_merits_correct = current_event['total_merits'] == expected_total
+
+        # If TotalMerits progressed correctly, this is a legitimate new event, not a duplicate
+        if total_merits_correct:
+            return False, f"Not duplicate: TotalMerits progressed correctly ({self.last_powerplay_event['total_merits']} + {current_event['merits_gained']} = {expected_total})"
+
         # Check basic duplicate conditions
         same_merits = current_event['merits_gained'] == self.last_powerplay_event['merits_gained']
         same_power = current_event['power'] == self.last_powerplay_event['power']
         within_time_window = time_diff < self.time_window
-        
+
         # For very short time differences (< 1 second), check event sequence
         # For longer time differences, focus on merit/power matching regardless of intermediate events
         apply_sequence_check = time_diff < 1.0
         no_events_between = True
-        
+
         if apply_sequence_check:
             no_events_between = self.check_sequence_events(current_event)
-        
+
         # Duplicate condition logic from original code
         duplicate_condition = (within_time_window and same_merits and same_power)
         if apply_sequence_check:
             duplicate_condition = duplicate_condition and no_events_between
-        
+
         if not duplicate_condition:
             if not within_time_window:
                 return False, f"Not duplicate: time_diff={time_diff:.1f}s (outside {self.time_window}s window)"

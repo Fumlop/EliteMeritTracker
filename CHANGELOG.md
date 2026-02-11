@@ -2,6 +2,18 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.043] - 2026-02-11
+
+### Fixed
+- **Duplicate Detection Bug**: Fixed duplicate checker incorrectly blocking legitimate merit gains
+  - When handing in multiple same-value donations quickly (e.g., multiple 56-merit salvage), events 2+ were incorrectly marked as duplicates
+  - Now validates TotalMerits progression - if TotalMerits increments correctly, it's not a duplicate
+  - Fixes issue where rapid merit donations at Search & Rescue were being ignored
+- **EDMC Logging Compatibility**: Fixed logging failures causing plugin output to be suppressed
+  - Added EDMCLogRecordFilter to inject 'osthreadid' field required by EDMC's log formatter
+  - Prevents KeyError: 'osthreadid' that was causing all plugin log messages to fail
+  - Plugin activity now properly logged and visible for debugging
+
 ## [v0.4.300.1.042] - 2026-02-11
 
 ### Added
