@@ -25,6 +25,7 @@ system_data/systems-game-data.json.gz
 .vs/*
 htmlcov
 /debug
+/test
 
 # Claude Code temporary directories
 tmpclaude-*
