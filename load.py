@@ -724,11 +724,10 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
         if cargo_type in VALID_POWERPLAY_SALVAGE_TYPES:
             Salvage.process_collect_cargo(entry, state.current_system)
     if entry['event'] in ['SearchAndRescue']:
-        # Remove cargo when delivered to Search and Rescue - from any system
+        # Remove cargo when delivered to Search and Rescue - only from current system
         cargo_type = entry.get("Name", "Unknown").lower()
         if cargo_type in VALID_POWERPLAY_SALVAGE_TYPES:
             count = entry.get("Count", 1)
-            remaining_count = count
 
             # Log significant PowerPlay cargo deliveries
             if count >= 10:
@@ -737,17 +736,20 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
             # Initialize SAR tracking for this batch
             state.init_sar_tracking()
 
-            # Sort systems alphabetically
-            sorted_systems = sorted(salvageInventory.keys())
-
-            # Try to remove cargo from each system until count is satisfied
-            for system_name in sorted_systems:
-                if remaining_count <= 0:
-                    break
+            # Only process salvage from current system to prevent attribution to wrong systems
+            if state.current_system and state.current_system.StarSystem in salvageInventory:
+                system_name = state.current_system.StarSystem
                 if salvageInventory[system_name].has_cargo(cargo_type):
-                    removed = salvageInventory[system_name].remove_cargo(cargo_type, remaining_count)
-                    remaining_count -= removed
+                    removed = salvageInventory[system_name].remove_cargo(cargo_type, count)
                     state.add_sar_count(system_name, removed)
+
+                    # Warn if inventory is short (salvage count mismatch)
+                    if removed < count:
+                        logger.warning(f"Salvage inventory short: handed in {count} {cargo_type} but only had {removed} tracked in {system_name}")
+                else:
+                    logger.warning(f"Handed in {count} {cargo_type} but no inventory tracked in {system_name}")
+            else:
+                logger.warning(f"SearchAndRescue in unknown system - cannot track salvage source")
     if entry['event'] in ['Powerplay']:
         logger.info(f"PowerPlay status changed - Power: {entry.get('Power', 'Unknown')}")
         pledgedPower.__init__(eventEntry=entry)

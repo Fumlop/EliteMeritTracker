@@ -2,6 +2,15 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.044] - 2026-02-16
+
+### Fixed
+- **Cross-Session Merit Attribution Bug**: Fixed merits being attributed to wrong systems from previous sessions
+  - SearchAndRescue now only processes salvage from current system instead of all systems alphabetically
+  - Prevents old salvage from previous sessions being attributed when handed in during new session
+  - Example: Salvage collected in "Hyades Sector" in previous session was incorrectly getting merits when user handed in salvage in "LHS 2476" in new session
+  - Adds warning logs when salvage inventory is short or missing (helps detect desync issues)
+
 ## [v0.4.300.1.043] - 2026-02-11
 
 ### Fixed
