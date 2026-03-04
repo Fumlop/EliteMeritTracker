@@ -2,6 +2,11 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.045] - 2026-03-04
+
+### Fixed
+- **Overview window duplicate opening**: Clicking Overview multiple times no longer opens multiple windows; existing window is raised to front instead
+
 ## [v0.4.300.1.044] - 2026-02-16
 
 ### Fixed

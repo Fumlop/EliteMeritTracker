@@ -306,6 +306,12 @@ def show_power_info(parent, pp, sy, tracker_frame=None):
     global table_frame, toggle_button, csv_button, copy_all_button, shiplocker_button, detailed_view, filter_frame
     global systems, pledgedPower, update_scrollregion, main_tracker_frame, info_window
 
+    # If window already exists, bring it to front instead of opening a new one
+    if info_window is not None and info_window.winfo_exists():
+        info_window.lift()
+        info_window.focus_force()
+        return
+
     pledgedPower = pp
     systems = sy
     main_tracker_frame = tracker_frame
