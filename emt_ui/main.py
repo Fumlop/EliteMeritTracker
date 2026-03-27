@@ -138,29 +138,24 @@ class TrackerFrame:
 
             # Handle power cycle information with color coding
             if not currentSystemFlying.PowerplayConflictProgress:
-                cycle_status = currentSystemFlying.getPowerPlayCycleNetStatusText()
-                if cycle_status:
-                    # Parse the NET value to determine color
-                    try:
-                        # Extract percentage from text like "NET -52.02%"
-                        net_str = cycle_status.replace("NET", "").replace("%", "").strip()
-                        net_value = float(net_str)
-                        if net_value > 0:
-                            net_color = '#00ff00'  # Green for positive
-                            arrow = chr(0x25B2)  # Up arrow
-                        elif net_value < 0:
-                            net_color = '#ff4444'  # Red for negative
-                            arrow = chr(0x25BC)  # Down arrow
-                        else:
-                            net_color = colors['fg']
-                            arrow = ""
-                        self.widgets['netLabel']['text'] = f"Cycle NET {net_value:+.2f}% {arrow}"
-                        self.widgets['netLabel']['fg'] = net_color
-                    except (ValueError, IndexError):
-                        self.widgets['netLabel']['text'] = f"Cycle {cycle_status}"
-                        self.widgets['netLabel']['fg'] = colors['fg']
-                else:
+                reinf = currentSystemFlying.PowerplayStateReinforcement
+                real_um = getattr(currentSystemFlying, 'RealUndermining', currentSystemFlying.PowerplayStateUndermining)
+                decay = currentSystemFlying.PowerplayStateUndermining - real_um
+                if reinf == 0 and real_um == 0:
                     self.widgets['netLabel']['text'] = ""
+                else:
+                    decay_str = f" ({decay:,} decay)" if decay > 0 else ""
+                    if real_um > reinf:
+                        net_color = '#ff4444'
+                        arrow = chr(0x25BC)
+                    elif reinf > real_um:
+                        net_color = '#00ff00'
+                        arrow = chr(0x25B2)
+                    else:
+                        net_color = colors['fg']
+                        arrow = ""
+                    self.widgets['netLabel']['text'] = f"UM: {real_um:,}{decay_str} | Reinf: {reinf:,} {arrow}"
+                    self.widgets['netLabel']['fg'] = net_color
             else:
                 self.widgets['netLabel']['text'] = "Conflict in progress"
                 self.widgets['netLabel']['fg'] = '#ffaa00'  # Orange for conflict

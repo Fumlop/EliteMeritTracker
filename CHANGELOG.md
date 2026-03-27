@@ -2,6 +2,14 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.300.1.046] - 2026-03-27
+
+### Changed
+- **Real Undermining Display**: The Cycle NET% display is replaced with `UM: X (decay) | Reinf: Y` showing actual hostile undermining CP separated from natural decay
+  - Uses piecewise linear decay formula (ported from EDIntel) with per-type lookup tables for Exploited, Fortified, and Stronghold systems
+  - Natural CP decay is subtracted from the raw journal undermining value; decay amount shown in parentheses when non-zero
+  - Color coding: green arrow when Reinf > real UM, red arrow when real UM > Reinf
+
 ## [v0.4.300.1.045] - 2026-03-04
 
 ### Fixed

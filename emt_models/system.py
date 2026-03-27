@@ -7,6 +7,64 @@ STRONGHOLD_CP_THRESHOLD = 120000
 FORTIFIED_CP_THRESHOLD = 120000
 EXPLOITED_CP_THRESHOLD = 60000
 
+# Max CP per system type used for decay calculation (EDIntel formula)
+_MAX_CP = {
+    'Stronghold': 1_000_000,
+    'Fortified': 650_000,
+    'Exploited': 350_000,
+}
+
+# Piecewise linear interpolation points: (progress_percent, decay_percent)
+# Decay differs per system type. Source: EDIntel decay formula analysis.
+_DECAY_POINTS = {
+    'Exploited': [
+        (0, 0.0), (25, 0.5), (26, 0.624), (27.5, 0.923), (28.5, 1.194),
+        (29.5, 1.443), (31, 1.806), (33.5, 2.245), (36.5, 2.775), (39, 3.091),
+        (42.5, 3.444), (47.5, 3.913), (55, 4.469), (65, 5.099), (75, 5.475),
+        (85, 5.713), (95, 5.177), (125, 2.291),
+    ],
+    'Fortified': [
+        (0, 0.0), (25, 0.4), (26, 0.541), (27.5, 1.472), (28.5, 2.128),
+        (29.5, 2.672), (31, 3.557), (33.5, 4.634), (36.5, 6.061), (39, 6.874),
+        (42.5, 7.834), (47.5, 9.072), (55, 9.473), (65, 12.358), (75, 11.881),
+        (85, 8.382), (100, 12.356),
+    ],
+    'Stronghold': [
+        (0, 0.0), (25, 0.8), (26, 1.036), (27.5, 2.288), (28.5, 3.099),
+        (29.5, 3.761), (31, 4.705), (33.5, 6.145), (36.5, 7.524), (39, 8.716),
+        (42.5, 9.872), (47.5, 10.609), (55, 13.200), (65, 14.788), (75, 16.311),
+        (85, 17.094), (95, 16.117), (125, 11.419),
+    ],
+}
+
+
+def _interpolate_decay(progress_pct: float, system_type: str) -> float:
+    """Return decay percent via piecewise linear interpolation. Decay only above 25%."""
+    points = _DECAY_POINTS.get(system_type)
+    if not points or progress_pct <= 25.0:
+        return 0.0
+    for i in range(len(points) - 1):
+        x1, y1 = points[i]
+        x2, y2 = points[i + 1]
+        if x1 <= progress_pct <= x2:
+            if x2 == x1:
+                return y1
+            return y1 + (y2 - y1) * (progress_pct - x1) / (x2 - x1)
+    return points[-1][1]
+
+
+def _calc_real_undermining(raw_um: int, raw_reinf: int, progress_pct: float, system_type: str) -> int:
+    """Return real (decay-subtracted) undermining CP. Formula from EDIntel."""
+    max_cp = _MAX_CP.get(system_type)
+    if not max_cp or raw_um == 0:
+        return raw_um
+    current_cp = max_cp * (progress_pct / 100.0)
+    last_cycle_cp = current_cp + raw_um - raw_reinf
+    last_cycle_pct = (last_cycle_cp / max_cp) * 100.0
+    decay_pct = _interpolate_decay(last_cycle_pct, system_type)
+    decay_amount = last_cycle_cp * (decay_pct / 100.0)
+    return max(0, int(raw_um - decay_amount))
+
 class StarSystem:
     def __init__(self, eventEntry=None, commander: str = ""):
         if eventEntry is None:
@@ -34,6 +92,7 @@ class StarSystem:
             'PowerplayStateControlProgress': 0.0,
             'PowerplayStateReinforcement': 0,
             'PowerplayStateUndermining': 0,
+            'RealUndermining': 0,
             'reported': False,
             'PrimaryEconomy': None,
             'SecondaryEconomy': None,
@@ -62,6 +121,12 @@ class StarSystem:
         self.PowerplayStateControlProgress = float(eventEntry.get("PowerplayStateControlProgress", 0.0))
         self.PowerplayStateReinforcement = int(eventEntry.get("PowerplayStateReinforcement", 0))
         self.PowerplayStateUndermining = int(eventEntry.get("PowerplayStateUndermining", 0))
+        self.RealUndermining = _calc_real_undermining(
+            self.PowerplayStateUndermining,
+            self.PowerplayStateReinforcement,
+            self.getSystemProgressNumber(),
+            self.PowerplayState,
+        )
 
         # Extract economy and security from FSDJump/Location events
         self.PrimaryEconomy = eventEntry.get("SystemEconomy_Localised")
@@ -79,12 +144,17 @@ class StarSystem:
         self.Population = eventEntry.get("Population")
 
     def _parse_security_level(self, security_string):
-        """Parse security level from game format like '$SYSTEM_SECURITY_low;'"""
+        """Parse security level from game formats like '$SYSTEM_SECURITY_low;' or '$galaxy_map_info_state_anarchy;'"""
         if not security_string:
             return None
-        # Remove prefix and suffix, capitalize first letter
-        security = security_string.replace("$SYSTEM_SECURITY_", "").replace(";", "").strip()
-        return security.capitalize() if security else None
+        for prefix in ("$SYSTEM_SECURITY_", "$galaxy_map_info_state_"):
+            if prefix in security_string:
+                security = security_string.replace(prefix, "").replace(";", "").strip()
+                return security.capitalize() if security else None
+        # Already a plain string (e.g. loaded from saved data)
+        if not security_string.startswith("$"):
+            return security_string
+        return None
 
     def _process_conflict_data(self, conflict_data):
         """Process and sort conflict progress data"""
@@ -99,9 +169,9 @@ class StarSystem:
         return val if isinstance(val, list) else []
 
     def getPowerplayCycleNetValue(self):
-        """Get reinforcement and undermining values as list"""
+        """Get reinforcement and real undermining values as list"""
         if self.PowerplayState in ['Stronghold', 'Fortified', 'Exploited']:
-            undermining = self.PowerplayStateUndermining if len(self.Powers) > 1 else 0
+            undermining = self.RealUndermining if len(self.Powers) > 1 else 0
             return [self.PowerplayStateReinforcement, undermining]
 
         if self.PowerplayConflictProgress:
@@ -159,6 +229,7 @@ class StarSystem:
             "PowerplayStateControlProgress": self.PowerplayStateControlProgress,
             "PowerplayStateReinforcement": self.PowerplayStateReinforcement,
             "PowerplayStateUndermining": self.PowerplayStateUndermining,
+            "RealUndermining": self.RealUndermining,
             "reported": self.reported
         }
         # Include economy, security, allegiance, government, and population if they exist
@@ -193,24 +264,14 @@ class StarSystem:
         self.Population = data.get("Population", None)
 
     def getPowerPlayCycleNetStatusText(self):
-        """Get formatted net status text showing difference between reinforcement and undermining"""
-        if self.PowerplayStateReinforcement == 0 and self.PowerplayStateUndermining == 0:
-            return "Neutral"
-
-        total = self.PowerplayStateReinforcement + self.PowerplayStateUndermining
-        if total == 0:
-            return "Neutral"
-
-        # NET is the difference between reinforcement and undermining as percentage of total
-        net_difference = self.PowerplayStateReinforcement - self.PowerplayStateUndermining
-        percentage = (net_difference / total) * 100
-
-        if net_difference > 0:
-            return f"NET +{percentage:.2f}%"
-        elif net_difference < 0:
-            return f"NET {percentage:.2f}%"
-        else:
-            return "NET 0%"
+        """Get formatted status text showing real undermining vs reinforcement"""
+        reinf = self.PowerplayStateReinforcement
+        real_um = self.RealUndermining
+        decay = self.PowerplayStateUndermining - real_um
+        if reinf == 0 and real_um == 0:
+            return ""
+        decay_str = f" ({decay:,} decay)" if decay > 0 else ""
+        return f"UM: {real_um:,}{decay_str} | Reinf: {reinf:,}"
 
     def getSystemStateText(self):
         """Get readable system state"""

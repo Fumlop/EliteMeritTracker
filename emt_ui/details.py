@@ -416,7 +416,8 @@ def copy_all_systems_to_clipboard_or_report():
                     progress = second_power.progress * 100
                     dcText = dcText.replace('@CPOpposition', f"{second_power.power} {progress:.2f}%")
                 else:
-                    dcText = dcText.replace('@CPOpposition', f"Opposition {str(system_data.PowerplayStateUndermining)}")
+                    real_um = getattr(system_data, 'RealUndermining', system_data.PowerplayStateUndermining)
+                    dcText = dcText.replace('@CPOpposition', f"Opposition {str(real_um)}")
             all_texts.append(dcText)
     combined_text = "\n".join(all_texts)
     copy_to_clipboard_or_report(combined_text, "Systems worked on", table_frame, update_scrollregion)
@@ -670,7 +671,8 @@ def populate_table(table_frame, update_scrollregion, show_filters_only=False):
                     progress = second_power.progress * 100
                     dcText = dcText.replace('@CPOpposition', f"{second_power.power} {progress:.2f}%")
                 else:
-                    dcText = dcText.replace('@CPOpposition', f"Opposition {str(system_data.PowerplayStateUndermining)}")
+                    real_um = getattr(system_data, 'RealUndermining', system_data.PowerplayStateUndermining)
+                    dcText = dcText.replace('@CPOpposition', f"Opposition {str(real_um)}")
 
             # System name
             tk.Label(data_frame_default, text=system_name, width=28, anchor="w", **lbl_opts).grid(

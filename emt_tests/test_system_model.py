@@ -249,16 +249,15 @@ class TestPowerPlayCycleStatus:
     """Test PowerPlay cycle status calculations"""
 
     def test_cycle_net_positive(self, sample_exploited_system):
-        """Test NET calculation when reinforcement > undermining"""
+        """Test display when reinforcement > real undermining"""
         system = StarSystem(sample_exploited_system, "TestCMDR")
         net_text = system.getPowerPlayCycleNetStatusText()
-        # 8500 reinforcement, 2300 undermining
-        # NET = (8500 - 2300) / (8500 + 2300) * 100 = 6200 / 10800 * 100 = 57.41%
-        assert "NET +" in net_text
-        assert "57" in net_text
+        # 8500 reinforcement, 2300 raw undermining — decay formula may reduce real UM
+        assert "Reinf: 8,500" in net_text
+        assert "UM:" in net_text
 
     def test_cycle_net_negative(self):
-        """Test NET calculation when undermining > reinforcement"""
+        """Test display when real undermining > reinforcement"""
         event = {
             "event": "FSDJump",
             "StarSystem": "Test",
@@ -270,12 +269,12 @@ class TestPowerPlayCycleStatus:
         }
         system = StarSystem(event, "TestCMDR")
         net_text = system.getPowerPlayCycleNetStatusText()
-        # NET = (2000 - 5000) / (2000 + 5000) * 100 = -3000 / 7000 * 100 = -42.86%
-        assert "NET -" in net_text or "NET " in net_text  # Could be "NET -42" or "NET -42"
-        assert "42" in net_text
+        # No progress (0%), decay = 0, so real_um = 5000
+        assert "UM: 5,000" in net_text
+        assert "Reinf: 2,000" in net_text
 
     def test_cycle_neutral(self):
-        """Test NET calculation when both are 0"""
+        """Test display when both reinforcement and undermining are 0"""
         event = {
             "event": "FSDJump",
             "StarSystem": "Test",
@@ -287,7 +286,7 @@ class TestPowerPlayCycleStatus:
         }
         system = StarSystem(event, "TestCMDR")
         net_text = system.getPowerPlayCycleNetStatusText()
-        assert net_text == "Neutral"
+        assert net_text == ""
 
 
 class TestSerialization:
@@ -553,7 +552,7 @@ class TestSystemEdgeCases:
         assert result == pytest.approx((30000 / 60000) * 100, rel=0.01)
 
     def test_get_powerplay_cycle_net_status_neutral_zero_both(self):
-        """Test getPowerPlayCycleNetStatusText when both are zero"""
+        """Test getPowerPlayCycleNetStatusText when both are zero returns empty string"""
         event = {
             "event": "FSDJump",
             "StarSystem": "TestSystem",
@@ -563,10 +562,10 @@ class TestSystemEdgeCases:
         }
         system = StarSystem(event, "TestCMDR")
         result = system.getPowerPlayCycleNetStatusText()
-        assert result == "Neutral"
+        assert result == ""
 
     def test_get_powerplay_cycle_net_status_equal_values(self):
-        """Test getPowerPlayCycleNetStatusText when reinforcement equals undermining"""
+        """Test getPowerPlayCycleNetStatusText when reinforcement equals raw undermining"""
         event = {
             "event": "FSDJump",
             "StarSystem": "TestSystem",
@@ -576,7 +575,9 @@ class TestSystemEdgeCases:
         }
         system = StarSystem(event, "TestCMDR")
         result = system.getPowerPlayCycleNetStatusText()
-        assert result == "NET 0%"
+        # No progress (0%), decay = 0, real_um = 5000
+        assert "UM: 5,000" in result
+        assert "Reinf: 5,000" in result
 
     def test_get_system_state_text_unoccupied_no_conflict(self):
         """Test getSystemStateText for Unoccupied with no conflict progress"""
@@ -702,11 +703,7 @@ class TestSystemEdgeCases:
         assert result == ["NoPower", ""]
 
     def test_get_powerplay_cycle_net_status_impossible_total_zero(self):
-        """Test getPowerPlayCycleNetStatusText when total is 0 but individual values are not
-
-        This is a mathematical edge case that shouldn't occur in practice
-        (e.g., negative reinforcement), but we test it for 100% coverage.
-        """
+        """Test getPowerPlayCycleNetStatusText with manually set values"""
         event = {
             "event": "FSDJump",
             "StarSystem": "TestSystem",
@@ -715,12 +712,12 @@ class TestSystemEdgeCases:
             "PowerplayStateUndermining": 0
         }
         system = StarSystem(event, "TestCMDR")
-        # Manually set to impossible state for edge case coverage
+        # Manually set to edge case state
         system.PowerplayStateReinforcement = 100
-        system.PowerplayStateUndermining = -100  # Impossible but tests line 202
+        system.PowerplayStateUndermining = -100
         result = system.getPowerPlayCycleNetStatusText()
-        # Total = 100 + (-100) = 0, should return "Neutral"
-        assert result == "Neutral"
+        # RealUndermining=0 (computed at init), reinf=100: should show UM/Reinf
+        assert "Reinf: 100" in result
 
     def test_get_system_state_powerplay_unoccupied_conflict_without_power_attr(self):
         """Test getSystemStatePowerPlay with conflict entries missing 'power' attribute
