@@ -130,7 +130,7 @@ def export_to_csv():
             controlling_power = system_data.ControllingPower
             opposition = ", ".join(system_data.Opposition) if system_data.Opposition else ""
             reinforcement = system_data.PowerplayStateReinforcement
-            undermining = system_data.PowerplayStateUndermining
+            undermining = getattr(system_data, 'RealUndermining', system_data.PowerplayStateUndermining)
             power_status = system_data.getPowerPlayCycleNetStatusText()
             writer.writerow([system_name, f"{state} ({progress:.2f}%)", controlling_power, power_status, reinforcement, undermining, opposition])
 
@@ -809,7 +809,7 @@ def populate_treeview(tree, data):
         if not system_data.PowerplayConflictProgress or len(system_data.PowerplayConflictProgress) == 0:
             power_status = system_data.getPowerPlayCycleNetStatusText()
             reinforcement = system_data.PowerplayStateReinforcement
-            undermining = system_data.PowerplayStateUndermining
+            undermining = getattr(system_data, 'RealUndermining', system_data.PowerplayStateUndermining)
         else:
             power_status = "Conflict"
             reinforcement = "-"
