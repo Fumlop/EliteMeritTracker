@@ -7,62 +7,38 @@ STRONGHOLD_CP_THRESHOLD = 120000
 FORTIFIED_CP_THRESHOLD = 120000
 EXPLOITED_CP_THRESHOLD = 60000
 
-# Max CP per system type used for decay calculation (EDIntel formula)
-_MAX_CP = {
-    'Stronghold': 1_000_000,
-    'Fortified': 650_000,
-    'Exploited': 350_000,
-}
-
-# Piecewise linear interpolation points: (progress_percent, decay_percent)
-# Decay differs per system type. Source: EDIntel decay formula analysis.
-_DECAY_POINTS = {
-    'Exploited': [
-        (0, 0.0), (25, 0.5), (26, 0.624), (27.5, 0.923), (28.5, 1.194),
-        (29.5, 1.443), (31, 1.806), (33.5, 2.245), (36.5, 2.775), (39, 3.091),
-        (42.5, 3.444), (47.5, 3.913), (55, 4.469), (65, 5.099), (75, 5.475),
-        (85, 5.713), (95, 5.177), (125, 2.291),
-    ],
-    'Fortified': [
-        (0, 0.0), (25, 0.4), (26, 0.541), (27.5, 1.472), (28.5, 2.128),
-        (29.5, 2.672), (31, 3.557), (33.5, 4.634), (36.5, 6.061), (39, 6.874),
-        (42.5, 7.834), (47.5, 9.072), (55, 9.473), (65, 12.358), (75, 11.881),
-        (85, 8.382), (100, 12.356),
-    ],
-    'Stronghold': [
-        (0, 0.0), (25, 0.8), (26, 1.036), (27.5, 2.288), (28.5, 3.099),
-        (29.5, 3.761), (31, 4.705), (33.5, 6.145), (36.5, 7.524), (39, 8.716),
-        (42.5, 9.872), (47.5, 10.609), (55, 13.200), (65, 14.788), (75, 16.311),
-        (85, 17.094), (95, 16.117), (125, 11.419),
-    ],
+# Linear decay formula coefficients: (coef_a, coef_b, max_cp)
+# decay_cp = max_cp * (coef_a * (progress/100) - coef_b), where progress > 25%
+# Source: Frontier forum Cycle 36 data (R=0.999, 47 systems)
+_DECAY_COEFFICIENTS = {
+    'Stronghold': (0.2087, 0.0527, 1_000_000),
+    'Fortified':  (0.1707, 0.0425,   650_000),
+    'Exploited':  (0.0833, 0.0207,   350_000),
 }
 
 
-def _interpolate_decay(progress_pct: float, system_type: str) -> float:
-    """Return decay percent via piecewise linear interpolation. Decay only above 25%."""
-    points = _DECAY_POINTS.get(system_type)
-    if not points or progress_pct <= 25.0:
-        return 0.0
-    for i in range(len(points) - 1):
-        x1, y1 = points[i]
-        x2, y2 = points[i + 1]
-        if x1 <= progress_pct <= x2:
-            if x2 == x1:
-                return y1
-            return y1 + (y2 - y1) * (progress_pct - x1) / (x2 - x1)
-    return points[-1][1]
+def _calc_decay_amount(progress_pct: float, system_type: str) -> int:
+    """Return decay CP amount. Decay only applies above 25% progress."""
+    if progress_pct <= 25.0:
+        return 0
+    coeffs = _DECAY_COEFFICIENTS.get(system_type)
+    if not coeffs:
+        return 0
+    coef_a, coef_b, max_cp = coeffs
+    p = progress_pct / 100.0
+    return max(0, int(max_cp * (coef_a * p - coef_b)))
 
 
 def _calc_real_undermining(raw_um: int, raw_reinf: int, progress_pct: float, system_type: str) -> int:
     """Return real (decay-subtracted) undermining CP. Formula from EDIntel."""
-    max_cp = _MAX_CP.get(system_type)
-    if not max_cp or raw_um == 0:
+    coeffs = _DECAY_COEFFICIENTS.get(system_type)
+    if not coeffs or raw_um == 0:
         return raw_um
+    max_cp = coeffs[2]
     current_cp = max_cp * (progress_pct / 100.0)
     last_cycle_cp = current_cp + raw_um - raw_reinf
     last_cycle_pct = (last_cycle_cp / max_cp) * 100.0
-    decay_pct = _interpolate_decay(last_cycle_pct, system_type)
-    decay_amount = last_cycle_cp * (decay_pct / 100.0)
+    decay_amount = _calc_decay_amount(last_cycle_pct, system_type)
     return max(0, int(raw_um - decay_amount))
 
 class StarSystem:
