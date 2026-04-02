@@ -465,10 +465,10 @@ def plugin_start3(plugin_dir):
     _cleanup_legacy_files(plugin_dir)
 
     configPlugin.loadConfig()
-    state.newest = checkVersion()
     loadSystems()
     load_salvage()
     load_backpack()
+    state.newest = checkVersion()
     for system in systems.values():
         if system.Active:
             state.current_system = system
