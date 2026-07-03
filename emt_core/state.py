@@ -12,6 +12,7 @@ class PluginState:
         self.current_system = None  # Currently flying StarSystem object
         self.commander = ""
         self.need_location_validation = False  # True after restart, cleared after first Location/FSDJump
+        self.powerplay_confirmed = False  # True once a Powerplay event set an authoritative merit anchor
 
         # UI state
         self.parent = None

@@ -14,7 +14,6 @@ from emt_models.system import systems, StarSystem, loadSystems, dumpSystems
 from emt_models.salvage import Salvage, salvageInventory, save_salvage, load_salvage, VALID_POWERPLAY_SALVAGE_TYPES
 from emt_models.power import pledgedPower
 from emt_ui.main import TrackerFrame
-from emt_core.duplicate import track_journal_event, process_powerplay_event, reset_duplicate_tracking
 from emt_core.config import configPlugin
 from emt_core.logging import logger
 from config import config, appname
@@ -670,11 +669,6 @@ def update_json_file():
 def journal_entry(cmdr, is_beta, system, station, entry, game_state):
     global trackerFrame
 
-    # Track any journal event timestamp for duplicate detection
-    current_timestamp = entry.get('timestamp')
-    if current_timestamp and entry['event'] != 'PowerplayMerits':
-        track_journal_event(current_timestamp)
-
     # DISABLED: System validation feature temporarily disabled
     # Issue: Causes TypeError and data loss risk
     # Workaround: Jump to another system or dock to trigger system update
@@ -752,7 +746,11 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
                 logger.warning(f"SearchAndRescue in unknown system - cannot track salvage source")
     if entry['event'] in ['Powerplay']:
         logger.info(f"PowerPlay status changed - Power: {entry.get('Power', 'Unknown')}")
+        # Powerplay is the only authoritative source for the total-merit baseline.
+        # It corrects both weekly decay and double-event corruption, so it may move
+        # the baseline down - do not guard against that.
         pledgedPower.__init__(eventEntry=entry)
+        state.powerplay_confirmed = True
         trackerFrame.update_display(state.current_system)
     if entry['event'] in ['PowerplayRank']:
         new_rank = entry.get('Rank', pledgedPower.Rank)
@@ -761,29 +759,29 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
         pledgedPower.Rank = new_rank
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
     if entry['event'] in ['PowerplayMerits']:
-        # Process PowerplayMerits event through duplicate detection
-        is_duplicate, retroactive_correction, log_message = process_powerplay_event(entry)
+        # Attribute merits by the diff against the current anchor (Powerplay event or
+        # persisted power.json). Within a session TotalMerits only rises, so duplicate/re-ordered emissions (see
+        # docs/powerplaymerits_double_events.md) collapse to delta <= 0 and self-cancel.
+        # MeritsGained (the double-emitted field) is ignored except to bootstrap when
+        # we have no anchor at all; otherwise merits come from the total diff.
+        total = int(entry.get('TotalMerits', pledgedPower.Merits))
 
-        if is_duplicate:
-            logger.warning(log_message)
-            return  # Skip duplicate event
-
-        # Log successful processing
-        logger.info(log_message)
-
-        # Apply retroactive correction if needed
-        if retroactive_correction:
-            logger.info(f"Applying retroactive correction: -{retroactive_correction} merits")
-            pledgedPower.MeritsSession -= retroactive_correction
-
-            # Also correct system merits if they were affected
-            if state.current_system and state.current_system.StarSystem in systems:
-                if systems[state.current_system.StarSystem].Merits >= retroactive_correction:
-                    systems[state.current_system.StarSystem].Merits -= retroactive_correction
-                    logger.info(f"Corrected system merits for {state.current_system.StarSystem}: -{retroactive_correction}")
-
-        # Process the valid PowerplayMerits event
-        merits_gained = entry.get('MeritsGained', 0)
+        if pledgedPower.Merits > 0:
+            # Diff from the current anchor (persisted power.json, or a Powerplay event).
+            # A Powerplay event overwrites the anchor when it appears, so a stale
+            # persisted value self-corrects.
+            merits_gained = total - pledgedPower.Merits
+            if not state.powerplay_confirmed:
+                logger.info(f"Diffing from unconfirmed persisted anchor {pledgedPower.Merits} (total={total})")
+        else:
+            # No anchor: fresh install before any Powerplay event or saved data.
+            # Bootstrap from this event's own gain; the next Powerplay re-anchors.
+            merits_gained = int(entry.get('MeritsGained', 0))
+            logger.warning(f"No anchor - bootstrapping from event (total={total}, gain={merits_gained})")
+        if merits_gained <= 0:
+            logger.info(f"PowerplayMerits ignored: no total increase (delta={merits_gained}, total={total})")
+            return
+        logger.info(f"PowerplayMerits: +{merits_gained} (total {total})")
 
         # Check DeliverPowerMicroResources first (backpack hand-in at power contact)
         if state.last_delivery_counts:
@@ -809,7 +807,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
         else:
             update_system_merits(merits_gained, update_ui=True)
 
-        pledgedPower.Merits = entry.get('TotalMerits', pledgedPower.Merits)
+        pledgedPower.Merits = total
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
     if entry['event'] in ['FSDJump', 'Location'] or (entry['event'] in ['CarrierJump'] and entry['Docked'] == True):
         # FSDJump and Location events contain full PowerPlay data

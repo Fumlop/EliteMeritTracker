@@ -2,7 +2,15 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
-## [v0.4.300.1.046] - 2026-03-27
+## [v0.4.400.2.000] - 2026-07-03
+
+### Changed
+- **Merit tracking now uses TotalMerits diff instead of MeritsGained**: Merits are attributed from the change in the game's running `TotalMerits` (`TotalMerits - anchor`) rather than trusting the per-event `MeritsGained` field
+  - Fixes double-counting from duplicate/re-ordered `PowerplayMerits` emissions (see docs/powerplaymerits_double_events.md); duplicates now collapse to a `<= 0` diff and self-cancel
+  - Validated against 283 real journals (132 merit sessions): 118 duplicate emissions dropped that the old logic would have added as ~135k phantom merits; final tracked total matched the game's authoritative total exactly
+  - The `Powerplay` event is the only authoritative anchor - it overwrites the total to correct weekly decay and prior corruption (may move it down)
+  - Anchor falls back to persisted `power.json` when no `Powerplay` event has arrived yet; only a true fresh install (no `power.json`) bootstraps from the first event's `MeritsGained`
+  - Retires the old duplicate-detection heuristic (time-window / retroactive-correction) from the merit path
 
 ### Changed
 - **Real Undermining Display**: The Cycle NET% display is replaced with `UM: X (decay) | Reinf: Y` showing actual hostile undermining CP separated from natural decay
