@@ -2,6 +2,15 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.400.3.002] - 2026-08-28
+
+### Fixed
+- **A correction and a genuine award in the same event no longer cancel out**: when a dropped award was exposed by the next award, the two were netted against each other, so the new award was silently booked onto the previous system. `TotalMerits` still decides whether anything happened at all - a frozen total means the award was dropped, whatever `MeritsGained` claims - but once the total has moved, `MeritsGained` splits the move between the correction and the new award. Yesterday's data: `Col 285 Sector HL-L b9-0` 39,271 -> 35,614 and `Aramo` 12,466 -> 16,123, with the total unchanged.
+
+### Added
+- `emt_tests/journal_builder.py` writes Elite journal files for tests, tracking what the server actually credited so each scenario carries its own ground truth
+- `emt_tests/test_merit_journals.py` - one generated journal per case, replayed through the real `journal_entry`: round trips, phantoms exposed after jumping away or by a game restart, resend bursts, deep unwinds, power changes
+
 ## [v0.4.400.3.001] - 2026-08-28
 
 ### Fixed

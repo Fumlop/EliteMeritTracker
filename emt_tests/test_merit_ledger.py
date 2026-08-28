@@ -47,8 +47,8 @@ class TestDuplicates:
         ledger.merits_delta(merits(1893, 6112659))
         assert ledger.merits_delta(merits(15898, 6128557)) == (0, 15898)
         assert ledger.merits_delta(merits(15898, 6144455)) == (0, 15898)
-        # the next event exposes the second one, netted against its own 3074
-        assert ledger.merits_delta(merits(3074, 6131631)) == (12824, 0)
+        # the next event exposes the second one and still credits its own 3074
+        assert ledger.merits_delta(merits(3074, 6131631)) == (15898, 3074)
         assert ledger.baseline == 6131631
 
     def test_gain_reported_but_total_frozen(self, ledger):
@@ -72,8 +72,8 @@ class TestAttribution:
         ledger.record("Col 285 Sector HL-L b9-0", 14749)
         # player jumps to Aramo, the next event exposes the second 14749
         uncredited, credited = ledger.merits_delta(merits(3657, 6150037))
-        assert (uncredited, credited) == (11092, 0)
-        assert ledger.unwind(uncredited, "Aramo") == [("Col 285 Sector HL-L b9-0", 11092)]
+        assert (uncredited, credited) == (14749, 3657)
+        assert ledger.unwind(uncredited, "Aramo") == [("Col 285 Sector HL-L b9-0", 14749)]
 
     def test_correction_spans_several_systems_newest_first(self, ledger):
         ledger.record("Aramo", 100)

@@ -65,14 +65,16 @@ class MeritLedger:
     def merits_delta(self, entry: Dict[str, Any]) -> Tuple[int, int]:
         """Split a PowerplayMerits event into (uncredited, credited) merits.
 
-        Only TotalMerits is trusted. MeritsGained is regularly reported for
-        awards the server dropped, so it is used for nothing but the resend
-        check and logging.
-
         `uncredited` is what earlier events were given but the server never
         applied - it has to be taken back off whichever systems received it.
-        `credited` is what the server total actually advanced by and belongs to
-        the current system. Both zero means the event changed nothing.
+        `credited` is what this event added and belongs to the current system.
+
+        TotalMerits is authoritative. If it has not moved, the server applied
+        nothing and the event is ignored outright - Journal.2026-01-15T110022.01
+        .log:2052 reports 118520 merits against a frozen total, so MeritsGained
+        cannot be trusted to describe what happened. Once the total has moved,
+        MeritsGained tells us how much of the move belongs to this event, which
+        is what keeps a correction and a genuine award from cancelling out.
         """
         total = entry.get("TotalMerits")
         gained = entry.get("MeritsGained", 0)
@@ -89,13 +91,23 @@ class MeritLedger:
         if self.baseline is None:
             self.baseline = total - gained
 
-        delta = total - self.baseline
+        if total == self.baseline:
+            logger.warning(f"Server credited none of the reported {gained} merits (total still {total})")
+            return 0, 0
+
+        # What the server believed the total was before this award
+        claimed_base = total - gained
+        uncredited = 0
+        if claimed_base < self.baseline:
+            uncredited = self.baseline - claimed_base
+            logger.warning(f"Server never credited {uncredited} earlier merits (base {claimed_base} < tracked {self.baseline})")
+            self.baseline = claimed_base
+
+        credited = total - self.baseline
         self.baseline = total
-        if delta != gained:
-            logger.warning(f"MeritsGained {gained} but server total moved {delta} (to {total})")
-        if delta < 0:
-            return -delta, 0
-        return 0, delta
+        if credited != gained:
+            logger.warning(f"MeritsGained {gained} but server credited {credited} (total {total})")
+        return uncredited, credited
 
     def record(self, system: str, merits: int) -> None:
         """Remember that `merits` were credited to `system`."""
