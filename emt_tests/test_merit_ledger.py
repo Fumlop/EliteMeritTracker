@@ -47,26 +47,33 @@ class TestDuplicates:
         ledger.merits_delta(merits(1893, 6112659))
         assert ledger.merits_delta(merits(15898, 6128557)) == (0, 15898)
         assert ledger.merits_delta(merits(15898, 6144455)) == (0, 15898)
-        # the next event exposes the second one as never credited
-        assert ledger.merits_delta(merits(3074, 6131631)) == (15898, 3074)
+        # the next event exposes the second one, netted against its own 3074
+        assert ledger.merits_delta(merits(3074, 6131631)) == (12824, 0)
+        assert ledger.baseline == 6131631
 
     def test_gain_reported_but_total_frozen(self, ledger):
-        """Journal.2026-01-15T110022.01.log:1851-2052 - 118520 gained, 0 credited."""
+        """Journal.2026-01-15T110022.01.log:1851-2052 - 118520 gained, 0 credited.
+
+        MeritsGained here would imply a base of 2086892, which is a lie: the
+        server total never moved, so nothing is credited and nothing taken back.
+        """
         ledger.merits_delta(merits(46184, 2205412))
-        assert ledger.merits_delta(merits(118520, 2205412)) == (118520, 118520)
+        assert ledger.merits_delta(merits(118520, 2205412)) == (0, 0)
         assert ledger.baseline == 2205412
 
 
 class TestAttribution:
     def test_correction_hits_the_system_that_got_the_merits(self, ledger):
-        ledger.merits_delta(merits(5000, 5000))
-        ledger.record("Aramo", 5000)
-        ledger.merits_delta(merits(300, 5300))
-        ledger.record("Aramo", 300)
-        # player jumps to Orgen, next event shows the 300 was never credited
-        uncredited, credited = ledger.merits_delta(merits(70, 5070))
-        assert (uncredited, credited) == (300, 70)
-        assert ledger.unwind(uncredited, "Orgen") == [("Aramo", 300)]
+        """Journal.2026-08-27T185156.01.log:1544,3620 - phantom in Col 285 HL-L
+        exposed two hours later while the player is in Aramo."""
+        ledger.merits_delta(merits(14749, 6146380))
+        ledger.record("Col 285 Sector HL-L b9-0", 14749)
+        ledger.merits_delta(merits(14749, 6161129))
+        ledger.record("Col 285 Sector HL-L b9-0", 14749)
+        # player jumps to Aramo, the next event exposes the second 14749
+        uncredited, credited = ledger.merits_delta(merits(3657, 6150037))
+        assert (uncredited, credited) == (11092, 0)
+        assert ledger.unwind(uncredited, "Aramo") == [("Col 285 Sector HL-L b9-0", 11092)]
 
     def test_correction_spans_several_systems_newest_first(self, ledger):
         ledger.record("Aramo", 100)
@@ -110,6 +117,17 @@ class TestEdgeCases:
 
     def test_missing_total_falls_back_to_reported_gain(self, ledger):
         assert ledger.merits_delta({"Power": "Felicia Winters", "MeritsGained": 10}) == (0, 10)
+
+    def test_leave_and_return_keeps_merits_on_the_earning_system(self, ledger):
+        """Journal.2026-01-15T110022.01.log - Ross 444 earns, player hops to
+        Parapa where a 118520 award is reported but never credited, then returns."""
+        for gain, total in ((49232, 2136124), (10224, 2146348), (12880, 2159228), (46184, 2205412)):
+            uncredited, credited = ledger.merits_delta(merits(gain, total))
+            assert (uncredited, credited) == (0, gain)
+            ledger.record("Ross 444", credited)
+        assert ledger.merits_delta(merits(118520, 2205412)) == (0, 0)   # in Parapa
+        assert ledger.merits_delta(merits(9988, 2215400)) == (0, 9988)  # back in Ross 444
+        assert sum(c[1] for c in ledger.credits if c[0] == "Ross 444") == 118520
 
     def test_missing_gain_credits_the_total_difference(self, ledger):
         ledger.merits_delta(merits(100, 500))

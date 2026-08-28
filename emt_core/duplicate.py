@@ -65,10 +65,14 @@ class MeritLedger:
     def merits_delta(self, entry: Dict[str, Any]) -> Tuple[int, int]:
         """Split a PowerplayMerits event into (uncredited, credited) merits.
 
-        `uncredited` is what earlier events claimed but the server never applied
-        - it has to be taken back off whichever systems received it. `credited`
-        is what this event actually added and belongs to the current system.
-        Both zero means the event was a verbatim resend.
+        Only TotalMerits is trusted. MeritsGained is regularly reported for
+        awards the server dropped, so it is used for nothing but the resend
+        check and logging.
+
+        `uncredited` is what earlier events were given but the server never
+        applied - it has to be taken back off whichever systems received it.
+        `credited` is what the server total actually advanced by and belongs to
+        the current system. Both zero means the event changed nothing.
         """
         total = entry.get("TotalMerits")
         gained = entry.get("MeritsGained", 0)
@@ -85,19 +89,13 @@ class MeritLedger:
         if self.baseline is None:
             self.baseline = total - gained
 
-        # What the server believed the total was before this award
-        claimed_base = total - gained
-        uncredited = 0
-        if claimed_base < self.baseline:
-            uncredited = self.baseline - claimed_base
-            logger.warning(f"Server never credited {uncredited} earlier merits (base {claimed_base} < tracked {self.baseline})")
-            self.baseline = claimed_base
-
-        credited = total - self.baseline
+        delta = total - self.baseline
         self.baseline = total
-        if credited != gained:
-            logger.warning(f"MeritsGained {gained} but server credited {credited} (total {total})")
-        return uncredited, credited
+        if delta != gained:
+            logger.warning(f"MeritsGained {gained} but server total moved {delta} (to {total})")
+        if delta < 0:
+            return -delta, 0
+        return 0, delta
 
     def record(self, system: str, merits: int) -> None:
         """Remember that `merits` were credited to `system`."""

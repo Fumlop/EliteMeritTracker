@@ -2,6 +2,11 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.400.3.001] - 2026-08-28
+
+### Fixed
+- **Merit attribution no longer trusts `MeritsGained`**: deriving the server's pre-award base from `TotalMerits - MeritsGained` misattributed merits whenever `MeritsGained` was itself the lie. Journal.2026-01-15T110022.01.log:2052 reports 118,520 merits in Parapa while the server total stays frozen at 2,205,412 - the previous rule moved all 118,520 off Ross 444, which had genuinely earned them, and credited Parapa. Only the `TotalMerits` delta is used now. Measured over 388 journals the two rules disagree on 261,996 merits across 12 systems; the delta rule is the one that matches the journals.
+
 ## [v0.4.400.3.000] - 2026-08-28
 
 ### Fixed
