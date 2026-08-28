@@ -2,6 +2,17 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.400.3.000] - 2026-08-28
+
+### Fixed
+- **Merit tracking rebuilt on TotalMerits deltas**: `MeritsGained` is regularly reported for awards the server never credits - concurrent awards clobber each other under server lag, and the following event exposes it by reusing the same base. The old duplicate detection caught 39% of these; measured against 388 journals / 2732 PowerplayMerits events it overcounted by 5.59% (4,852,696 vs 4,595,953 actual). Delta tracking matches the server exactly at all 363 snapshot checkpoints.
+- **Corrections now hit the right system**: when a dropped event is exposed after the player changed system, the merits are taken back off the system that received them via a LIFO credit history instead of the current one. Previously 29,298 merits were subtracted from the wrong systems and two systems went negative.
+- **Reported and cleared systems are no longer clawed back**: banking a system (Discord report, entry delete, reset) marks its credits so a later correction cannot subtract merits that were already submitted.
+- Worked example, 2026-08-27: `Col 285 Sector HL-L b9-0` was credited 83,734 (actual 71,790) and `Aramo` 23,572 (actual 30,822).
+
+### Changed
+- `emt_core/duplicate.py` now exposes `MeritLedger` / `merit_ledger` / `reset_merit_tracking`; `DuplicateDetector`, `process_powerplay_event` and `track_journal_event` are gone
+
 ## [v0.4.400.2.001] - 2026-07-21
 
 ### Reverted

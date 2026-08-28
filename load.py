@@ -14,7 +14,7 @@ from emt_models.system import systems, StarSystem, loadSystems, dumpSystems
 from emt_models.salvage import Salvage, salvageInventory, save_salvage, load_salvage, VALID_POWERPLAY_SALVAGE_TYPES
 from emt_models.power import pledgedPower
 from emt_ui.main import TrackerFrame
-from emt_core.duplicate import track_journal_event, process_powerplay_event, reset_duplicate_tracking
+from emt_core.duplicate import merit_ledger, reset_merit_tracking
 from emt_core.config import configPlugin
 from emt_core.logging import logger
 from config import config, appname
@@ -407,6 +407,7 @@ def report_on_FSD(sourceSystem):
         dcText = dcText.replace('@CPPledged', f"Pledged {sourceSystem.PowerplayStateReinforcement}")
         
     systems[sourceSystem.StarSystem].Merits = 0
+    merit_ledger.forget(sourceSystem.StarSystem)
     report.send_to_discord(dcText)
 
 def checkVersion():
@@ -577,6 +578,7 @@ def reset():
 
     # Clear all systems from cache
     systems.clear()
+    merit_ledger.forget_all()
 
     # Restore current system with its data but reset merits
     if current_system_data:
@@ -612,6 +614,26 @@ def _add_merits_to_system(system_name: str, merits: int):
         systems[system_name] = new_system
 
 
+def apply_merit_correction(merits: int):
+    """Take back merits the server never credited, off the systems that got them."""
+    if merits <= 0:
+        return
+
+    fallback = getattr(state.current_system, "StarSystem", None)
+    for system_name, amount in merit_ledger.unwind(merits, fallback):
+        system = systems.get(system_name)
+        if system is None:
+            logger.warning(f"Cannot correct {amount} merits for untracked system {system_name}")
+            continue
+        removed = min(amount, system.Merits)
+        system.Merits -= removed
+        pledgedPower.MeritsSession = max(0, pledgedPower.MeritsSession - removed)
+        if removed < amount:
+            logger.warning(f"Merit correction for {system_name} clamped: {amount} owed, {removed} available")
+        else:
+            logger.info(f"Merit correction: {system_name} -{removed}")
+
+
 def update_system_merits(merits_value, system_name: str = None, apply_cargo_formula: bool = False, update_ui: bool = False):
     """Unified merit update function.
 
@@ -642,14 +664,18 @@ def update_system_merits(merits_value, system_name: str = None, apply_cargo_form
     pledgedPower.MeritsSession += merits
 
     # Determine target system
-    if system_name:
-        _add_merits_to_system(system_name, merits)
+    target = system_name
+    if target:
+        _add_merits_to_system(target, merits)
     else:
-        sys_name = getattr(state.current_system, "StarSystem", None)
-        if sys_name:
-            current = systems.get(sys_name, state.current_system)
+        target = getattr(state.current_system, "StarSystem", None)
+        if target:
+            current = systems.get(target, state.current_system)
             current.Merits += merits
-            systems[sys_name] = current
+            systems[target] = current
+
+    # Remember the attribution so a later server correction hits the right system
+    merit_ledger.record(target, merits)
 
     # Update UI if requested
     if update_ui:
@@ -669,11 +695,6 @@ def update_json_file():
 
 def journal_entry(cmdr, is_beta, system, station, entry, game_state):
     global trackerFrame
-
-    # Track any journal event timestamp for duplicate detection
-    current_timestamp = entry.get('timestamp')
-    if current_timestamp and entry['event'] != 'PowerplayMerits':
-        track_journal_event(current_timestamp)
 
     # DISABLED: System validation feature temporarily disabled
     # Issue: Causes TypeError and data loss risk
@@ -752,6 +773,10 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
                 logger.warning(f"SearchAndRescue in unknown system - cannot track salvage source")
     if entry['event'] in ['Powerplay']:
         logger.info(f"PowerPlay status changed - Power: {entry.get('Power', 'Unknown')}")
+        # Server snapshot is authoritative - take back merits it never credited
+        correction = merit_ledger.reconcile_snapshot(entry)
+        if correction < 0:
+            apply_merit_correction(-correction)
         pledgedPower.__init__(eventEntry=entry)
         trackerFrame.update_display(state.current_system)
     if entry['event'] in ['PowerplayRank']:
@@ -761,29 +786,21 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
         pledgedPower.Rank = new_rank
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
     if entry['event'] in ['PowerplayMerits']:
-        # Process PowerplayMerits event through duplicate detection
-        is_duplicate, retroactive_correction, log_message = process_powerplay_event(entry)
+        # TotalMerits is the only authoritative number: MeritsGained is regularly
+        # reported for awards the server never credited (see emt_core/duplicate.py)
+        uncredited, merits_gained = merit_ledger.merits_delta(entry)
 
-        if is_duplicate:
-            logger.warning(log_message)
-            return  # Skip duplicate event
+        pledgedPower.Merits = entry.get('TotalMerits', pledgedPower.Merits)
+        pledgedPower.Power = entry.get('Power', pledgedPower.Power)
 
-        # Log successful processing
-        logger.info(log_message)
+        if uncredited:
+            # Earlier events were dropped server side - take them back off the
+            # systems that actually received them, not the current one
+            apply_merit_correction(uncredited)
 
-        # Apply retroactive correction if needed
-        if retroactive_correction:
-            logger.info(f"Applying retroactive correction: -{retroactive_correction} merits")
-            pledgedPower.MeritsSession -= retroactive_correction
-
-            # Also correct system merits if they were affected
-            if state.current_system and state.current_system.StarSystem in systems:
-                if systems[state.current_system.StarSystem].Merits >= retroactive_correction:
-                    systems[state.current_system.StarSystem].Merits -= retroactive_correction
-                    logger.info(f"Corrected system merits for {state.current_system.StarSystem}: -{retroactive_correction}")
-
-        # Process the valid PowerplayMerits event
-        merits_gained = entry.get('MeritsGained', 0)
+        if merits_gained <= 0:
+            trackerFrame.update_display(state.current_system)
+            return
 
         # Check DeliverPowerMicroResources first (backpack hand-in at power contact)
         if state.last_delivery_counts:
@@ -808,9 +825,6 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
             trackerFrame.update_display(state.current_system)
         else:
             update_system_merits(merits_gained, update_ui=True)
-
-        pledgedPower.Merits = entry.get('TotalMerits', pledgedPower.Merits)
-        pledgedPower.Power = entry.get('Power', pledgedPower.Power)
     if entry['event'] in ['FSDJump', 'Location'] or (entry['event'] in ['CarrierJump'] and entry['Docked'] == True):
         # FSDJump and Location events contain full PowerPlay data
         nameSystem = entry.get('StarSystem', "Nomansland")

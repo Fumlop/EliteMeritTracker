@@ -7,6 +7,7 @@ from theme import theme
 from emt_core.report import Report, report
 from emt_models.system import systems
 from emt_models.power import pledgedPower
+from emt_core.duplicate import merit_ledger
 from emt_core.config import configPlugin
 from emt_core.logging import logger, plugin_name
 from typing import Dict, Any, List, Optional
@@ -53,6 +54,7 @@ def delete_entry(system_name, table_frame, update_scrollregion):
 
     if system_name in systems:
         systems[system_name].Merits = 0
+        merit_ledger.forget(system_name)
 
         if detailed_view and data_frame_detailed:
             for widget in data_frame_detailed.winfo_children():
