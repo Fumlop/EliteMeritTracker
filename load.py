@@ -634,6 +634,17 @@ def apply_merit_correction(merits: int):
             logger.info(f"Merit correction: {system_name} -{removed}")
 
 
+def apply_merit_restore(restored):
+    """Give back an award that was rejected as a resend but was genuine.
+
+    The mirror of apply_merit_correction: the merits go to the system the award
+    was parked against, not the one the player happens to be in now.
+    """
+    for system_name, amount in restored:
+        logger.info(f"Merit restore: {system_name} +{amount}")
+        update_system_merits(amount, system_name=system_name)
+
+
 def update_system_merits(merits_value, system_name: str = None, apply_cargo_formula: bool = False, update_ui: bool = False):
     """Unified merit update function.
 
@@ -774,9 +785,10 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
     if entry['event'] in ['Powerplay']:
         logger.info(f"PowerPlay status changed - Power: {entry.get('Power', 'Unknown')}")
         # Server snapshot is authoritative - take back merits it never credited
-        correction = merit_ledger.reconcile_snapshot(entry)
+        correction, restored = merit_ledger.reconcile_snapshot(entry)
         if correction < 0:
             apply_merit_correction(-correction)
+        apply_merit_restore(restored)
         pledgedPower.__init__(eventEntry=entry)
         trackerFrame.update_display(state.current_system)
     if entry['event'] in ['PowerplayRank']:
@@ -788,15 +800,22 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
     if entry['event'] in ['PowerplayMerits']:
         # TotalMerits is the only authoritative number: MeritsGained is regularly
         # reported for awards the server never credited (see emt_core/duplicate.py)
-        uncredited, merits_gained = merit_ledger.merits_delta(entry)
+        uncredited, restored, merits_gained = merit_ledger.merits_delta(
+            entry, getattr(state.current_system, "StarSystem", None))
 
-        pledgedPower.Merits = entry.get('TotalMerits', pledgedPower.Merits)
+        # The ledger baseline, not the raw TotalMerits: a rejected event carries a
+        # total the server never held and must not reach the display
+        if merit_ledger.baseline is not None:
+            pledgedPower.Merits = merit_ledger.baseline
         pledgedPower.Power = entry.get('Power', pledgedPower.Power)
 
         if uncredited:
             # Earlier events were dropped server side - take them back off the
             # systems that actually received them, not the current one
             apply_merit_correction(uncredited)
+
+        # An award rejected as a resend that the server turns out to have held
+        apply_merit_restore(restored)
 
         if merits_gained <= 0:
             trackerFrame.update_display(state.current_system)

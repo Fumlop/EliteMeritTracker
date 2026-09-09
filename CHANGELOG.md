@@ -2,6 +2,24 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.400.3.003] - 2026-09-09
+
+### Fixed
+- **Large duplicate awards are rejected on arrival instead of waiting to be exposed**: a phantom award advances `TotalMerits` by exactly its own size, so nothing in the delta math can tell it from a real one - it was credited and only unwound when a later event reused the old base. A player who stops earning right after a big hand-in never gets that later event and reports the doubled number. Journal.2026-09-08T072628.01.log:1396,1398 shows 127,735 merits twice at 10:27:22, corrected only by a 90-merit award six seconds later.
+- An identical `MeritsGained` of at least `DUPE_MIN_MERITS` (1,000) for the same power within `DUPE_WINDOW_SECONDS` (60) is now dropped without touching the baseline, so the next genuine event still reconciles against the total the server actually holds. Over 5 journals holding merit events / 84 events, all 4 awards >= 1,000 merits carrying that signature were phantom and all 11 without it were real; the largest legitimately repeated award was 112 merits (four in a row in test/Journal.2026-02-16T133244.01.log), and the 45/70/77/112 trickles are untouched. Replaying the four September journals end to end lands on 7,515,860, which is what the server reports at the next login.
+- **The displayed total no longer comes from the raw event**: `pledgedPower.Merits` is taken from the ledger baseline, so a rejected event cannot put a total the server never held on screen. If a rejection is wrong the total is briefly *below* the server's instead, and heals on the next award or login.
+
+- **A wrong rejection gives the merits back to the system that earned them**: a rejection is provisional. The dropped award is parked with the system it would have gone to, and the next event's base decides its fate - at or above the total the rejected event claimed, the server really did hold it, so it is restored to that system rather than landing in a lump on wherever the player happens to be. A `Powerplay` snapshot at the next game start counts as proof too, so the restore survives a relog with no further awards. This is the mirror of `unwind()`, which takes a phantom back off a system.
+- Two rules bound a restore: an award whose own base is already below the tracked baseline is never parked, and no more is given back than the server base exceeds the baseline by. Without them a stale resend could be handed back on the next event that cleared its number, `credited` could go negative and be silently dropped, and an event with a frozen total could invent merits. Rejections also queue, so two of them go back to their own systems instead of the first being booked to wherever the player had moved.
+
+### Known limits
+- The threshold is the whole safety margin, over 15 awards >= 1,000 merits. A wrong rejection heals per-system when the next event carries an up-to-date server base. If that base is itself stale the parked award is released into the next credited lump instead, which keeps the total right but books it to whichever system is current.
+- Nothing about the ledger survives an EDMC restart, so a parked award is lost across one while the per-system numbers persist. This is the same gap the credit history has always had.
+- During a rejection window both the header total and the system's own merit count are short by the rejected award, so a Discord report sent in that window under-reports it. Reporting again after the restore makes up the difference.
+- Small phantoms below the threshold are unaffected and still rely on a later event, so a session can end above the server total by a few tens of merits - 140, 45 and 45 across the three September journals that show it.
+- A rejected award with no known system (merits before the first location) still falls back to the credited lump.
+- A restored hand-in goes to the system the player was in, not to the source systems a cargo or salvage delivery was split across.
+
 ## [v0.4.400.3.002] - 2026-08-28
 
 ### Fixed
