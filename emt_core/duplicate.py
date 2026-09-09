@@ -15,10 +15,50 @@ A delta can be negative when the previous event turns out to have been dropped
 server-side. Because the player may have changed system in between, credits are
 kept in a small LIFO history so the correction is taken off the system that
 actually received it.
+
+That correction only lands once a *later* event exposes the phantom. A player who
+stops earning right after a big hand-in never gets one, and reports the doubled
+number. Large awards are therefore also checked on arrival: an identical large
+MeritsGained for the same power inside a short window is rejected outright. Across
+5 journals holding merit events / 84 events, all 4 awards >= 1000 merits carrying
+that signature were phantom and all 11 without it were real; the largest
+legitimately repeated award seen was 112 merits (test/Journal.2026-02-16T133244
+.01.log, four in a row at 20:25:46-20:27:29).
+
+The threshold is the whole safety margin and the sample is small, so a rejection
+is provisional rather than final. The rejected award is parked with the system it
+would have gone to; the next event's base decides its fate. A base at or above the
+total the rejected event claimed proves the server did hold it, and it is given
+back to the system that earned it - the mirror of the unwind that takes a phantom
+off one. Two rules keep a restore honest: an award whose own base is already below
+the tracked baseline is never parked, because the server has demonstrably moved
+past it without it; and no more is ever given back than the base exceeds the
+baseline by, because that difference is exactly what is owed.
 """
 
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from emt_core.logging import logger
+
+# An identical award this size or larger, repeated for the same power inside the
+# window, is a server resend rather than a second hand-in.
+DUPE_MIN_MERITS = 1000
+DUPE_WINDOW_SECONDS = 60.0
+# Rejections only stack inside a resend burst; the cap is a safety net
+PENDING_LIMIT = 32
+
+
+def _parse_timestamp(value: Any) -> Optional[datetime]:
+    """Parse an Elite journal timestamp, or None if it is missing/unusable."""
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    # Elite always emits UTC; a replayed journal may have lost the marker, and a
+    # naive value would otherwise be read as local time and skew the window
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 class MeritLedger:
@@ -33,6 +73,8 @@ class MeritLedger:
         self.baseline: Optional[int] = None
         self.power: str = ""
         self.last_event: Optional[Tuple[int, int]] = None
+        self.recent: List[Tuple[datetime, int, str]] = []
+        self.pending: List[List[Any]] = []
         self.credits: List[List[Any]] = []
 
     def _check_power(self, power: str) -> None:
@@ -43,31 +85,81 @@ class MeritLedger:
         if power:
             self.power = power
 
-    def reconcile_snapshot(self, entry: Dict[str, Any]) -> int:
+    def _is_large_resend(self, when: Optional[datetime], gained: int, power: str) -> bool:
+        """True if this is a large award already seen for the same power just now.
+
+        Suppressed events are deliberately not remembered, so a run of resends is
+        always measured against the one genuine award that started it.
+        """
+        if when is None or gained < DUPE_MIN_MERITS:
+            return False
+        cutoff = when.timestamp() - DUPE_WINDOW_SECONDS
+        self.recent = [r for r in self.recent if r[0].timestamp() >= cutoff]
+        return any(g == gained and p == power for _, g, p in self.recent)
+
+    def _resolve_pending(self, base: int) -> List[Tuple[str, int]]:
+        """Decide every rejected award's fate from the server's own base.
+
+        A rejection stands while the server base is below the total that award
+        claimed. Once the base reaches it the server really did hold it, so it
+        goes back to the system it was parked against - the mirror of `unwind`,
+        which takes a phantom back off a system.
+
+        The base also caps the total: it exceeds the baseline by exactly the
+        merits this ledger has not credited, so nothing beyond `base - baseline`
+        can be owed. Without that cap two awards claiming the same base would
+        both be restored, and `credited` would go negative.
+        """
+        pending, self.pending = self.pending, []
+        room = base - (self.baseline or 0)
+        restored: List[Tuple[str, int]] = []
+        for gained, claimed_total, system in pending:
+            if base < claimed_total:
+                continue
+            if gained > room:
+                logger.warning(f"Not restoring {gained} merits: server base {base} only accounts for {room}")
+                continue
+            room -= gained
+            logger.warning(f"Rejected award of {gained} merits was genuine after all (server base {base} >= claimed {claimed_total})")
+            if system:
+                restored.append((system, gained))
+            else:
+                logger.warning(f"Cannot restore {gained} merits: the rejected award had no system")
+        return restored
+
+    def reconcile_snapshot(self, entry: Dict[str, Any]) -> Tuple[int, List[Tuple[str, int]]]:
         """Fold a Powerplay snapshot (game load) into the baseline.
 
-        Returns the delta to apply. Always 0 on the first snapshot seen.
+        Returns (delta to apply, merits to give back to a wrongly rejected award).
+        The delta is always 0 on the first snapshot seen.
         """
         total = entry.get("Merits")
         if total is None:
-            return 0
+            return 0, []
         self._check_power(entry.get("Power", ""))
         if self.baseline is None:
             self.baseline = total
-            return 0
-        delta = total - self.baseline
+            return 0, self._resolve_pending(total)
+        restored = self._resolve_pending(total)
+        delta = total - self.baseline - sum(m for _, m in restored)
         self.baseline = total
         if delta:
             logger.info(f"Server merit snapshot {total} disagrees with tracked {total - delta}: {delta:+}")
         self.last_event = None
-        return delta
+        self.recent = []
+        return delta, restored
 
-    def merits_delta(self, entry: Dict[str, Any]) -> Tuple[int, int]:
-        """Split a PowerplayMerits event into (uncredited, credited) merits.
+    def merits_delta(self, entry: Dict[str, Any], system: Optional[str] = None) -> Tuple[int, List[Tuple[str, int]], int]:
+        """Split a PowerplayMerits event into (uncredited, restored, credited).
 
         `uncredited` is what earlier events were given but the server never
         applied - it has to be taken back off whichever systems received it.
+        `restored` is [(system, merits)] for an award this ledger rejected as a
+        resend that the server turns out to have held after all.
         `credited` is what this event added and belongs to the current system.
+
+        `system` is where a rejected award would have gone, so it can be given
+        back to the right place if the rejection turns out to be wrong.
 
         TotalMerits is authoritative. If it has not moved, the server applied
         nothing and the event is ignored outright - Journal.2026-01-15T110022.01
@@ -79,35 +171,62 @@ class MeritLedger:
         total = entry.get("TotalMerits")
         gained = entry.get("MeritsGained", 0)
         if total is None:
-            return 0, gained
-        self._check_power(entry.get("Power", ""))
+            return 0, [], gained
+        power = entry.get("Power", "")
+        self._check_power(power)
 
         # A verbatim resend is the one unambiguous duplicate: same award, same total
         if self.last_event == (gained, total):
             logger.warning(f"Duplicate PowerplayMerits ignored: {gained} merits, total {total}")
-            return 0, 0
+            return 0, [], 0
+
+        # A large award repeated within the window advances TotalMerits by exactly
+        # its own size, so nothing later in this method can tell it from a real one.
+        # Reject it without touching the baseline: the next genuine event still
+        # reconciles against the total the server actually holds.
+        when = _parse_timestamp(entry.get("timestamp"))
+        if self._is_large_resend(when, gained, power):
+            logger.warning(f"Large PowerplayMerits resend ignored: {gained} merits repeated within {DUPE_WINDOW_SECONDS:.0f}s (total {total})")
+            # Provisional: park it with the system it would have gone to, in case
+            # the next event's base proves the server held it after all. Only
+            # worth parking if the award would sit on top of what we already
+            # track - a resend carrying a base below the baseline is one the
+            # server demonstrably never applied.
+            if self.baseline is None or total - gained >= self.baseline:
+                self.pending.append([gained, total, system])
+                del self.pending[:-PENDING_LIMIT]
+            return 0, [], 0
         self.last_event = (gained, total)
 
         if self.baseline is None:
             self.baseline = total - gained
 
-        if total == self.baseline:
-            logger.warning(f"Server credited none of the reported {gained} merits (total still {total})")
-            return 0, 0
-
         # What the server believed the total was before this award
         claimed_base = total - gained
+
+        if total == self.baseline:
+            logger.warning(f"Server credited none of the reported {gained} merits (total still {total})")
+            return 0, [], 0
+
+        # Only awards at or above the threshold can ever match, so only they are
+        # kept - otherwise a long trickle grows the window list without bound.
+        # An award against a frozen total never gets here: the server applied
+        # nothing, so a genuine repeat of it must not be rejected.
+        if when is not None and gained >= DUPE_MIN_MERITS:
+            self.recent.append((when, gained, power))
+
+        restored = self._resolve_pending(claimed_base)
         uncredited = 0
         if claimed_base < self.baseline:
             uncredited = self.baseline - claimed_base
             logger.warning(f"Server never credited {uncredited} earlier merits (base {claimed_base} < tracked {self.baseline})")
             self.baseline = claimed_base
 
-        credited = total - self.baseline
+        credited = total - self.baseline - sum(m for _, m in restored)
         self.baseline = total
         if credited != gained:
             logger.warning(f"MeritsGained {gained} but server credited {credited} (total {total})")
-        return uncredited, credited
+        return uncredited, restored, credited
 
     def record(self, system: str, merits: int) -> None:
         """Remember that `merits` were credited to `system`."""

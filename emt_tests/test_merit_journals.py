@@ -218,3 +218,33 @@ def test_merits_before_any_location_are_not_attributed(replay):
     b.server_total = 1_000_250
     tracked = replay(b, "no_location")
     assert sum(tracked.values()) == 0
+
+
+def test_large_resend_is_dropped_with_nothing_after_it(replay):
+    """The bug the threshold exists for: a phantom big award and then the player
+    stops earning, so no later event ever exposes it."""
+    b = JournalBuilder()
+    b.load_game(); b.jump("Aramo"); b.real(127735); b.phantom(127735)
+    tracked = replay(b, "large_resend_tail")
+    assert tracked["Aramo"] == 127735
+    assert sum(tracked.values()) == b.server_total - 1_000_000
+
+
+def test_two_genuine_large_awards_are_restored_to_their_system(replay):
+    """False positive of the threshold: both hand-ins are real. The second is
+    rejected, then the next award's base proves it landed and it goes back to
+    Aramo - not to Orgen, where the player is by then."""
+    b = JournalBuilder()
+    b.load_game(); b.jump("Aramo"); b.real(2000); b.real(2000)
+    b.jump("Orgen"); b.real(50)
+    tracked = replay(b, "large_resend_false_positive")
+    assert_matches(b, tracked)
+
+
+def test_two_genuine_large_awards_are_restored_on_relog(replay):
+    """Same, but the proof is the snapshot at the next game start."""
+    b = JournalBuilder()
+    b.load_game(); b.jump("Aramo"); b.real(2000); b.real(2000)
+    b.load_game()
+    tracked = replay(b, "large_resend_restored_on_relog")
+    assert_matches(b, tracked)
