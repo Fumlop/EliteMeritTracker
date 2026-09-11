@@ -2,6 +2,19 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.400.3.004] - 2026-09-11
+
+### Fixed
+- Follow the system EDMC names on every journal line, instead of waiting for
+  FSDJump, Location, CarrierJump or Docked. Starting EDMC with the game
+  already running restored whichever system was Active at the last shutdown,
+  which is the wrong one if you jumped while it was closed, and it stayed
+  wrong until one of those four events happened. The workaround noted in the
+  code - "jump to another system or dock to trigger system update" - is no
+  longer needed. A name carries no PowerPlay data, so a known system keeps
+  what it has and an unknown one gets the same minimal entry a Docked event
+  would create.
+
 ## [v0.4.400.3.003] - 2026-09-09
 
 ### Fixed
