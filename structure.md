@@ -9,7 +9,8 @@ EliteMeritTracker is an EDMC (Elite Dangerous Market Connector) plugin for track
 EliteMeritTracker/
 ├── .github/              # GitHub workflows and CI configuration
 ├── assets/               # Images, icons, and other static resources
-├── backup_legacy/        # Legacy code backup (pre-refactor)
+├── backup_legacy/        # Runtime only: where _cleanup_legacy_files moves
+│                         #   pre-refactor folders on an upgrading install (gitignored)
 ├── data/                 # Runtime data storage (JSON files)
 ├── docs/                 # Documentation files
 ├── emt_core/             # Core utilities and business logic
@@ -302,7 +303,7 @@ The plugin tracks PowerPlay 2.0 mechanics:
 
 ## Legacy Code
 
-`backup_legacy/` contains pre-refactor code:
+`backup_legacy/` is written at runtime, not shipped:
 - Old package structure (models/, core/, ui/ → emt_models/, emt_core/, emt_ui/)
 - Kept for reference during migration
 - Not used in production

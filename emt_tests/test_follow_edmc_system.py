@@ -106,3 +106,12 @@ def test_journal_entry_follows_it_on_any_event():
     load.journal_entry("Cmdr", False, "Andel", None,
                        {"event": "Music", "MusicTrack": "DockingComputer"}, {})
     assert state.current_system.StarSystem == "Andel"
+
+
+def test_the_plugin_exposes_its_version():
+    """The EDMC plugin registry reads a VERSION constant or a __version__
+    dunder off the plugin, and the plugin is load.py - not the config object
+    three imports down where the number lives."""
+    from emt_core.config import configPlugin
+    assert load.VERSION == configPlugin.version
+    assert load.__version__ == configPlugin.version

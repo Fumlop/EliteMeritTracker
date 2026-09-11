@@ -25,6 +25,16 @@ from emt_ppdata.reinforcement import is_valid_reinf_data
 from emt_ppdata.acquisition import is_valid_acq_data
 from emt_core.state import state
 
+# The EDMC plugin registry reads a VERSION constant or a __version__ dunder off
+# the plugin, and the plugin is this file. The number itself stays where it has
+# always lived, on configPlugin, so there is one place to change it.
+#
+# Note for the registry entry: this scheme is not semantic versioning - four
+# components and a leading v - and pluginVer is specified as a semver string.
+# See edmc.md in the RhinoSpotter repo for what that needs deciding.
+VERSION = configPlugin.version
+__version__ = VERSION
+
 # Module globals
 trackerFrame = None
 autosave_timer = None

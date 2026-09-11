@@ -218,3 +218,9 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+
+# Written at runtime by _cleanup_legacy_files, which moves pre-refactor folders
+# out of the way on an upgrading install. The copy that used to be committed
+# here was the pre-refactor code itself - a museum, and 17 files the plugin
+# registry would ask about under "bundle only what you need".
+backup_legacy/

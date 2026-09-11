@@ -2,6 +2,19 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.400.3.005] - 2026-09-11
+
+### Changed
+- Expose `VERSION` and `__version__` from `load.py`. The number still lives on
+  `configPlugin`, so there is one place to change it; the EDMC plugin registry
+  reads it off the plugin, and the plugin is `load.py`.
+- Stop shipping `backup_legacy/`. The folder is written at runtime by
+  `_cleanup_legacy_files`, which moves pre-refactor folders out of the way on
+  an upgrading install - that behaviour is unchanged. What was committed there
+  was the pre-refactor code itself, 17 files the plugin registry would ask
+  about under "bundle only what you need". Gitignored now, and untouched on
+  anyone's disk.
+
 ## [v0.4.400.3.004] - 2026-09-11
 
 ### Fixed
