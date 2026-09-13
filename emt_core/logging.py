@@ -22,11 +22,15 @@ class EDMCLogRecordFilter(logging.Filter):
         return True
 
 
-# Use fixed plugin name instead of path-based detection
-# This is more reliable and avoids issues with versioned directory names
 plugin_name = "EliteMeritTracker"
 
-logger = logging.getLogger(f'{appname}.{plugin_name}')
+# The logger is named after the folder holding load.py, as EDMC's plugin docs
+# say. EDMC sets up the fields its formatter needs (osthreadid, qualname) on
+# the logger of that name; a fixed name broke every log line for anyone who
+# unpacked into a versioned folder like EliteMeritTracker-0.4.3.1.200.
+plugin_folder = os.path.basename(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+logger = logging.getLogger(f'{appname}.{plugin_folder}')
 
 if not logger.hasHandlers():
     logger.setLevel(logging.INFO)

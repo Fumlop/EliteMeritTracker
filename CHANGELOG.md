@@ -2,7 +2,15 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
-## [v0.4.400.3.005] - 2026-09-11
+## [v0.4.400.3.005] - 2026-09-13
+
+### Fixed
+- Log lines no longer fail with `KeyError: 'osthreadid'` when the plugin sits
+  in a versioned folder such as `EliteMeritTracker-0.4.3.1.200`. The logger
+  was named `EliteMeritTracker` whatever the folder was called; EDMC sets up
+  the fields its formatter needs only on the logger named after the folder.
+  It is now named after the folder holding `load.py`, as EDMC's plugin docs
+  say.
 
 ### Changed
 - Expose `VERSION` and `__version__` from `load.py`. The number still lives on
