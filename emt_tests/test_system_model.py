@@ -166,9 +166,9 @@ class TestSystemStatusShort:
     """Test @SystemStatus variable abbreviations"""
 
     def test_status_short_acquisition(self, sample_fsdjump_event):
-        """Test that acquisition systems return 'ACQ'"""
+        """Test that a system being acquired returns its state, 'Contested'"""
         system = StarSystem(sample_fsdjump_event, "TestCMDR")
-        assert system.getSystemStatusShort() == "ACQ"
+        assert system.getSystemStatusShort() == "Contested"
 
     def test_status_short_fortified(self, sample_fortified_system):
         """Test that fortified systems return 'Fort'"""
@@ -186,7 +186,7 @@ class TestSystemStatusShort:
         assert system.getSystemStatusShort() == "Exploited"
 
     def test_status_short_contested(self):
-        """Test that contested systems return 'ACQ'"""
+        """Test that contested systems return 'Contested'"""
         event = {
             "event": "FSDJump",
             "StarSystem": "Test",
@@ -195,10 +195,10 @@ class TestSystemStatusShort:
             "PowerplayConflictProgress": [{"Power": "Felicia Winters", "ConflictProgress": 0.50}]
         }
         system = StarSystem(event, "TestCMDR")
-        assert system.getSystemStatusShort() == "ACQ"
+        assert system.getSystemStatusShort() == "Contested"
 
     def test_status_short_controlled(self):
-        """Test that controlled systems return 'ACQ'"""
+        """Test that controlled systems return 'Controlled'"""
         event = {
             "event": "FSDJump",
             "StarSystem": "Test",
@@ -207,7 +207,7 @@ class TestSystemStatusShort:
             "PowerplayConflictProgress": [{"Power": "Felicia Winters", "ConflictProgress": 1.05}]
         }
         system = StarSystem(event, "TestCMDR")
-        assert system.getSystemStatusShort() == "ACQ"
+        assert system.getSystemStatusShort() == "Controlled"
 
 
 class TestPopulationFormatting:

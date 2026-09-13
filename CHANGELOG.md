@@ -11,6 +11,9 @@ All notable changes to EliteMeritTracker will be documented in this file.
   the fields its formatter needs only on the logger named after the folder.
   It is now named after the folder holding `load.py`, as EDMC's plugin docs
   say.
+- The first pickup of a salvage or PowerPlay goods type counted one too many:
+  a new entry started at 1 and then had the collected amount added, so 1
+  Black Box read 2. New entries start at 0. Later pickups were always right.
 
 ### Changed
 - Expose `VERSION` and `__version__` from `load.py`. The number still lives on
