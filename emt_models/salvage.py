@@ -36,7 +36,9 @@ class Salvage:
             logger.error(f"Invalid salvage type: {cargo_name}")
             return
         if cargo_name_lower not in self.inventory:
-            self.inventory[cargo_name_lower] = Cargo(cargo_name_lower)
+            # At 0: add() below puts the collected amount on. Cargo's own
+            # default of 1 counted every first pickup twice.
+            self.inventory[cargo_name_lower] = Cargo(cargo_name_lower, 0)
         self.inventory[cargo_name_lower].add(count)
         
         # Log significant cargo collections

@@ -2,6 +2,43 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.400.3.005] - 2026-09-13
+
+### Fixed
+- Log lines no longer fail with `KeyError: 'osthreadid'` when the plugin sits
+  in a versioned folder such as `EliteMeritTracker-0.4.3.1.200`. The logger
+  was named `EliteMeritTracker` whatever the folder was called; EDMC sets up
+  the fields its formatter needs only on the logger named after the folder.
+  It is now named after the folder holding `load.py`, as EDMC's plugin docs
+  say.
+- The first pickup of a salvage or PowerPlay goods type counted one too many:
+  a new entry started at 1 and then had the collected amount added, so 1
+  Black Box read 2. New entries start at 0. Later pickups were always right.
+
+### Changed
+- Expose `VERSION` and `__version__` from `load.py`. The number still lives on
+  `configPlugin`, so there is one place to change it; the EDMC plugin registry
+  reads it off the plugin, and the plugin is `load.py`.
+- Stop shipping `backup_legacy/`. The folder is written at runtime by
+  `_cleanup_legacy_files`, which moves pre-refactor folders out of the way on
+  an upgrading install - that behaviour is unchanged. What was committed there
+  was the pre-refactor code itself, 17 files the plugin registry would ask
+  about under "bundle only what you need". Gitignored now, and untouched on
+  anyone's disk.
+
+## [v0.4.400.3.004] - 2026-09-11
+
+### Fixed
+- Follow the system EDMC names on every journal line, instead of waiting for
+  FSDJump, Location, CarrierJump or Docked. Starting EDMC with the game
+  already running restored whichever system was Active at the last shutdown,
+  which is the wrong one if you jumped while it was closed, and it stayed
+  wrong until one of those four events happened. The workaround noted in the
+  code - "jump to another system or dock to trigger system update" - is no
+  longer needed. A name carries no PowerPlay data, so a known system keeps
+  what it has and an unknown one gets the same minimal entry a Docked event
+  would create.
+
 ## [v0.4.400.3.003] - 2026-09-09
 
 ### Fixed

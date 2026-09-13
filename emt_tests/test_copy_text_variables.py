@@ -34,7 +34,7 @@ class TestCopyTextVariableReplacement:
         result = result.replace('@SystemStatus', system.getSystemStatusShort())
         result = result.replace('@System', system.StarSystem)
 
-        assert result == "3000 ACQ Hyades Sector KC-U c3-9"
+        assert result == "3000 Contested Hyades Sector KC-U c3-9"
         assert "Status" not in result  # Ensure no remnant from wrong order
 
     def test_system_status_fortified(self, sample_fortified_system):
@@ -144,7 +144,7 @@ class TestCopyTextVariableReplacement:
         else:
             result = result.replace('@CPOpposition', f"Opposition {system.PowerplayStateUndermining}")
 
-        expected = "3000 ACQ Hyades Sector KC-U c3-9 - Felicia Winters 30.69% vs Opposition 0"
+        expected = "3000 Contested Hyades Sector KC-U c3-9 - Felicia Winters 30.69% vs Opposition 0"
         assert result == expected
 
     def test_full_template_acquisition_multi(self, sample_multi_power_acquisition):
@@ -174,7 +174,7 @@ class TestCopyTextVariableReplacement:
         else:
             result = result.replace('@CPOpposition', f"Opposition {system.PowerplayStateUndermining}")
 
-        expected = "5000 ACQ Test Acquisition System - Felicia Winters 45.23% vs Arissa Lavigny-Duval 25.43%"
+        expected = "5000 Contested Test Acquisition System - Felicia Winters 45.23% vs Arissa Lavigny-Duval 25.43%"
         assert result == expected
 
     def test_full_template_fortified(self, sample_fortified_system):
@@ -227,14 +227,14 @@ class TestCopyTextVariableReplacement:
         wrong_result = wrong_result.replace('@System', system.StarSystem)  # This breaks @SystemStatus!
         wrong_result = wrong_result.replace('@SystemStatus', system.getSystemStatusShort())
 
-        # This would produce: "1000 TestSystem ACQ" (wrong!) or "1000 TestSystemStatus" (remnant!)
+        # This would produce: "1000 TestSystem Contested" (wrong!) or "1000 TestSystemStatus" (remnant!)
 
         # CORRECT ORDER: @SystemStatus before @System
         correct_result = template.replace('@MeritsValue', str(system.Merits))
         correct_result = correct_result.replace('@SystemStatus', system.getSystemStatusShort())
         correct_result = correct_result.replace('@System', system.StarSystem)
 
-        assert correct_result == "1000 ACQ TestSystem"
+        assert correct_result == "1000 Contested TestSystem"
         assert "Status" not in correct_result
 
 

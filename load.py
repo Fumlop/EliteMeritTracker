@@ -25,6 +25,16 @@ from emt_ppdata.reinforcement import is_valid_reinf_data
 from emt_ppdata.acquisition import is_valid_acq_data
 from emt_core.state import state
 
+# The EDMC plugin registry reads a VERSION constant or a __version__ dunder off
+# the plugin, and the plugin is this file. The number itself stays where it has
+# always lived, on configPlugin, so there is one place to change it.
+#
+# Note for the registry entry: this scheme is not semantic versioning - four
+# components and a leading v - and pluginVer is specified as a semver string.
+# See edmc.md in the RhinoSpotter repo for what that needs deciding.
+VERSION = configPlugin.version
+__version__ = VERSION
+
 # Module globals
 trackerFrame = None
 autosave_timer = None
@@ -707,11 +717,14 @@ def update_json_file():
 def journal_entry(cmdr, is_beta, system, station, entry, game_state):
     global trackerFrame
 
-    # DISABLED: System validation feature temporarily disabled
-    # Issue: Causes TypeError and data loss risk
-    # Workaround: Jump to another system or dock to trigger system update
-    # TODO: Implement safe validation that doesn't risk data loss
-    pass
+    # EDMC names the system it believes you are in on every line it hands over,
+    # including the journal it replays at startup. Taking it here means the
+    # tracker no longer has to wait for the next FSDJump, Location or Docked -
+    # which is what "Workaround: Jump to another system or dock to trigger
+    # system update" was about. Starting EDMC with the game already running
+    # restored whatever system was Active at the last shutdown, and that is the
+    # wrong one if you jumped while it was closed.
+    follow_edmc_system(system)
 
     if entry['event'] in ['LoadGame']:
         state.commander = entry.get('Commander', "")
@@ -871,6 +884,29 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
             systems[nameSystem] = new_system
             updateSystemTracker(state.current_system, systems[nameSystem])
             trackerFrame.update_display(state.current_system)
+
+
+def follow_edmc_system(name):
+    """Switch to the system EDMC says we are in, if it is not the current one.
+
+    Only switches. The PowerPlay data on a system still comes from FSDJump and
+    Location, which carry it - this is handed a name and nothing else, so an
+    unknown system gets the same minimal entry a Docked event would create and
+    is filled in by the next event that knows more.
+    """
+    if not name or name == "Nomansland":
+        return
+    if state.current_system is not None and state.current_system.StarSystem == name:
+        return
+    if name not in systems:
+        new_system = StarSystem(eventEntry={'StarSystem': name})
+        new_system.setReported(False)
+        systems[name] = new_system
+    updateSystemTracker(state.current_system, systems[name])
+    # The panel does not exist until plugin_app has run, and journal_entry can
+    # fire before it during the startup replay.
+    if trackerFrame is not None:
+        trackerFrame.update_display(state.current_system)
 
 
 def updateSystemTracker(oldSystem, newSystem):
