@@ -224,3 +224,9 @@ pyrightconfig.json
 # here was the pre-refactor code itself - a museum, and 17 files the plugin
 # registry would ask about under "bundle only what you need".
 backup_legacy/
+
+# Working notes, not part of the plugin: the implementation plan and the
+# handover that goes with it. Both are deliberately local - the CHANGELOG is
+# where anything worth keeping ends up.
+plan/
+HANDOVER.md
