@@ -17,7 +17,7 @@ fixed tags for how a system is doing.
 """
 import csv
 import tkinter as tk
-from tkinter import ttk, filedialog
+from tkinter import ttk, filedialog, messagebox
 
 from emt_core.config import configPlugin
 from emt_core.duplicate import merit_ledger
@@ -709,6 +709,19 @@ def _reset(name):
 
 
 def _reset_all():
+    """Zero every system's merits. Asked first: it is the one button here that
+    cannot be undone, and the main panel's Reset asks too."""
+    holding = [name for name, data in systems.items() if data.Merits > 0]
+    if not holding:
+        _state["status"] = "Nothing to reset"
+        _draw()
+        return
+    if not messagebox.askyesno(
+            "Reset all",
+            f"Set the merits of {len(holding)} systems to zero?\n\n"
+            "This cannot be undone.",
+            parent=_window):
+        return
     for name, data in systems.items():
         if data.Merits > 0:
             data.Merits = 0

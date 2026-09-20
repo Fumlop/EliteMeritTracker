@@ -44,6 +44,24 @@ All notable changes to EliteMeritTracker will be documented in this file.
   copy of the database before an update instead of four copies of four files.
 
 ### Fixed
+- Resetting a system no longer undoes itself. `save_systems()` wrote with
+  `INSERT OR REPLACE` and never deleted, so a system dropped from memory kept
+  its row and came back with its old merits at the next start. The JSON store
+  rewrote the whole file, which is why Reset used to stick. It now deletes the
+  rows for that commander that are no longer in memory - and an empty model is
+  a no-op rather than a mass delete, so a failed load cannot become data loss.
+- A database that cannot be read no longer destroys the backpack and the
+  salvage hold. `load_inventory()` returned `[]` on failure, the loaders
+  cleared the bags before reading, and the next save - which deletes and
+  reinserts - wrote that emptiness over the stored rows. It returns `None` on
+  failure now and the loaders keep what they have.
+- The migration pins `meta['commander']` to the name it keyed the imported
+  rows with. It only wrote `meta['power']`, so a `power.json` carrying a real
+  commander name would have made the whole import invisible at the next start.
+  Every shipped `power.json` has an empty name, so no live install could hit
+  it; the invariant was accidental.
+- The Overview's new Reset all button asks before zeroing every system, like
+  the main panel's reset does.
 - Every muted line in the Overview was drawn in `button_bg` - a button fill,
   not a text colour. On EDMC's dark theme that is `#323232` on `#000000`, a
   contrast ratio of 1.61:1. There is a real `muted` colour now, 8.53:1, and a

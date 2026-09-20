@@ -268,11 +268,20 @@ def save_backpack():
 
 
 def load_backpack():
-    """Read all three bags from the database, replacing what is in memory."""
+    """Read all three bags from the database, replacing what is in memory.
+
+    A bag is cleared only once its own read has come back. load_inventory()
+    answers None when the database could not be read, and clearing on that
+    would hand the next save an empty bag to write over the stored rows.
+    """
     name = database.commander()
     for kind, bag in _bags():
+        rows = database.load_inventory(kind, name)
+        if rows is None:
+            logger.error(f"{kind} could not be read; keeping what is in memory")
+            continue
         bag.items.clear()
-        for item, system, count in database.load_inventory(kind, name):
+        for item, system, count in rows:
             bag.items.setdefault(item, {})[system] = count
     logger.info(f"Loaded backpack - UM: {len(playerBackpack.umbag.items)}, "
                 f"Reinf: {len(playerBackpack.reinfbag.items)}, "

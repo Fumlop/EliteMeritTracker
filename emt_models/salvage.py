@@ -101,9 +101,16 @@ def save_salvage():
 
 
 def load_salvage():
-    """Read the salvage hold from the database, replacing what is in memory."""
+    """Read the salvage hold from the database, replacing what is in memory.
+
+    Cleared only once the read has come back - see load_backpack().
+    """
+    rows = database.load_inventory("salvage", database.commander())
+    if rows is None:
+        logger.error("salvage could not be read; keeping what is in memory")
+        return
     salvageInventory.clear()
-    for item, system_name, count in database.load_inventory("salvage", database.commander()):
+    for item, system_name, count in rows:
         salvage = salvageInventory.setdefault(system_name, Salvage(system_name))
         salvage.inventory[item] = Cargo(item, count)
 

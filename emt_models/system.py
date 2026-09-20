@@ -350,7 +350,7 @@ def dumpSystems():
     """
     name = database.commander()
     rows = [database.system_row(system, name) for system in systems.values()]
-    if database.save_systems(rows):
+    if database.save_systems(rows, name):
         database.remember_commander(name)
 
 

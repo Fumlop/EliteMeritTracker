@@ -192,18 +192,36 @@ def write_system(conn, row, replace=True):
 # plugin running on an empty model rather than stop it loading.
 
 
-def save_systems(rows, db=None):
-    """Write every systems row in one transaction.
+def save_systems(rows, commander="", db=None):
+    """Write every systems row in one transaction, and drop the rows for this
+    commander that are no longer in `rows`.
+
+    The JSON store rewrote the whole file, so a system dropped from the
+    in-memory dict left the store too - that is what made the main panel's
+    Reset stick. Without the delete a reset system is read back at the next
+    start with its old merits.
+
+    An empty `rows` is a no-op rather than a mass delete: a failed load leaves
+    the model empty, and the next autosave must not turn that into data loss.
 
     Args:
         rows: Tuples from system_row(), all for the same commander.
+        commander: The commander the rows belong to.
         db: Database file. Defaults to PATH.
 
     Returns:
         True if the write went through.
     """
+    if not rows:
+        return True
     try:
+        names = [row[0] for row in rows]
+        marks = ", ".join("?" * len(names))
         with connect(db) as conn:
+            conn.execute(
+                f"DELETE FROM systems WHERE commander = ? AND name NOT IN ({marks})",
+                [commander] + names,
+            )
             for row in rows:
                 write_system(conn, row)
         return True
@@ -259,7 +277,13 @@ def save_inventory(kind, commander, rows, db=None):
 
 
 def load_inventory(kind, commander="", db=None):
-    """[(item, system, count), ...] for one kind, or [] on any failure."""
+    """[(item, system, count), ...] for one kind.
+
+    Returns None - not [] - when the read failed, so a caller can tell a real
+    empty bag from a database that would not open. The caller must not clear
+    what it has on None: save_inventory() replaces, so an emptied model would
+    delete the stored rows at the next save.
+    """
     try:
         with connect(db) as conn:
             return [tuple(row) for row in conn.execute(
@@ -269,7 +293,7 @@ def load_inventory(kind, commander="", db=None):
             )]
     except (sqlite3.Error, OSError) as err:
         logger.error(f"could not read {kind}: {err}")
-        return []
+        return None
 
 
 def save_meta(key, value, db=None):

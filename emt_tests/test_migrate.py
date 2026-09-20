@@ -100,6 +100,12 @@ class TestFirstRun:
         migrate.run(source, db)
         assert rows(db, "SELECT DISTINCT commander FROM systems") == [("Fumlop",)]
 
+    def test_the_commander_is_pinned_so_the_next_start_finds_the_rows(self, source, db):
+        # The imported rows are keyed by power.json's Commander, so
+        # database.commander() has to resolve to it at the next start.
+        migrate.run(source, db)
+        assert database.load_meta("commander", None, db) == "Fumlop"
+
     def test_power_lands_in_meta(self, source, db):
         migrate.run(source, db)
         stored = rows(db, "SELECT value FROM meta WHERE key = 'power'")[0][0]

@@ -164,6 +164,12 @@ def _power(conn, source, result):
             ("power", json.dumps(data)),
         )
         _count(result, "power", cursor.rowcount)
+        # The rows below are keyed by this name, and database.commander() has
+        # to resolve to it at the next start or the import reads back empty.
+        # Committed with the import, not after it.
+        if commander:
+            conn.execute("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)",
+                         ("commander", json.dumps(commander)))
 
     _one_file(conn, result, path, work)
     return commander

@@ -215,17 +215,93 @@ class TestPower:
         assert database.load_meta("commander") == "Fumlop"
 
 
-class TestFailureIsEmptyNotFatal:
-    def test_reads_answer_empty_when_the_file_is_not_a_database(self, tmp_path):
-        broken = tmp_path / "broken.db"
-        broken.write_bytes(b"not a database at all, not even close")
-        assert database.load_systems("", str(broken)) == []
-        assert database.load_inventory("umbag", "", str(broken)) == []
-        assert database.load_meta("power", "fallback", str(broken)) == "fallback"
+class TestResetSticks:
+    """A system dropped from memory must not come back at the next start.
 
-    def test_a_write_to_a_broken_file_returns_false(self, tmp_path):
-        broken = tmp_path / "broken.db"
-        broken.write_bytes(b"not a database at all, not even close")
-        assert database.save_systems([], str(broken)) is False
-        assert database.save_inventory("umbag", "", [], str(broken)) is False
-        assert database.save_meta("power", {}, str(broken)) is False
+    The JSON store rewrote the whole file, so it could not; INSERT OR REPLACE
+    on its own cannot delete, which made the main panel's Reset undo itself.
+    """
+
+    def test_a_dropped_system_is_deleted_from_the_store(self):
+        add_system("Eme", merits=10)
+        add_system("Kaushpoos", merits=20)
+        dumpSystems()
+
+        # What load.py's reset does: clear, keep the current system, save.
+        systems.clear()
+        add_system("Eme", merits=0)
+        dumpSystems()
+
+        systems.clear()
+        loadSystems()
+        assert sorted(systems) == ["Eme"]
+        assert systems["Eme"].Merits == 0
+
+    def test_it_only_deletes_this_commander(self):
+        state.commander = "First"
+        add_system("Eme")
+        dumpSystems()
+
+        systems.clear()
+        state.commander = "Second"
+        add_system("Kaushpoos")
+        dumpSystems()
+
+        systems.clear()
+        state.commander = "First"
+        loadSystems()
+        assert sorted(systems) == ["Eme"]
+
+    def test_an_empty_model_never_mass_deletes(self):
+        """A failed load leaves `systems` empty; the next autosave must not
+        turn that into data loss."""
+        add_system("Eme", merits=10)
+        dumpSystems()
+
+        systems.clear()
+        dumpSystems()
+
+        loadSystems()
+        assert systems["Eme"].Merits == 10
+
+
+class TestFailureIsNotDataLoss:
+    @pytest.fixture
+    def broken(self, tmp_path):
+        path = tmp_path / "broken.db"
+        path.write_bytes(b"not a database at all, not even close")
+        return str(path)
+
+    def test_a_failed_system_read_is_empty(self, broken):
+        assert database.load_systems("", broken) == []
+
+    def test_a_failed_meta_read_gives_the_default(self, broken):
+        assert database.load_meta("power", "fallback", broken) == "fallback"
+
+    def test_a_failed_inventory_read_is_none_not_empty(self, broken):
+        # None, so the caller can tell "no bag" from "could not read it".
+        assert database.load_inventory("umbag", "", broken) is None
+
+    def test_an_empty_bag_is_empty_not_none(self, tmp_path):
+        good = str(tmp_path / "good.db")
+        database.save_inventory("umbag", "", [], good)
+        assert database.load_inventory("umbag", "", good) == []
+
+    def test_a_failed_read_keeps_the_bags_in_memory(self, broken, monkeypatch):
+        playerBackpack.umbag.items["powerresearch"] = {"Eme": 4}
+        monkeypatch.setattr(database, "PATH", broken)
+        load_backpack()
+        assert playerBackpack.umbag.items == {"powerresearch": {"Eme": 4}}
+
+    def test_a_failed_read_keeps_the_salvage_in_memory(self, broken, monkeypatch):
+        salvageInventory["Cerno"] = Salvage("Cerno")
+        monkeypatch.setattr(database, "PATH", broken)
+        load_salvage()
+        assert "Cerno" in salvageInventory
+
+    def test_writes_to_a_broken_file_return_false(self, broken):
+        add_system("Eme")
+        rows = [database.system_row(systems["Eme"], "")]
+        assert database.save_systems(rows, "", broken) is False
+        assert database.save_inventory("umbag", "", [], broken) is False
+        assert database.save_meta("power", {}, broken) is False
