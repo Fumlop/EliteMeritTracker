@@ -1,6 +1,6 @@
 import json
+from emt_core import database
 from emt_core.logging import logger
-from emt_core.storage import load_json, save_json, get_file_path
 
 # PowerPlay CP thresholds for calculating progress percentages
 STRONGHOLD_CP_THRESHOLD = 120000
@@ -341,29 +341,25 @@ class SystemEncoder(json.JSONEncoder):
         return super().default(o)
 
 
-def dumpSystems(create_backup=False):
-    """Save systems to JSON file
+def dumpSystems():
+    """Write every tracked system to the database, under the current commander.
 
-    Args:
-        create_backup: If True, creates .backup file (only during updates)
+    Every system, not only the ones still holding merits: the JSON store
+    dropped a system the moment it was reported, and that is what made any
+    kind of history impossible.
     """
-    filtered_systems = {
-        name: data.to_dict()
-        for name, data in systems.items()
-        if (not data.reported and data.Merits > 0) or data.Active
-    }
-    save_json("systems.json", filtered_systems, encoder=SystemEncoder, create_backup=create_backup)
+    name = database.commander()
+    rows = [database.system_row(system, name) for system in systems.values()]
+    if database.save_systems(rows):
+        database.remember_commander(name)
 
 
 def loadSystems():
-    """Load systems from JSON file"""
-    data = load_json("systems.json")
-    if data:
-        for name, system_data in data.items():
-            if isinstance(system_data, dict):
-                system = StarSystem()
-                system.from_dict(system_data)
-                systems[name] = system
+    """Read the current commander's systems into `systems`."""
+    for entry in database.load_systems(database.commander()):
+        system = StarSystem()
+        system.from_dict(entry)
+        systems[system.StarSystem] = system
 
 
 systems = {} 

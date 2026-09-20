@@ -14,6 +14,22 @@ sys.path.insert(0, str(plugin_dir))
 import emt_tests.mocks  # This installs the mocks into sys.modules
 
 
+@pytest.fixture(autouse=True)
+def temporary_database(tmp_path, monkeypatch):
+    """Point emt_core.database at a throwaway file for every test.
+
+    Without this a test that calls dumpSystems() writes to the commander's real
+    %LOCALAPPDATA%\\EliteMeritTracker\\db\\merittracker.db.
+    """
+    from emt_core import database
+
+    monkeypatch.setattr(database, "ROOT", str(tmp_path))
+    monkeypatch.setattr(database, "DIR", str(tmp_path / "db"))
+    monkeypatch.setattr(database, "PATH", str(tmp_path / "db" / "merittracker.db"))
+    yield
+
+
+
 @pytest.fixture
 def sample_fsdjump_event():
     """Sample FSDJump event from real journal"""

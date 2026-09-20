@@ -94,10 +94,25 @@ tkinter_module.END = "end"
 tkinter_module.NORMAL = "normal"
 tkinter_module.DISABLED = "disabled"
 
+# `from tkinter import ttk` looks for the attribute first and only then falls
+# back to sys.modules['tkinter.ttk'] - and that fallback needs the parent to
+# have a __name__, which a SimpleNamespace has not. Both are set, so the
+# import works whichever route it takes.
+tkinter_module.__name__ = 'tkinter'
+ttk_module = MagicMock()
+filedialog_module = MagicMock()
+messagebox_module = MagicMock()
+tkinter_module.ttk = ttk_module
+tkinter_module.filedialog = filedialog_module
+tkinter_module.messagebox = messagebox_module
+
 # Install mocks before imports
 sys.modules['tkinter'] = tkinter_module
-sys.modules['tkinter.ttk'] = MagicMock()
+sys.modules['tkinter.ttk'] = ttk_module
+sys.modules['tkinter.filedialog'] = filedialog_module
+sys.modules['tkinter.messagebox'] = messagebox_module
 sys.modules['config'] = config_module
 sys.modules['EDMCLogging'] = MagicMock()
 sys.modules['theme'] = MagicMock()
 sys.modules['ttkHyperlinkLabel'] = MagicMock()
+sys.modules['myNotebook'] = MagicMock()          # EDMC's settings-page widgets

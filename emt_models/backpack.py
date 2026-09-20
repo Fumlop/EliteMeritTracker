@@ -1,6 +1,6 @@
 # models/backpack.py - Player Backpack for tracking PowerPlay data collection
 from emt_core.logging import logger
-from emt_core.storage import load_json, save_json
+from emt_core import database
 from emt_ppdata.undermining import is_valid_um_data, get_um_display_name
 from emt_ppdata.reinforcement import is_valid_reinf_data, get_reinf_display_name
 from emt_ppdata.acquisition import is_valid_acq_data, get_acq_display_name
@@ -250,18 +250,30 @@ class Backpack:
 playerBackpack = Backpack()
 
 
-def save_backpack(create_backup=False):
-    """Save backpack to JSON file
+def _bags():
+    """(inventory.kind, Bag) for each of the three bags."""
+    return (("umbag", playerBackpack.umbag),
+            ("reinfbag", playerBackpack.reinfbag),
+            ("acqbag", playerBackpack.acqbag))
 
-    Args:
-        create_backup: If True, creates .backup file (only during updates)
-    """
-    save_json("backpack.json", playerBackpack.to_dict(), create_backup=create_backup)
+
+def save_backpack():
+    """Write all three bags to the database, under the current commander."""
+    name = database.commander()
+    for kind, bag in _bags():
+        rows = [(item, system, count)
+                for item, per_system in bag.items.items()
+                for system, count in per_system.items()]
+        database.save_inventory(kind, name, rows)
 
 
 def load_backpack():
-    """Load backpack from JSON file"""
-    data = load_json("backpack.json")
-    if data:
-        playerBackpack.from_dict(data)
-        logger.info(f"Loaded backpack - UM: {len(playerBackpack.umbag.items)}, Reinf: {len(playerBackpack.reinfbag.items)}, Acq: {len(playerBackpack.acqbag.items)}")
+    """Read all three bags from the database, replacing what is in memory."""
+    name = database.commander()
+    for kind, bag in _bags():
+        bag.items.clear()
+        for item, system, count in database.load_inventory(kind, name):
+            bag.items.setdefault(item, {})[system] = count
+    logger.info(f"Loaded backpack - UM: {len(playerBackpack.umbag.items)}, "
+                f"Reinf: {len(playerBackpack.reinfbag.items)}, "
+                f"Acq: {len(playerBackpack.acqbag.items)}")

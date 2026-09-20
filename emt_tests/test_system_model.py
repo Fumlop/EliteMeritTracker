@@ -747,13 +747,11 @@ class TestFileIOFunctions:
     """Test file I/O functions for system storage"""
 
     def test_dump_and_load_systems(self):
-        """Test dumpSystems and loadSystems functions"""
+        """dumpSystems writes to the database and loadSystems reads it back"""
         from emt_models.system import systems, dumpSystems, loadSystems, StarSystem
 
-        # Clear existing systems
         systems.clear()
 
-        # Create test systems
         event1 = {
             "event": "FSDJump",
             "StarSystem": "TestSystem1",
@@ -765,7 +763,7 @@ class TestFileIOFunctions:
         system1 = StarSystem(event1, "TestCMDR")
         system1.Merits = 3000
         system1.Active = True
-        systems["TestSystem1_TestCMDR"] = system1
+        systems["TestSystem1"] = system1
 
         event2 = {
             "event": "FSDJump",
@@ -778,49 +776,68 @@ class TestFileIOFunctions:
         system2 = StarSystem(event2, "TestCMDR")
         system2.Merits = 500
         system2.reported = False
-        systems["TestSystem2_TestCMDR"] = system2
+        systems["TestSystem2"] = system2
 
-        # Save systems (with backup)
-        dumpSystems(create_backup=True)
+        dumpSystems()
 
-        # Clear and reload
         systems.clear()
         loadSystems()
 
-        # Verify systems were loaded
-        assert "TestSystem1_TestCMDR" in systems
-        assert systems["TestSystem1_TestCMDR"].Merits == 3000
-        assert systems["TestSystem1_TestCMDR"].Active == True
+        assert "TestSystem1" in systems
+        assert systems["TestSystem1"].Merits == 3000
+        assert systems["TestSystem1"].Active is True
+        assert systems["TestSystem2"].PowerplayStateReinforcement == 800
 
-    def test_dump_systems_filters_reported(self):
-        """Test that dumpSystems filters out reported systems with no merits"""
-        from emt_models.system import systems, dumpSystems, StarSystem
+    def test_the_dict_is_keyed_by_the_system_name(self):
+        """loadSystems keys `systems` by StarSystem, as load.py does"""
+        from emt_models.system import systems, dumpSystems, loadSystems, StarSystem
 
         systems.clear()
+        system = StarSystem({"event": "FSDJump", "StarSystem": "Eme"}, "TestCMDR")
+        systems["whatever key the caller used"] = system
+        dumpSystems()
 
-        # Create reported system with 0 merits (should be filtered out)
-        event = {
-            "event": "FSDJump",
-            "StarSystem": "ReportedSystem",
-            "PowerplayState": "Exploited"
-        }
-        system = StarSystem(event, "TestCMDR")
+        systems.clear()
+        loadSystems()
+        assert list(systems) == ["Eme"]
+
+    def test_a_reported_system_is_kept(self):
+        """A reported system with no merits survives the round trip.
+
+        The JSON store dropped it, which is what made history impossible. The
+        Session tab filters on Merits > 0 instead.
+        """
+        from emt_models.system import systems, dumpSystems, loadSystems, StarSystem
+
+        systems.clear()
+        system = StarSystem({"event": "FSDJump", "StarSystem": "ReportedSystem",
+                             "PowerplayState": "Exploited"}, "TestCMDR")
         system.Merits = 0
         system.reported = True
         system.Active = False
-        systems["ReportedSystem_TestCMDR"] = system
+        systems["ReportedSystem"] = system
 
-        # This should not fail even though all systems are filtered
-        dumpSystems(create_backup=False)
+        dumpSystems()
+        systems.clear()
+        loadSystems()
 
-    def test_load_systems_with_empty_file(self):
-        """Test loadSystems when file returns None/empty"""
+        assert "ReportedSystem" in systems
+        assert systems["ReportedSystem"].reported is True
+
+    def test_saving_nothing_is_not_an_error(self):
+        from emt_models.system import systems, dumpSystems
+
+        systems.clear()
+        dumpSystems()
+
+    def test_load_systems_with_no_database(self):
+        """loadSystems on an empty store leaves `systems` empty rather than
+        raising."""
         from emt_models.system import systems, loadSystems
 
-        # This will call load_json which may return None if file doesn't exist
-        # Should not crash
         systems.clear()
-        loadSystems()  # Should handle None gracefully
+        loadSystems()
+        assert systems == {}
 
 
 class TestSystemEncoder:
