@@ -1,6 +1,6 @@
 import json
+from emt_core import database
 from emt_core.logging import logger
-from emt_core.storage import load_json, save_json
 
 class PledgedPower:
     def __init__(self, eventEntry: dict = {}, commander: str = ""):
@@ -29,23 +29,19 @@ class PledgedPower:
         self.Commander = str(data.get("Commander", ""))
         self._update_time_pledged_str()
 
-    def dumpJson(self, create_backup=False):
-        """Save power data to JSON file
-
-        Args:
-            create_backup: If True, creates .backup file (only during updates)
-        """
-        save_json("power.json", self, encoder=PowerEncoder, create_backup=create_backup)
+    def dumpJson(self):
+        """Write the pledge to the database, under meta['power']."""
+        database.save_meta("power", PowerEncoder().default(self))
+        database.remember_commander(self.Commander)
 
     def loadPower(self):
-        """Load power data from JSON file"""
-        data = load_json("power.json")
+        """Read the pledge from the database."""
+        data = database.load_meta("power")
         if data:
             self.from_dict(data)
         else:
-            # Create new file with current data
             self.dumpJson()
-            self.from_dict({}) 
+            self.from_dict({})
 
 class PowerEncoder(json.JSONEncoder):
     def default(self, o):

@@ -2,6 +2,71 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [v0.4.400.4.000] - 2026-09-20
+
+### Added
+- The store is a SQLite database, `%LOCALAPPDATA%\EliteMeritTracker\db\merittracker.db`.
+  Outside the plugin folder, so a manual reinstall no longer takes the merit
+  history with it. One connection per piece of work, WAL, `PRAGMA user_version`
+  for the schema, and each row keeping the whole record as JSON beside the
+  columns a lookup needs.
+- `data\*.json` is imported into it once, at the first start, by
+  `emt_core/migrate.py`. A marker file `db\migrate.done` stops it running
+  again; the same report is committed to the `meta` table, so a deleted marker
+  rewrites the file instead of importing a second time. Nothing is deleted -
+  `data\*.json` stays where it is, and removing the `db` folder is the way
+  back.
+- `database.backup()` keeps the newest two copies in `dbackups\`, and only
+  writes one when the database passes `PRAGMA quick_check` and has rows in it.
+- `emt_ui/palette.py`: the theme colours and the eight status tags in one
+  module with no tkinter import, plus `tag_for()` holding the progress-band
+  rule that was inlined in the table, and `contrast()` for checking the result.
+- Screenshots in `docs/pic/`, rendered from the real widget code with example
+  data by `lab/shoot_overview.py`.
+
+### Changed
+- The Overview window is three tabs - Session, Systems, Shiplocker - in one
+  window, replacing the Show Detailed View toggle, the separate Shiplocker
+  Toplevel and the two near-identical count dialogs. Every draw rebuilds the
+  whole tab from a state dict kept outside the widgets, so scroll position,
+  folds, sort and filters survive it.
+- The window opens at 70 % of the screen, capped at 80 %, centred. The stored
+  `power_info_width` / `power_info_height` are no longer read or written: a
+  size saved on a large monitor opened off-screen on a laptop.
+- `dumpSystems()` no longer drops reported or zero-merit systems. That filter
+  is what made history impossible; the Session tab filters on `Merits > 0`
+  instead.
+- `loadSystems()` keys the `systems` dict by `StarSystem`, matching what
+  `load.py` already did everywhere else.
+- Rows are keyed by commander as well as system, so two commanders no longer
+  share one row.
+- `create_backup=` is gone from the four save functions. `load.py` takes one
+  copy of the database before an update instead of four copies of four files.
+
+### Fixed
+- Every muted line in the Overview was drawn in `button_bg` - a button fill,
+  not a text colour. On EDMC's dark theme that is `#323232` on `#000000`, a
+  contrast ratio of 1.61:1. There is a real `muted` colour now, 8.53:1, and a
+  test that measures every foreground the window draws against the surface it
+  is drawn on.
+- The `warning` status colour, `#d07000`, was 3.50:1 under its white text -
+  the only one of the eight tags under the 4.5:1 floor. Darkened the least
+  that clears it, hue kept: `#b36000`, 4.58:1.
+- The Systems table set its column widths in characters while the numbers were
+  pixels, so the seven columns came out about twice the width of the window
+  and the last one was cut off.
+- The bottom button bar of the Session and Systems tabs was packed after the
+  scrolling list, so the list took its space and the last row was drawn under
+  the buttons.
+- `emt_ui/main.py` had a second, different `get_theme_colors()` that returned
+  three of the eight keys. Both files now use the one in `emt_ui/palette.py`.
+- The test suite wrote to the commander's real database. `conftest.py` points
+  `database.PATH` at a temporary file for every test.
+- `emt_tests/mocks.py` had no `tkinter.ttk`, `tkinter.filedialog` or
+  `myNotebook`, so any test importing `emt_ui` could only be collected when
+  another module happened to be imported first. Added, and every test file now
+  passes on its own.
+
 ## [v0.4.400.3.005] - 2026-09-13
 
 ### Fixed

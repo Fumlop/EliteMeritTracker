@@ -1,5 +1,5 @@
 from emt_core.logging import logger
-from emt_core.storage import load_json, save_json
+from emt_core import database
 from .system import StarSystem
 from .ppcargo import Cargo
 
@@ -92,22 +92,20 @@ class Salvage:
         salvageInventory[system_name].add_cargo(cargo_type, cargo_count)
         logger.debug(f"Added {cargo_count} {cargo_type} to {system_name}")
 
-def save_salvage(create_backup=False):
-    """Save salvage inventory to JSON file
-
-    Args:
-        create_backup: If True, creates .backup file (only during updates)
-    """
-    data = {name: salvage.to_dict() for name, salvage in salvageInventory.items()}
-    save_json("salvage.json", data, create_backup=create_backup)
+def save_salvage():
+    """Write the salvage hold to the database, under the current commander."""
+    rows = [(item, system_name, cargo.count)
+            for system_name, salvage in salvageInventory.items()
+            for item, cargo in salvage.inventory.items()]
+    database.save_inventory("salvage", database.commander(), rows)
 
 
 def load_salvage():
-    """Load salvage inventory from JSON file"""
-    data = load_json("salvage.json")
-    if data:
-        for system_name, salvage_data in data.items():
-            salvageInventory[system_name] = Salvage.from_dict(salvage_data)
+    """Read the salvage hold from the database, replacing what is in memory."""
+    salvageInventory.clear()
+    for item, system_name, count in database.load_inventory("salvage", database.commander()):
+        salvage = salvageInventory.setdefault(system_name, Salvage(system_name))
+        salvage.inventory[item] = Cargo(item, count)
 
 # Global inventory of all salvage by system
 salvageInventory = {}

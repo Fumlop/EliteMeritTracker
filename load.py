@@ -17,6 +17,7 @@ from emt_ui.main import TrackerFrame
 from emt_core.duplicate import merit_ledger, reset_merit_tracking
 from emt_core.config import configPlugin
 from emt_core.logging import logger
+from emt_core import migrate
 from config import config, appname
 from emt_ui.config import create_config_frame
 from emt_models.backpack import playerBackpack, save_backpack, load_backpack
@@ -195,11 +196,14 @@ def _backup_data_files():
         from emt_models.backpack import save_backpack
         from emt_models.power import pledgedPower
 
-        # Save all data files with backup flag
-        pledgedPower.dumpJson(create_backup=True)
-        dumpSystems(create_backup=True)
-        save_salvage(create_backup=True)
-        save_backpack(create_backup=True)
+        # Everything into the database, then one copy of it. A backup per
+        # model would make four copies of the same file.
+        from emt_core import database
+        pledgedPower.dumpJson()
+        dumpSystems()
+        save_salvage()
+        save_backpack()
+        database.backup()
 
         logger.info("Data backups created successfully")
         return True
@@ -474,6 +478,17 @@ def plugin_start3(plugin_dir):
 
     # Clean up legacy folders/files from older versions
     _cleanup_legacy_files(plugin_dir)
+
+    # data/*.json into the database, once. After _cleanup_legacy_files, which
+    # is what moves a pre-0.4 JSON file out of the plugin root into data/.
+    # Every start after the first sees db/migrate.done and returns at once.
+    # A failed import must not stop the plugin: nothing reads the database yet.
+    try:
+        imported = migrate.run()
+        if imported:
+            logger.info(f"Migrated to SQLite: {imported['imported']}")
+    except Exception:
+        logger.exception("SQLite migration failed, continuing on JSON")
 
     configPlugin.loadConfig()
     loadSystems()

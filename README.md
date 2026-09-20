@@ -1,40 +1,77 @@
+![EliteMeritTracker](docs/pic/logo_small.jpg)
+
 # EliteMeritTracker
 
-EDMC Plugin to track Powerplay Merits in Elite Dangerous.
+EDMC plugin that tracks Powerplay 2.0 merits in Elite Dangerous.
 
-<img width="257" height="141" alt="grafik" src="https://github.com/user-attachments/assets/08e50d62-2a01-486b-b023-7c9257fed202" />
-<img width="1724" height="621" alt="grafik" src="https://github.com/user-attachments/assets/44ced819-57b1-4dac-8195-f3b46f0214ed" />
-<img width="1723" height="630" alt="grafik" src="https://github.com/user-attachments/assets/78e42e11-a9c8-4390-abc4-acfc055d1db9" />
+It reads the journal as you play, credits merits to the system that earned them,
+and keeps the lot in a SQLite database so nothing is lost between sessions.
 
-## About
+## The Overview window
 
-EliteMeritTracker is a comprehensive Powerplay 2.0 merit tracking plugin for Elite Dangerous Market Connector (EDMC). It automatically monitors your gameplay and tracks merit-earning activities across all star systems you visit.
+One window, three tabs. Everything below is the real window, drawn with example
+data.
 
-The plugin reads Elite Dangerous journal events in real-time to capture:
-- **Combat merits**: Ship kills, on-foot combat, and other hostile activities
-- **Cargo deliveries**: PowerPlay cargo hand-ins with accurate merit calculations
-- **Data collection**: Tracks PowerPlay micro-resources in your backpack (undermining, reinforcement, acquisition data)
-- **System state**: Monitors reinforcement vs undermining percentages with NET status calculations
+### Session — what is waiting to be reported
 
-All tracking happens locally - your data never leaves your computer unless you choose to share via Discord webhooks.
+![The Session tab](docs/pic/overview-session.png)
+
+Every system still holding merits, with the report line it would produce.
+**Copy** puts that line on the clipboard, or posts it to Discord when a webhook
+is set; **Reset** zeroes the system and forgets its credits in the ledger.
+
+### Systems — everything tracked, side by side
+
+![The Systems tab](docs/pic/overview-systems.png)
+
+Sort by any column header, filter by power, state or name. A row folds open in
+place to show its control progress, the decay taken off undermining, the
+opposition and the report text — without losing your place in the list.
+
+Row colour is the system's standing, not the theme:
+
+| Colour | Meaning |
+|---|---|
+| red | control progress under 20 % |
+| green | 20–80 %, or a Stronghold at any progress above 80 % |
+| orange | 80 % or more and not a Stronghold |
+| grey | no controlling power |
+
+### Shiplocker — the Powerplay bags and the salvage hold
+
+![The Shiplocker tab](docs/pic/overview-shiplocker.png)
+
+The three data bags — undermining, reinforcement, acquisition — and salvage,
+each attributed to the system it was picked up in. Click a row to correct a
+count; **+ Add entry** puts one in by hand.
+
+## What it tracks
+
+- **Merits per system**, from `PowerplayMerits`, cargo hand-ins, on-foot data
+  deliveries and salvage.
+- **Reinforcement and undermining**, with cycle decay subtracted so the
+  undermining figure is the one that actually counts.
+- **Powerplay micro-resources** in the backpack, per system.
+- **Your pledge** — power, rank, total merits, time pledged.
+
+Merits are tracked as the delta of `TotalMerits`, not by summing `MeritsGained`.
+Verified against 388 journals / 2732 events: delta tracking reproduces the
+server total exactly, summing `MeritsGained` overcounts by 5.6 %. Duplicate
+server awards are detected and unwound — see `emt_core/duplicate.py`.
 
 ## Features
 
-- **Automatic Merit Tracking**: Merits tracked per system from journal events
-- **Session & Total Counters**: See merits earned this session and all-time totals
-- **Detailed System View**: Sortable table with filters for System, State, and Power
-- **PowerPlay Backpack**: Tracks collected data items with per-system attribution
-- **NET Status**: Color-coded reinforcement vs undermining balance per system
-- **Discord Integration**: Send merit reports to your Discord server via webhooks
-- **CSV Export**: Export all tracked data for external analysis
-- **Auto-Update**: One-click updates from GitHub releases (stable and beta channels)
+- Session and total merit counters in the EDMC panel
+- Sortable, filterable system table with in-place detail
+- Discord webhook reports, with a configurable message template
+- CSV export of every tracked system
+- Auto-update from GitHub releases, stable or beta channel
+- Follows EDMC's theme; the status colours stay readable on any of them
 
 ## Installation
 
-### First-Time Install
-
 1. Download the latest release from [Releases](https://github.com/Fumlop/EliteMeritTracker/releases)
-2. Extract the ZIP contents to:
+2. Extract the ZIP into:
    ```
    %LOCALAPPDATA%\EDMarketConnector\plugins\EliteMeritTracker
    ```
@@ -42,34 +79,55 @@ All tracking happens locally - your data never leaves your computer unless you c
 
 ### Updating
 
-The plugin includes auto-update functionality. When a new version is available:
-- A notification will appear in the plugin
-- Click to update automatically
+The plugin checks GitHub for new releases and offers a one-click update.
 
-For manual updates:
-1. Close EDMC completely
-2. Delete all files in the plugin folder (keeps your data)
-3. Extract new release to the same folder
-4. Restart EDMC
+To update by hand: close EDMC, replace the plugin folder, restart. Your data is
+not in the plugin folder (see below), so it survives either way.
 
-## Usage
+## Where your data lives
 
-- **Merit Tracking**: Merits are tracked automatically when you're in a system
-- **Detailed View**: Click the info button to see all tracked systems
-- **Reset**: Trash icon clears cached systems (keeps current system)
-- **Copy/Report**: Copy merit reports to clipboard or send to Discord
+```
+%LOCALAPPDATA%\EliteMeritTracker\db\merittracker.db
+```
 
-## Data Storage
+Outside the plugin folder, on purpose: a reinstall replaces the plugin, and
+nobody expects that to take their merit history with it.
 
-All data is stored locally in the `data/` subfolder:
-- `data/systems.json` - Tracked star systems and merit counts
-- `data/power.json` - Power allegiance data
-- `data/backpack.json` - PowerPlay micro-resources in your backpack
-- `data/salvage.json` - Salvage tracking data
+| Table | Holds |
+|---|---|
+| `systems` | one row per system per commander, the whole record as JSON |
+| `inventory` | the three data bags and salvage, per item and system |
+| `meta` | the pledge, the commander name, the migration report |
 
-Legacy files from older versions are automatically migrated to `data/` on first run.
+Backups land in `db\backups\`, newest two kept, and are only written when the
+database passes an integrity check and has rows in it.
 
-No external data transmission occurs (except optional Discord webhooks you configure).
+### Coming from an older version
+
+The JSON files under `data/` are imported once, automatically, the first time
+you start a version with the database in it. A marker file, `db\migrate.done`,
+stops it running again.
+
+Nothing is deleted: `data\*.json` stays exactly where it is. If you ever want to
+go back, remove the `db` folder and downgrade — the JSON is still there.
+
+## Privacy
+
+Everything stays on your machine. The only outbound traffic is the GitHub
+version check and, if you configure one, your own Discord webhook.
+
+## Development
+
+```
+python emt_tests/run_tests.py          # the suite, with coverage
+python -m pytest emt_tests -o addopts=""   # the suite, without pytest-cov
+python lab/shoot_overview.py           # redraw the screenshots above
+```
+
+The screenshots in this README are rendered from the real widget code by
+`lab/shoot_overview.py`, with example data — never a commander's own.
+
+See [structure.md](structure.md) for the module layout.
 
 ## Credits
 

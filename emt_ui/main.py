@@ -6,23 +6,11 @@ from emt_models.power import pledgedPower
 from emt_models.system import systems
 import os
 from config import config
-from theme import theme
 from emt_core.logging import logger
 from emt_core.config import configPlugin
 from emt_ui.details import show_power_info
+from emt_ui.palette import get_theme_colors
 from emt_core.state import state
-
-
-def get_theme_colors():
-    """Get EDMC theme colors with fallbacks"""
-    try:
-        return {
-            'bg': theme.current.get('background', '#000000'),
-            'fg': theme.current.get('foreground', '#ff8c00'),
-            'highlight': theme.current.get('highlight', '#ff8c00'),
-        }
-    except Exception:
-        return {'bg': '#000000', 'fg': '#ff8c00', 'highlight': '#ff8c00'}
 
 
 class TrackerFrame:
