@@ -356,6 +356,42 @@ def merit_events(limit=None, commander=None, db=None):
         return []
 
 
+def save_progress(rows, ledger_state, db=None):
+    """Write the systems an event changed, and the ledger, in one transaction.
+
+    The incremental counterpart of save_systems(): no DELETE, because this
+    carries only what just changed. Replacing the whole set belongs to
+    plugin_stop and to a reset, which are the only places a system disappears.
+
+    The ledger travels with the rows because it has to. It holds the baseline
+    and the awards parked as suspected resends, and both are needed to decide
+    the next event - a crash that kept the merits but lost the ledger would
+    give the parked awards back twice or not at all.
+
+    Args:
+        rows: Tuples from system_row(), only the changed ones.
+        ledger_state: MeritLedger.export_state(), or None to leave it alone.
+        db: Database file.
+
+    Returns:
+        True if the write went through.
+    """
+    if not rows and ledger_state is None:
+        return True
+    try:
+        with connect(db) as conn:
+            for row in rows:
+                write_system(conn, row)
+            if ledger_state is not None:
+                conn.execute(
+                    "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)",
+                    ("ledger", json.dumps(ledger_state)))
+        return True
+    except (sqlite3.Error, OSError, TypeError, ValueError) as err:
+        logger.error(f"could not save progress: {err}")
+        return False
+
+
 def save_meta(key, value, db=None):
     """Store one JSON-serialisable value under `key`. True if it was stored."""
     try:

@@ -6,7 +6,6 @@ import myNotebook as nb
 import io
 import re
 import gzip
-import threading
 from typing import Dict, Any
 
 from emt_core.report import report
@@ -38,7 +37,6 @@ __version__ = VERSION
 
 # Module globals
 trackerFrame = None
-autosave_timer = None
 
 def _get_github_release_data():
     """Fetch latest GitHub release data"""
@@ -421,6 +419,7 @@ def report_on_FSD(sourceSystem):
         dcText = dcText.replace('@CPPledged', f"Pledged {sourceSystem.PowerplayStateReinforcement}")
         
     systems[sourceSystem.StarSystem].Merits = 0
+    _touch(sourceSystem.StarSystem)
     merit_ledger.forget(sourceSystem.StarSystem)
     report.send_to_discord(dcText)
 
@@ -439,38 +438,6 @@ def checkVersion():
     except Exception as e:
         logger.exception('Error parsing version data')
         return -1
-
-
-def _autosave_data():
-    """Periodic auto-save function called by timer"""
-    try:
-        logger.info("Auto-saving data (5-minute interval)")
-        update_json_file()
-    except Exception as e:
-        logger.error(f"Auto-save failed: {e}")
-    finally:
-        # Schedule next auto-save
-        _schedule_autosave()
-
-
-def _schedule_autosave():
-    """Schedule the next auto-save in 5 minutes"""
-    global autosave_timer
-    # Cancel existing timer if any
-    if autosave_timer:
-        autosave_timer.cancel()
-    # Schedule new timer for 5 minutes (300 seconds)
-    autosave_timer = threading.Timer(300.0, _autosave_data)
-    autosave_timer.daemon = True  # Don't prevent program exit
-    autosave_timer.start()
-
-
-def _cancel_autosave():
-    """Cancel the auto-save timer"""
-    global autosave_timer
-    if autosave_timer:
-        autosave_timer.cancel()
-        autosave_timer = None
 
 
 def plugin_start3(plugin_dir):
@@ -508,9 +475,7 @@ def plugin_start3(plugin_dir):
     merit_ledger.import_state(database.load_meta("ledger"))
     logger.info(f"Plugin initialized - Systems: {len(systems)}, Power: {pledgedPower.Power}")
 
-    # Start auto-save timer
-    _schedule_autosave()
-    logger.info("Auto-save scheduled for every 5 minutes")
+    logger.info("Saving on every event that moves merits")
         
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
     global trackerFrame
@@ -520,11 +485,8 @@ def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]):
 def plugin_stop():
     global report, systems, pledgedPower, configPlugin, trackerFrame
 
-    # Cancel auto-save timer
-    _cancel_autosave()
-    logger.info("Auto-save timer cancelled")
-
-    # Final save on shutdown
+    # The full save: unlike _save_now() it also drops the rows of systems
+    # that are no longer tracked.
     update_json_file()
     if trackerFrame:
         logger.warning("Destroying tracker frame.")
@@ -632,6 +594,36 @@ MERIT_CARGO_DIVISOR = 1.15
 MERIT_CARGO_MULTIPLIER = 0.65
 
 
+# Systems whose merits changed since the last write. Journal handlers add to
+# it; _save_now() empties it. A set rather than one name because a single
+# PowerplayMerits event can credit the current system, unwind merits off
+# several others and give a parked award back to a fourth.
+_dirty = set()
+
+
+def _touch(*names):
+    """Mark systems as needing a write."""
+    for name in names:
+        if name:
+            _dirty.add(name)
+
+
+def _save_now():
+    """Write the changed systems and the ledger, now.
+
+    Called at the end of every journal event that moved merits. One row is
+    about 5 ms whatever the system count, where rewriting all of them is 100 ms
+    at 5,000 - which is why this exists instead of a periodic full save.
+    """
+    if not _dirty:
+        return
+    names = [name for name in _dirty if name in systems]
+    _dirty.clear()
+    commander = database.commander()
+    rows = [database.system_row(systems[name], commander) for name in names]
+    database.save_progress(rows, merit_ledger.export_state())
+
+
 def _add_merits_to_system(system_name: str, merits: int):
     """Add merits to a system, creating it if necessary."""
     if system_name in systems:
@@ -641,6 +633,7 @@ def _add_merits_to_system(system_name: str, merits: int):
         new_system.StarSystem = system_name
         new_system.Merits = merits
         systems[system_name] = new_system
+    _touch(system_name)
 
 
 def apply_merit_correction(merits: int):
@@ -656,6 +649,7 @@ def apply_merit_correction(merits: int):
             continue
         removed = min(amount, system.Merits)
         system.Merits -= removed
+        _touch(system_name)
         pledgedPower.MeritsSession = max(0, pledgedPower.MeritsSession - removed)
         if removed < amount:
             logger.warning(f"Merit correction for {system_name} clamped: {amount} owed, {removed} available")
@@ -713,6 +707,7 @@ def update_system_merits(merits_value, system_name: str = None, apply_cargo_form
             current = systems.get(target, state.current_system)
             current.Merits += merits
             systems[target] = current
+    _touch(target)
 
     # Remember the attribution so a later server correction hits the right system
     merit_ledger.record(target, merits)
@@ -970,6 +965,9 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
             systems[nameSystem] = new_system
             updateSystemTracker(state.current_system, systems[nameSystem])
             trackerFrame.update_display(state.current_system)
+
+    # Whatever this event moved goes to disk before the next one arrives.
+    _save_now()
 
 
 def follow_edmc_system(name):

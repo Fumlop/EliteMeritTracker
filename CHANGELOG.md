@@ -35,6 +35,19 @@ All notable changes to EliteMeritTracker will be documented in this file.
   that took its baseline from the next snapshot had exactly zero room and
   could never give a parked award back.
 
+- Merits are written when they move, not every five minutes. The 5-minute
+  autosave timer is gone. A merit event now writes only the systems it
+  changed, together with the ledger, in one transaction: about 7 ms whatever
+  the system count, where rewriting every row is 100 ms at 5,000. A crash used
+  to cost up to five minutes of merits.
+  The write covers every system an event touched, not just the one you are in
+  - a server correction takes merits off the systems that earned them, and a
+  restored award gives them back to a fourth. The ledger's baseline and parked
+  awards go with them, because merits kept without the ledger that explains
+  them would hand a parked award back twice or never.
+  Removing the timer also removes the thread that raced the journal callback
+  over the `systems` dict.
+
 ### Changed
 - The Overview window is three tabs - Session, Systems, Shiplocker - in one
   window, replacing the Show Detailed View toggle, the separate Shiplocker
