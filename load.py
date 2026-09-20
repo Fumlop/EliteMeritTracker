@@ -488,7 +488,10 @@ def plugin_start3(plugin_dir):
         if imported:
             logger.info(f"Migrated to SQLite: {imported['imported']}")
     except Exception:
-        logger.exception("SQLite migration failed, continuing on JSON")
+        # Nothing reads data/*.json any more, so there is nothing to fall
+        # back to: the plugin carries on with whatever the database holds.
+        logger.exception("SQLite migration failed; starting with what the "
+                         "database already has")
 
     configPlugin.loadConfig()
     loadSystems()

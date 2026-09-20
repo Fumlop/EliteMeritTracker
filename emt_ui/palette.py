@@ -46,11 +46,6 @@ FALLBACK = {
     'table_row_odd': '#323232',
 }
 
-# WCAG 2.1 contrast floor for body text. Every foreground/background pair the
-# window draws is checked against it in emt_tests/test_palette.py.
-MIN_CONTRAST = 4.5
-
-
 def tag_for(system):
     """Return the base tag name for a system: one key of TAGS without _alt.
 
@@ -116,36 +111,14 @@ def luminance(hex_color):
     """Perceived brightness of '#rrggbb' as 0.0 - 1.0.
 
     The cheap weighted average, used only to decide dark theme from light.
-    For "can this be read on that", use contrast().
+    Whether a pair can actually be read is measured by the WCAG formula in
+    emt_tests/test_palette.py, which is where the only caller is.
     """
     hex_color = hex_color.lstrip('#')
     r = int(hex_color[0:2], 16)
     g = int(hex_color[2:4], 16)
     b = int(hex_color[4:6], 16)
     return (0.299 * r + 0.587 * g + 0.114 * b) / 255
-
-
-def relative_luminance(hex_color):
-    """WCAG 2.1 relative luminance of '#rrggbb', 0.0 - 1.0."""
-    hex_color = hex_color.lstrip('#')
-    channels = []
-    for index in (0, 2, 4):
-        value = int(hex_color[index:index + 2], 16) / 255
-        channels.append(value / 12.92 if value <= 0.03928
-                        else ((value + 0.055) / 1.055) ** 2.4)
-    r, g, b = channels
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b
-
-
-def contrast(foreground, background):
-    """WCAG contrast ratio between two '#rrggbb' colours, 1.0 - 21.0.
-
-    4.5 is the floor for body text, 3.0 for text at 24 px or 19 px bold.
-    """
-    first = relative_luminance(foreground)
-    second = relative_luminance(background)
-    lighter, darker = max(first, second), min(first, second)
-    return (lighter + 0.05) / (darker + 0.05)
 
 
 def get_muted(bg_color):

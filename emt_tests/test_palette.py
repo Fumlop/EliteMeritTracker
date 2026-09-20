@@ -6,6 +6,30 @@ import pytest
 from emt_ui import palette
 from emt_models.system import StarSystem
 
+# WCAG 2.1. Here rather than in the plugin: the window does not measure its own
+# contrast at runtime, this is what keeps it from regressing.
+MIN_CONTRAST = 4.5
+
+
+def relative_luminance(hex_color):
+    """WCAG relative luminance of '#rrggbb', 0.0 - 1.0."""
+    hex_color = hex_color.lstrip('#')
+    channels = []
+    for index in (0, 2, 4):
+        value = int(hex_color[index:index + 2], 16) / 255
+        channels.append(value / 12.92 if value <= 0.03928
+                        else ((value + 0.055) / 1.055) ** 2.4)
+    r, g, b = channels
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def contrast(foreground, background):
+    """WCAG contrast ratio between two '#rrggbb' colours, 1.0 - 21.0."""
+    first = relative_luminance(foreground)
+    second = relative_luminance(background)
+    lighter, darker = max(first, second), min(first, second)
+    return (lighter + 0.05) / (darker + 0.05)
+
 
 def system(state, power="Felicia Winters", progress=0.5, conflict=None):
     """A StarSystem in `state` at `progress` (0.0 - 1.0 control progress)."""
@@ -147,8 +171,8 @@ class TestContrast:
     def test_every_pair_the_window_draws(self, theme, pair):
         colors = self.colors(*theme)
         foreground, surface = pair
-        ratio = palette.contrast(colors[foreground], colors[surface])
-        assert ratio >= palette.MIN_CONTRAST, (
+        ratio = contrast(colors[foreground], colors[surface])
+        assert ratio >= MIN_CONTRAST, (
             f"{foreground} {colors[foreground]} on {surface} "
             f"{colors[surface]} is {ratio:.2f}:1"
         )
@@ -159,35 +183,35 @@ class TestContrast:
         # '#fff' is the short form tkinter takes; expand it to measure.
         if len(foreground) == 4:
             foreground = '#' + ''.join(c * 2 for c in foreground[1:])
-        ratio = palette.contrast(foreground, background)
-        assert ratio >= palette.MIN_CONTRAST, f"{tag} is {ratio:.2f}:1"
+        ratio = contrast(foreground, background)
+        assert ratio >= MIN_CONTRAST, f"{tag} is {ratio:.2f}:1"
 
     def test_the_muted_grey_is_not_the_button_fill(self):
         assert palette.get_muted('#000000') != palette.get_button_bg('#000000')
 
     def test_the_old_mistake_would_have_been_caught(self):
-        assert palette.contrast(palette.get_button_bg('#000000'), '#000000') < 2.0
+        assert contrast(palette.get_button_bg('#000000'), '#000000') < 2.0
 
     def test_the_stripes_are_different_enough_to_see(self):
         colors = self.colors('#000000', '#ff8c00')
-        ratio = palette.contrast(colors['table_row_even'], colors['table_row_odd'])
+        ratio = contrast(colors['table_row_even'], colors['table_row_odd'])
         assert ratio > 1.2
 
 
 class TestContrastMaths:
     def test_black_on_white_is_the_maximum(self):
-        assert palette.contrast('#000000', '#ffffff') == pytest.approx(21.0, abs=0.01)
+        assert contrast('#000000', '#ffffff') == pytest.approx(21.0, abs=0.01)
 
     def test_a_colour_on_itself_is_one(self):
-        assert palette.contrast('#ff8c00', '#ff8c00') == pytest.approx(1.0)
+        assert contrast('#ff8c00', '#ff8c00') == pytest.approx(1.0)
 
     def test_the_order_does_not_matter(self):
-        assert (palette.contrast('#ff8c00', '#000000')
-                == palette.contrast('#000000', '#ff8c00'))
+        assert (contrast('#ff8c00', '#000000')
+                == contrast('#000000', '#ff8c00'))
 
     def test_relative_luminance_endpoints(self):
-        assert palette.relative_luminance('#000000') == pytest.approx(0.0)
-        assert palette.relative_luminance('#ffffff') == pytest.approx(1.0)
+        assert relative_luminance('#000000') == pytest.approx(0.0)
+        assert relative_luminance('#ffffff') == pytest.approx(1.0)
 
 
 class TestThemeColors:

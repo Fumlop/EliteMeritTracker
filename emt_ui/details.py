@@ -245,9 +245,9 @@ def _session_tab(parent, colors):
     # the bar nothing and the last row is drawn under it.
     bar = tk.Frame(parent, background=colors['bg'])
     bar.pack(side="bottom", fill="x", padx=18, pady=10)
-    _rounded(bar, "Copy all systems", _copy_all, colors, 130).pack(side="left", padx=(0, 8))
-    _rounded(bar, "Export CSV", _export_csv, colors, 100).pack(side="left")
-    _rounded(bar, "Reset all", _reset_all, colors, 90).pack(side="right")
+    RoundedButton(bar, "Copy all systems", _copy_all, colors, 130).pack(side="left", padx=(0, 8))
+    RoundedButton(bar, "Export CSV", _export_csv, colors, 100).pack(side="left")
+    RoundedButton(bar, "Reset all", _reset_all, colors, 90).pack(side="right")
 
     inner = _scrollable(parent, "session", colors)
 
@@ -273,8 +273,8 @@ def _session_row(parent, colors, name, system, index):
     buttons = tk.Frame(box, background=colors['bg'])
     buttons.pack(side="right", padx=(12, 0))
     text = _report_text(name, system)
-    _rounded(buttons, "Copy", lambda: _copy(text, name), colors, 70).pack(side="left", padx=4)
-    _rounded(buttons, "Reset", lambda: _reset(name), colors, 70).pack(side="left", padx=4)
+    RoundedButton(buttons, "Copy", lambda: _copy(text, name), colors, 70).pack(side="left", padx=4)
+    RoundedButton(buttons, "Reset", lambda: _reset(name), colors, 70).pack(side="left", padx=4)
 
     tk.Label(box, text=f"{system.Merits:,}", font=(FONT, 15, "bold"), width=11,
              anchor="e", background=colors['bg'], foreground=colors['highlight']
@@ -315,9 +315,9 @@ def _systems_tab(parent, colors):
     # _session_tab.
     bar = tk.Frame(parent, background=colors['bg'])
     bar.pack(side="bottom", fill="x", padx=18, pady=10)
-    _rounded(bar, "Copy all systems", _copy_all, colors, 130).pack(side="left", padx=(0, 8))
-    _rounded(bar, "Export CSV", _export_csv, colors, 100).pack(side="left", padx=(0, 8))
-    _rounded(bar, "Collapse all", _collapse_all, colors, 100).pack(side="left")
+    RoundedButton(bar, "Copy all systems", _copy_all, colors, 130).pack(side="left", padx=(0, 8))
+    RoundedButton(bar, "Export CSV", _export_csv, colors, 100).pack(side="left", padx=(0, 8))
+    RoundedButton(bar, "Collapse all", _collapse_all, colors, 100).pack(side="left")
     tk.Label(bar, text=f"{len(shown)} of {len(systems)} systems", font=(FONT, 8),
              background=colors['bg'], foreground=colors['muted']).pack(side="right")
 
@@ -435,9 +435,9 @@ def _systems_detail(parent, colors, name, system):
     buttons = tk.Frame(box, background=colors['bg'])
     buttons.pack(side="right", fill="y", padx=(20, 0))
     text = _report_text(name, system)
-    _rounded(buttons, "Copy report", lambda: _copy(text, name), colors, 120
+    RoundedButton(buttons, "Copy report", lambda: _copy(text, name), colors, 120
              ).pack(side="top", pady=(0, 8))
-    _rounded(buttons, "Reset system", lambda: _reset(name), colors, 120).pack(side="top")
+    RoundedButton(buttons, "Reset system", lambda: _reset(name), colors, 120).pack(side="top")
     about = " - ".join(str(part) for part in (
         system.PrimaryEconomy, system.SystemSecurity, system.SystemGovernment
     ) if part)
@@ -593,7 +593,7 @@ def _inventory_table(parent, colors, title, rows, total, on_edit, on_add):
                    on_edit(item, system, count))
 
     if on_add is not None:
-        _rounded(frame, "+ Add entry", on_add, colors, 110).pack(side="top", anchor="w",
+        RoundedButton(frame, "+ Add entry", on_add, colors, 110).pack(side="top", anchor="w",
                                                                 pady=(8, 0))
 
 
@@ -847,8 +847,8 @@ def _ask_count(title, current):
 
     buttons = tk.Frame(box, background=colors['bg'])
     buttons.pack(padx=20, pady=16)
-    _rounded(buttons, "Save", save, colors, 80).pack(side="left", padx=5)
-    _rounded(buttons, "Cancel", box.destroy, colors, 80).pack(side="left", padx=5)
+    RoundedButton(buttons, "Save", save, colors, 80).pack(side="left", padx=5)
+    RoundedButton(buttons, "Cancel", box.destroy, colors, 80).pack(side="left", padx=5)
 
     entry.bind("<Return>", save)
     box.bind("<Escape>", lambda event: box.destroy())
@@ -912,8 +912,8 @@ def _add_bag_entry(bag):
 
     buttons = tk.Frame(box, background=colors['bg'])
     buttons.pack(padx=20, pady=16)
-    _rounded(buttons, "Add", save, colors, 80).pack(side="left", padx=5)
-    _rounded(buttons, "Cancel", box.destroy, colors, 80).pack(side="left", padx=5)
+    RoundedButton(buttons, "Add", save, colors, 80).pack(side="left", padx=5)
+    RoundedButton(buttons, "Cancel", box.destroy, colors, 80).pack(side="left", padx=5)
 
     count_entry.bind("<Return>", save)
     box.bind("<Escape>", lambda event: box.destroy())
@@ -988,10 +988,6 @@ class RoundedButton(tk.Canvas):
     def _on_click(self, event):
         if self.command:
             self.command()
-
-
-def _rounded(parent, text, command, colors, width=100):
-    return RoundedButton(parent, text, command, colors, width=width)
 
 
 def _clickable(widget, command):

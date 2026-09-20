@@ -1,4 +1,3 @@
-import json
 from emt_core import database
 from emt_core.logging import logger
 
@@ -332,13 +331,6 @@ class PowerConflict:
                 progress = item.get("ConflictProgress") or item.get("progress")
                 if power is not None and progress is not None:
                     self.entries.append(PowerConflictEntry(power, progress))
-
-
-class SystemEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, (StarSystem, PowerConflictEntry)):
-            return o.__dict__
-        return super().default(o)
 
 
 def dumpSystems():
