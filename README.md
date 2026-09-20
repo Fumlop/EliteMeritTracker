@@ -1,4 +1,4 @@
-![EliteMeritTracker](docs/pic/logo.png)
+![EliteMeritTracker](docs/pic/logo_small.jpg)
 
 # EliteMeritTracker
 

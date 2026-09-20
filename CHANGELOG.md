@@ -2,9 +2,7 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
-## [Unreleased]
-
-Not released yet - the version on `configPlugin` is unchanged.
+## [v0.4.400.4.000] - 2026-09-20
 
 ### Added
 - The store is a SQLite database, `%LOCALAPPDATA%\EliteMeritTracker\db\merittracker.db`.
