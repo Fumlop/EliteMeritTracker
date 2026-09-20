@@ -24,6 +24,17 @@ All notable changes to EliteMeritTracker will be documented in this file.
 - Screenshots in `docs/pic/`, rendered from the real widget code with example
   data by `lab/shoot_overview.py`.
 
+- Every `PowerplayMerits` decision is logged to the `merit_events` table with
+  what the server reported, what the ledger credited and why - credited,
+  parked, restored, unwound or ignored. The resend threshold was tuned on 5
+  journals / 84 events; this is what lets it be re-checked against a season.
+- A large award rejected as a resend now survives a restart. It is parked
+  until a later event's base proves the server held it, and closing EDMC in
+  between used to lose those merits for good. The baseline is stored with it,
+  because `_resolve_pending` allows no more than `base - baseline`: a ledger
+  that took its baseline from the next snapshot had exactly zero room and
+  could never give a parked award back.
+
 ### Changed
 - The Overview window is three tabs - Session, Systems, Shiplocker - in one
   window, replacing the Show Detailed View toggle, the separate Shiplocker

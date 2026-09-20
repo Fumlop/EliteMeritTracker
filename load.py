@@ -502,6 +502,7 @@ def plugin_start3(plugin_dir):
             # state.need_location_validation = True
             logger.info(f"Restored active system: {system.StarSystem}")
     pledgedPower.loadPower()
+    merit_ledger.import_state(database.load_meta("ledger"))
     logger.info(f"Plugin initialized - Systems: {len(systems)}, Power: {pledgedPower.Power}")
 
     # Start auto-save timer
@@ -723,6 +724,35 @@ def prefs_changed(cmdr, is_beta):
     if trackerFrame and state.current_system:
         trackerFrame.update_display(state.current_system)
            
+def _log_merit_event(entry, system, before, uncredited, restored, credited):
+    """Write one PowerplayMerits decision to the merit_events log.
+
+    The verdict is read off what changed rather than returned by
+    merits_delta(): the ledger's signature is covered by 44 tests and is not
+    worth widening for a log line.
+    """
+    if len(merit_ledger.pending) > before:
+        verdict = "parked"
+    elif restored:
+        verdict = "restored"
+    elif uncredited:
+        verdict = "unwound"
+    elif credited > 0:
+        verdict = "credited"
+    else:
+        verdict = "ignored"
+    database.record_merit_event(
+        stamp=entry.get("timestamp"),
+        commander=database.commander(),
+        power=entry.get("Power", ""),
+        total=entry.get("TotalMerits", 0),
+        gained=entry.get("MeritsGained", 0),
+        delta=credited,
+        system=system,
+        verdict=verdict,
+    )
+
+
 def _follow_commander():
     """Reload the models when LoadGame names a different pilot than the one
     they were read under.
@@ -759,6 +789,9 @@ def update_json_file():
     dumpSystems()
     save_salvage()
     save_backpack()
+    # A rejected award only gets its merits back when a later event proves the
+    # server held it. Closing EDMC in between used to lose them.
+    database.save_meta("ledger", merit_ledger.export_state())
 
 def journal_entry(cmdr, is_beta, system, station, entry, game_state):
     global trackerFrame
@@ -860,8 +893,11 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
     if entry['event'] in ['PowerplayMerits']:
         # TotalMerits is the only authoritative number: MeritsGained is regularly
         # reported for awards the server never credited (see emt_core/duplicate.py)
-        uncredited, restored, merits_gained = merit_ledger.merits_delta(
-            entry, getattr(state.current_system, "StarSystem", None))
+        here = getattr(state.current_system, "StarSystem", None)
+        parked_before = len(merit_ledger.pending)
+        uncredited, restored, merits_gained = merit_ledger.merits_delta(entry, here)
+        _log_merit_event(entry, here, parked_before, uncredited, restored,
+                         merits_gained)
 
         # The ledger baseline, not the raw TotalMerits: a rejected event carries a
         # total the server never held and must not reach the display

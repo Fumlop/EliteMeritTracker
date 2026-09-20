@@ -228,6 +228,62 @@ class MeritLedger:
             logger.warning(f"MeritsGained {gained} but server credited {credited} (total {total})")
         return uncredited, restored, credited
 
+    def export_state(self) -> Dict[str, Any]:
+        """The ledger state worth keeping between sessions.
+
+        A large award rejected as a resend only gets its merits back when a
+        later event's base proves the server held it. Closing EDMC in between
+        lost them outright - the award was rejected and the proof never came.
+
+        `baseline` travels with `pending` because it has to: _resolve_pending
+        allows no more than `base - baseline`, so a ledger that starts empty
+        and takes its baseline from the next snapshot has exactly zero room
+        and can never give a parked award back.
+
+        `last_event` and `recent` are deliberately left out. Both are
+        short-window duplicate guards; after a restart the window has passed.
+
+        No database here: the ledger stays pure and testable, and load.py
+        stores what this returns beside the other models.
+        """
+        return {
+            "baseline": self.baseline,
+            "power": self.power,
+            "pending": [list(entry) for entry in self.pending],
+        }
+
+    def import_state(self, state: Optional[Dict[str, Any]]) -> int:
+        """Take a stored ledger state back in. Returns the parked award count.
+
+        Anything malformed is dropped rather than raising: this comes off
+        disk, and a bad value must not stop the plugin loading.
+        """
+        if not isinstance(state, dict):
+            return 0
+
+        baseline = state.get("baseline")
+        if isinstance(baseline, int) and not isinstance(baseline, bool):
+            self.baseline = baseline
+        power = state.get("power")
+        if isinstance(power, str):
+            self.power = power
+
+        for row in state.get("pending") or []:
+            if not isinstance(row, (list, tuple)) or len(row) != 3:
+                continue
+            gained, claimed_total, system = row
+            if not isinstance(gained, int) or isinstance(gained, bool):
+                continue
+            if not isinstance(claimed_total, int) or isinstance(claimed_total, bool):
+                continue
+            self.pending.append([gained, claimed_total,
+                                 system if isinstance(system, str) else None])
+        del self.pending[:-PENDING_LIMIT]
+        if self.pending:
+            logger.info(f"Restored {len(self.pending)} parked merit awards "
+                        f"against baseline {self.baseline}")
+        return len(self.pending)
+
     def record(self, system: str, merits: int) -> None:
         """Remember that `merits` were credited to `system`."""
         if not system or merits <= 0:

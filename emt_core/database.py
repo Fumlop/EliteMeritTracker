@@ -296,6 +296,66 @@ def load_inventory(kind, commander="", db=None):
         return None
 
 
+MERIT_EVENT_COLUMNS = ("stamp", "commander", "power", "total", "gained",
+                       "delta", "system", "verdict")
+
+
+def record_merit_event(stamp, commander, power, total, gained, delta,
+                       system, verdict, db=None):
+    """Append one PowerplayMerits decision to the log.
+
+    Every award the ledger sees, and what it did with it. The resend threshold
+    in emt_core/duplicate.py was tuned on 5 journals / 84 events; this is what
+    lets it be re-checked against a real season's worth.
+
+    Args:
+        stamp: The journal timestamp, as written.
+        commander: Commander name, '' when unknown.
+        power: The pledged power the award was for.
+        total: TotalMerits as the server reported it.
+        gained: MeritsGained as the server reported it.
+        delta: What the ledger actually credited.
+        system: Where it was credited, or None.
+        verdict: 'credited', 'parked', 'restored', 'unwound' or 'ignored'.
+
+    Returns:
+        True if the row was written.
+    """
+    marks = ", ".join("?" * len(MERIT_EVENT_COLUMNS))
+    columns = ", ".join(MERIT_EVENT_COLUMNS)
+    try:
+        with connect(db) as conn:
+            conn.execute(f"INSERT INTO merit_events ({columns}) VALUES ({marks})",
+                         (str(stamp or ""), commander, power or "", int(total or 0),
+                          int(gained or 0), int(delta or 0), system, verdict))
+        return True
+    except (sqlite3.Error, OSError, TypeError, ValueError) as err:
+        # A lost log line must never cost the award it describes.
+        logger.warning(f"could not log the merit event: {err}")
+        return False
+
+
+def merit_events(limit=None, commander=None, db=None):
+    """The logged events, newest last. [dict, ...], or [] on any failure."""
+    where, args = "", []
+    if commander is not None:
+        where, args = "WHERE commander = ? ", [commander]
+    tail = ""
+    if limit:
+        # Newest `limit`, still handed back oldest first.
+        tail = f"ORDER BY id DESC LIMIT {int(limit)}"
+    try:
+        with connect(db) as conn:
+            rows = conn.execute(
+                f"SELECT id, {', '.join(MERIT_EVENT_COLUMNS)} FROM merit_events "
+                f"{where}{tail or 'ORDER BY id'}", args).fetchall()
+        events = [dict(zip(("id",) + MERIT_EVENT_COLUMNS, row)) for row in rows]
+        return events[::-1] if tail else events
+    except (sqlite3.Error, OSError) as err:
+        logger.error(f"could not read the merit log: {err}")
+        return []
+
+
 def save_meta(key, value, db=None):
     """Store one JSON-serialisable value under `key`. True if it was stored."""
     try:
