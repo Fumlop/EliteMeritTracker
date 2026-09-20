@@ -44,6 +44,14 @@ All notable changes to EliteMeritTracker will be documented in this file.
   copy of the database before an update instead of four copies of four files.
 
 ### Fixed
+- Two commanders on one install no longer mix. `plugin_start3` reads the
+  models before EDMC replays a single journal line, so they were always read
+  under whoever saved last; nothing reloaded when `LoadGame` finally named the
+  pilot, and the next save wrote one commander's systems, merits and
+  shiplocker under the other's name. The models are reloaded when the name
+  turns out to be different, and rows saved while the pilot was unknown are
+  adopted by the first commander to claim them rather than stranded - a
+  commander who already owns rows never takes another's.
 - Resetting a system no longer undoes itself. `save_systems()` wrote with
   `INSERT OR REPLACE` and never deleted, so a system dropped from memory kept
   its row and came back with its old merits at the next start. The JSON store

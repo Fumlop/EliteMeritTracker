@@ -283,6 +283,7 @@ def load_backpack():
         bag.items.clear()
         for item, system, count in rows:
             bag.items.setdefault(item, {})[system] = count
+    database.mark_loaded(name)
     logger.info(f"Loaded backpack - UM: {len(playerBackpack.umbag.items)}, "
                 f"Reinf: {len(playerBackpack.reinfbag.items)}, "
                 f"Acq: {len(playerBackpack.acqbag.items)}")

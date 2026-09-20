@@ -356,10 +356,12 @@ def dumpSystems():
 
 def loadSystems():
     """Read the current commander's systems into `systems`."""
-    for entry in database.load_systems(database.commander()):
+    name = database.commander()
+    for entry in database.load_systems(name):
         system = StarSystem()
         system.from_dict(entry)
         systems[system.StarSystem] = system
+    database.mark_loaded(name)
 
 
 systems = {} 

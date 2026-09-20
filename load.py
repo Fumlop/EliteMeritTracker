@@ -17,7 +17,7 @@ from emt_ui.main import TrackerFrame
 from emt_core.duplicate import merit_ledger, reset_merit_tracking
 from emt_core.config import configPlugin
 from emt_core.logging import logger
-from emt_core import migrate
+from emt_core import database, migrate
 from config import config, appname
 from emt_ui.config import create_config_frame
 from emt_models.backpack import playerBackpack, save_backpack, load_backpack
@@ -723,6 +723,37 @@ def prefs_changed(cmdr, is_beta):
     if trackerFrame and state.current_system:
         trackerFrame.update_display(state.current_system)
            
+def _follow_commander():
+    """Reload the models when LoadGame names a different pilot than the one
+    they were read under.
+
+    plugin_start3 runs before EDMC replays any journal line, so the models are
+    read under whatever was stored last - or under '' on a fresh install and
+    on the first start after the JSON import. Without this the next save would
+    write one commander's systems, merits and shiplocker under another's name.
+
+    Rows saved while the pilot was unknown are adopted rather than abandoned;
+    see database.adopt().
+    """
+    name = database.commander()
+    if name == database.loaded_commander():
+        return
+
+    database.adopt(name)
+    logger.info(f"Commander is {name or 'unknown'}; reloading from the database")
+    was_active = state.current_system.StarSystem if state.current_system else None
+    systems.clear()
+    loadSystems()
+    load_salvage()
+    load_backpack()
+    # systems.clear() dropped whatever state.current_system pointed at, and a
+    # stale object that is no longer a key of `systems` makes
+    # updateSystemTracker raise on the next journal line.
+    state.current_system = systems.get(was_active) if was_active else None
+    if trackerFrame and state.current_system:
+        trackerFrame.update_display(state.current_system)
+
+
 def update_json_file():
     pledgedPower.dumpJson()
     dumpSystems()
@@ -743,6 +774,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, game_state):
 
     if entry['event'] in ['LoadGame']:
         state.commander = entry.get('Commander', "")
+        _follow_commander()
     if entry['event'] == 'BackpackChange':
         # Track PowerPlay data collection
         current_system = state.current_system.StarSystem if state.current_system else None

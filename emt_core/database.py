@@ -341,6 +341,62 @@ def remember_commander(name, db=None):
         save_meta("commander", str(name), db)
 
 
+# The commander the models in memory were last read under. None until something
+# has been read. load.py compares it with commander() when LoadGame names the
+# pilot, and reloads when they differ - without that the models keep one
+# commander's data and the next save writes it under another's name.
+_loaded = None
+
+
+def loaded_commander():
+    return _loaded
+
+
+def mark_loaded(name):
+    global _loaded
+    _loaded = name
+
+
+def adopt(name, db=None):
+    r"""Give the rows saved before the commander was known to `name`.
+
+    Rows land under '' whenever the pilot is not named yet: everything the
+    migration imports from a `power.json` with no Commander, and anything
+    saved between plugin_start3 and LoadGame. Left there they would be
+    stranded the moment the real name arrived.
+
+    Only adopts when `name` owns nothing yet, so a second commander never
+    takes the first one's rows.
+
+    Returns:
+        True if any row was moved.
+    """
+    if not name:
+        return False
+    try:
+        with connect(db) as conn:
+            held = sum(
+                conn.execute(f"SELECT COUNT(*) FROM {table} WHERE commander = ?",
+                             (name,)).fetchone()[0]
+                for table in ("systems", "inventory")
+            )
+            if held:
+                return False
+            moved = sum(
+                conn.execute(f"UPDATE {table} SET commander = ? WHERE commander = ''",
+                             (name,)).rowcount
+                for table in ("systems", "inventory")
+            )
+            if moved:
+                conn.execute("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)",
+                             ("commander", json.dumps(str(name))))
+                logger.info(f"adopted {moved} unowned rows for {name}")
+        return bool(moved)
+    except (sqlite3.Error, OSError) as err:
+        logger.error(f"could not adopt rows for {name}: {err}")
+        return False
+
+
 def backup(path=None, keep=BACKUPS_KEPT):
     r"""Copy the database into db\backups\, keeping the newest `keep`.
 
