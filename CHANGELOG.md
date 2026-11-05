@@ -2,6 +2,23 @@
 
 All notable changes to EliteMeritTracker will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- The Overview window is two tabs, Session and Shiplocker. The Systems tab,
+  every system flown through with filters, sort and folds, is gone: the
+  Session tab already lists the systems holding merits. Its fold detail -
+  the raw undermining / decay / NET line and the opposition chips - went
+  with it.
+- Each Session row carries the control-progress bar the Systems fold showed.
+
+### Fixed
+- Reset and Reset all in the Overview wrote nothing to the database. The
+  merits stayed zero only until EDMC was killed, then came back; only the
+  main panel's dustbin saved. Both now write the systems and the ledger at
+  once, and the status line says so when the write fails. Session merits
+  are left alone.
+
 ## [v0.4.400.4.000] - 2026-09-20
 
 ### Added

@@ -21,7 +21,6 @@ sys.path.insert(0, PLUGIN_DIR)
 
 OUT_DIR = os.path.join(PLUGIN_DIR, "docs", "pic")
 SHOTS = (("Session", "overview-session.png"),
-         ("Systems", "overview-systems.png"),
          ("Shiplocker", "overview-shiplocker.png"))
 
 # The window is drawn at a fixed size here rather than at the screen share, so
@@ -185,11 +184,6 @@ def main():
 
     for tab, filename in SHOTS:
         details._state["tab"] = tab
-        if tab == "Systems":
-            # One row open, so the picture shows what a fold looks like. Sol,
-            # because it is the one with reinforcement, decay and opposition on
-            # it - an empty system shows an empty fold.
-            details._state["folded_open"] = {"Sol"}
         details._draw()
         window.update()
         shoot(window, os.path.join(OUT_DIR, filename))

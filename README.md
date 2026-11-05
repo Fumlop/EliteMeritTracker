@@ -9,7 +9,7 @@ and keeps the lot in a SQLite database so nothing is lost between sessions.
 
 ## The Overview window
 
-One window, three tabs. Everything below is the real window, drawn with example
+One window, two tabs. Everything below is the real window, drawn with example
 data.
 
 ### Session — what is waiting to be reported
@@ -20,15 +20,8 @@ Every system still holding merits, with the report line it would produce.
 **Copy** puts that line on the clipboard, or posts it to Discord when a webhook
 is set; **Reset** zeroes the system and forgets its credits in the ledger.
 
-### Systems — everything tracked, side by side
-
-![The Systems tab](docs/pic/overview-systems.png)
-
-Sort by any column header, filter by power, state or name. A row folds open in
-place to show its control progress, the decay taken off undermining, the
-opposition and the report text — without losing your place in the list.
-
-Row colour is the system's standing, not the theme:
+Each row carries a control-progress bar. Its colour, and the stripe on the
+left, is the system's standing, not the theme:
 
 | Colour | Meaning |
 |---|---|

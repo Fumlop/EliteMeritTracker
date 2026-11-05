@@ -1,0 +1,14 @@
+sandbox  : %TEMP%\emt-reset-oxir7re7\db\merittracker.db
+PASS  reset: the system is 0 after a reload  (got 0)
+PASS  reset: the other systems keep their merits  (got {'Sol': 800, 'HIP 44291': 300, 'Eme': 0})
+PASS  reset: the saved ledger keeps baseline and parked awards  (got {'baseline': 5000, 'power': 'Felicia Winters', 'pending': [[400, 5400, 'Sol']]})
+PASS  reset: session merits untouched  (got 2300)
+PASS  reset: status says reset  (got Reset Eme)
+PASS  reset all: every system is 0 after a reload  (got {'Eme': 0, 'Sol': 0, 'HIP 44291': 0})
+PASS  reset all: the rows are kept, not deleted  (got 3)
+PASS  reset all: the saved ledger keeps baseline and parked awards  (got {'baseline': 5000, 'power': 'Felicia Winters', 'pending': [[400, 5400, 'Sol']]})
+PASS  reset all: session merits untouched  (got 2300)
+PASS  reset all declined: merits unchanged on disk  (got {'Eme': 1200, 'Sol': 800, 'HIP 44291': 300})
+PASS  failed write: reset reports the failure  (got Reset Sol, but the database write failed - see the log)
+PASS  failed write: reset all reports the failure  (got Reset every system, but the database write failed - see the log)
+PASS  0 check(s) failed
